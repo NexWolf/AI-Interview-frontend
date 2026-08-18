@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { SigninType } from "@/types/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { Input } from "@/component/ui/Input";
+import { FiAlertCircle } from "react-icons/fi";
 
 type props = {
   show?: boolean;
@@ -27,41 +29,14 @@ export const Signin = forwardRef<HTMLDivElement, props>(
     });
 
     const onRegister = async (data: SigninType) => {
-      try {
-        const response = await fetch("http://localhost:5000/login", {
-          method: "POST",
-          credentials : 'include',
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        });
-
-        const result = await response.json();
-
-        if(response.status === 403) {
-          return router.push('/verify-email')
-        }
-
-        if (response.status === 200) {
-          const token = result.token;
-          localStorage.setItem('token' , token);
-          resetForm();
-          alert("loginSuccessfully");
-          router.push("/dashboard/overview");
-        }
-      } catch (error) {
-        if (error) {
-          console.error(error);
-        }
-      }
+      console.log(data)
     };
 
     return (
       <div
-        className={`absolute inset-0 transition-all duration-500  ${show ? "translate-x-full opacity-0 pointer-events-none" : "translate-x-0 opacity-100"}`}
+        className={`absolute h-full inset-0 transition-all duration-500  ${show ? "translate-x-full opacity-0 pointer-events-none" : "translate-x-0 opacity-100"}`}
       >
-        <div ref={ref} className="p-2 md:p-5">
+        <div ref={ref} className="h-full">
           <AuthSignForm
             title="Sign In Account"
             onSubmit={handleSubmitData(onRegister)}
@@ -70,23 +45,33 @@ export const Signin = forwardRef<HTMLDivElement, props>(
           >
             <label>
               <h3 className="text-white/70 text-sm">Email</h3>
-              <input
+              <Input
                 {...registerData("email")}
                 placeholder="eg. Ahmed@gmail.com"
                 className="bg-zinc-800 w-full px-3 py-2 border border-zinc-700 rounded-sm outline-none text-sm"
               />
-              {errors.email && <p>{errors.email.message}</p>}
+              {errors.email && (
+                <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
+                  <FiAlertCircle className="text-sm shrink-0" />{" "}
+                  <span>{errors.email.message}</span>
+                </p>
+              )}
             </label>
 
             <label>
               <h3 className="text-white/70 text-sm">Password</h3>
-              <input
+              <Input
                 type="password"
                 {...registerData("password")}
                 placeholder="Enter your password"
                 className="bg-zinc-800 w-full px-3 py-2 border border-zinc-700 rounded-sm outline-none text-sm"
               />
-              {errors.password && <p>{errors.password?.message}</p>}
+              {errors.password && (
+                <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
+                  <FiAlertCircle className="text-sm shrink-0" />{" "}
+                  <span>{errors.password?.message}</span>
+                </p>
+              )}
             </label>
 
             <div className="w-full space-y-1 mt-5">

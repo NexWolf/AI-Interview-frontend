@@ -6,6 +6,9 @@ import { setupInterview } from "@/types/interview/setup";
 import LanguageSelect from "./LanguageSelect";
 import TecnologiesSelect from "./TechnologiesSelect";
 import InterviewLevelSelect from "./InterviewLevelSelect";
+import { ThemeToggle } from "@/component/shared/ThemeToggle";
+import { useRouter } from "next/navigation";
+import { Input } from "@/component/ui/Input";
 
 const setupDefultData: setupInterview = {
   language: "ar",
@@ -13,10 +16,15 @@ const setupDefultData: setupInterview = {
   interview_level: "junior",
 };
 
+
 export const SetupContainer = () => {
+  const router = useRouter();
+
+
   const methods = useForm<setupInterview>({
     defaultValues: setupDefultData,
   });
+
 
   const { register, handleSubmit , watch} = methods;
 
@@ -24,8 +32,17 @@ export const SetupContainer = () => {
     console.log(data);
   };
 
+  const handleOpenInterview = () => {
+    router.push("/interview/session")
+  }  
+
   return (
-  <div className="w-full min-h-screen bg-[#030712] p-4 sm:p-8 flex justify-center items-center">
+  <div className="w-full min-h-screen bg-[#11161B] p-4 sm:p-8 flex justify-center items-center">
+
+    
+      <div className="flex justify-end mb-4  bg-white z-50 cursor-pointer">
+        <ThemeToggle />
+      </div>
   <form
     className="w-full max-w-4xl rounded-2xl border border-[#1F2937] bg-[#0B0F19] p-6 sm:p-10 flex flex-col gap-8"
     onSubmit={handleSubmit(OnSubmit)}
@@ -43,6 +60,11 @@ export const SetupContainer = () => {
     {/* Section 1 */}
     <div className="flex flex-col gap-3">
       <div>
+
+        <Input  label="input your email"/>
+
+        
+
         <h3 className="text-base font-semibold text-white">
           1. Choose Language
         </h3>
@@ -99,7 +121,8 @@ export const SetupContainer = () => {
     {/* Submit */}
     <div className="pt-4 border-t border-[#1F2937]">
       <button
-        type="submit"
+        type="button"
+        onClick={handleOpenInterview}
         className="w-full py-3.5 px-6 rounded-xl font-semibold text-white bg-[#6366F1] hover:bg-[#4F46E5] active:scale-[0.99] transition-all duration-200 cursor-pointer text-base shadow-lg shadow-[#6366F1]/20"
       >
         Start Interview

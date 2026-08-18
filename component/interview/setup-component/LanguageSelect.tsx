@@ -35,8 +35,8 @@ export const LanguageSelect = ({ register, watch }: PropsLanguage) => {
             key={lan.id}
             className={`relative flex items-center justify-between p-4 rounded-md border transition-all duration-200 cursor-pointer select-none ${
               isSelected
-                ? "border-[#4F46E5] bg-[#0B0F19] ring-1 ring-[#4F46E5]"
-                : "border-[#1F2937] bg-[#0D121F] hover:border-gray-700"
+                ? "border-accent bg-accent-light ring-1 ring-accent"
+                : "border-border bg-card hover:border-accent/50"
             }`}
           >
             <div className="flex items-center gap-3.5">
@@ -51,8 +51,8 @@ export const LanguageSelect = ({ register, watch }: PropsLanguage) => {
                 <div
                   className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
                     isSelected
-                      ? "border-[#6366F1] bg-[#6366F1]"
-                      : "border-gray-600 bg-transparent"
+                      ? "border-accent bg-accent"
+                      : "border-border bg-transparent"
                   }`}
                 >
                   {isSelected && (
@@ -63,10 +63,10 @@ export const LanguageSelect = ({ register, watch }: PropsLanguage) => {
 
               {/* Labels */}
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-semibold text-foreground">
                   {lan.mainTitle}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   {lan.subTitle}
                 </span>
               </div>
@@ -75,7 +75,7 @@ export const LanguageSelect = ({ register, watch }: PropsLanguage) => {
             {/* Icon */}
             <Globe
               className={`w-5 h-5 transition-colors ${
-                isSelected ? "text-[#6366F1]" : "text-gray-500"
+                isSelected ? "text-accent" : "text-muted-foreground"
               }`}
             />
           </label>

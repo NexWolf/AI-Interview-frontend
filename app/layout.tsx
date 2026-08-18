@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import {  Open_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -22,7 +23,15 @@ export default function RootLayout({
       lang="en"
       className={cn("h-full", "antialiased", "font-sans", geist.variable)}
     >
-      <body className={openSans.className}>{children}</body>
+      <body className={openSans.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+        >
+        {children}
+        </ThemeProvider>
+        </body>
     </html>
   );
 }
