@@ -17,8 +17,14 @@ export const SignupSchema = z.object({
     .min(1, "Email is required") 
     .email("Invalid email address")
     .transform((val) => val.toLowerCase().trim()),
-    password : z.string().min(6 , "password must be at least 6 characters")
-})
+    password : z.string().min(6 , "password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"], // يحدد مكان ظهور الخطأ في الـ UI
+  });
+
 
 export const SigninSchema = z.object({
     email : z.string()

@@ -2,7 +2,8 @@ import { refreshSession } from "@/actions/auth";
 import axios from "axios";
 
 export const AxiosAPI = axios.create({
-    baseURL : "/api"
+    baseURL : "/api",
+    withCredentials: true
 })
 
 let isRefreshing = false;
@@ -55,7 +56,7 @@ AxiosAPI.interceptors.response.use(
             }
 
             processQueue(null, newToken);
-            originalRequest.headers['Authorization'] = `Bearer , ${newToken}`
+            originalRequest.headers['Authorization'] = `Bearer ${newToken}`
             return AxiosAPI(originalRequest);
         }catch(refreshError) {
             processQueue(refreshError , null);

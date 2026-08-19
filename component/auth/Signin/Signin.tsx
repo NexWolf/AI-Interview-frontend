@@ -1,13 +1,19 @@
 "use client";
 import AuthSignForm from "@/component/form/AuthSignForm";
 import { signinInput, SigninSchema } from "@/validations/authSchema";
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { SigninType } from "@/types/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Input } from "@/component/ui/Input";
 import { FiAlertCircle } from "react-icons/fi";
+import { AxiosAPI } from "@/app/api/Axios";
+import { API_URL } from "@/constants/routes";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { createSession } from "@/actions/auth";
+import axios from "axios";
 
 type props = {
   show?: boolean;
@@ -16,6 +22,7 @@ type props = {
 
 export const Signin = forwardRef<HTMLDivElement, props>(
   ({ show, onConfirm }, ref) => {
+    const [loading, setLoading] = useState<boolean>(false);
     const router = useRouter();
 
     /* form hook options */
@@ -29,7 +36,30 @@ export const Signin = forwardRef<HTMLDivElement, props>(
     });
 
     const onRegister = async (data: SigninType) => {
-      console.log(data)
+      let isSuccess = false
+      try {
+        setLoading(true)
+              const response = await axios.post("/api/auth/login",data)
+        toast.success(response?.data?.message)
+        isSuccess= true
+        resetForm();
+
+      } catch (error : unknown) {
+      if (axios.isAxiosError(error)) {
+      toast.error(
+        error.response?.data?.message || "Login failed"
+      );
+    } else {
+      toast.error("Something went wrong");
+    }
+
+      }    finally {
+        setLoading(false)
+      } 
+
+      if(isSuccess) {
+        router.push('/interview/setup')
+      }
     };
 
     return (
@@ -75,8 +105,27 @@ export const Signin = forwardRef<HTMLDivElement, props>(
             </label>
 
             <div className="w-full space-y-1 mt-5">
-              <button className="w-full bg-zinc-950 border border-gray-800 py-2 rounded-md text-white/70 hover:text-white hover:scale-105 cursor-pointer flex items-center justify-center gap-1">
-                Sign In
+              <button
+                disabled={loading}
+                className="w-full bg-[#CBA07B] border border-gray-800 py-2 rounded-md text-white/70 hover:text-white hover:scale-105 cursor-pointer flex items-center justify-center gap-1 "
+              >
+                {loading ? (
+                  <div className="flex gap-2">
+                    <Loader2 className="animate-spin h-5 w-5 text-gray-800" />
+                    <span>Loading...</span>
+                  </div>
+                ) : (
+                  <span>Sign In</span>
+                )}
+              </button>
+            </div>
+            <div className="w-full flex justify-end">
+              <button
+                type="button"
+                onClick={() => router.push("/forgot-password")}
+                className="text-sm text-white/50 hover:text-white transition cursor-pointer"
+              >
+                Forgot password?
               </button>
             </div>
           </AuthSignForm>

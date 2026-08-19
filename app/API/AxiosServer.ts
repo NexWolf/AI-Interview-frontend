@@ -9,7 +9,7 @@ export const AxiosServerAPI = axios.create({
 
 AxiosServerAPI.interceptors.request.use(async (config) => {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = cookieStore.get('accessToken')?.value;
     
 
     if(token) {

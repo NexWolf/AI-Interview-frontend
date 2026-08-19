@@ -1,8 +1,3 @@
-import Overview from "./dashboard/overview/page";
-
-export default function Dashboard () {
-    return(
-        <Overview/>
-    )
+export default function Dashboard() {
+  return <div>Dashboard</div>;
 }
-

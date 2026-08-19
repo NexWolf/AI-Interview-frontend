@@ -60,11 +60,6 @@ export const SetupContainer = () => {
     {/* Section 1 */}
     <div className="flex flex-col gap-3">
       <div>
-
-        <Input  label="input your email"/>
-
-        
-
         <h3 className="text-base font-semibold text-white">
           1. Choose Language
         </h3>

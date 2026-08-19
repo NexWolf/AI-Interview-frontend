@@ -7,14 +7,14 @@ import { cookies } from "next/headers";
 export async function createSession(token : string , refreshToken : string)  {
     const cookieStore = await cookies();
 
-    cookieStore.set('token' , token , {
+    cookieStore.set('accessToken' , token , {
         httpOnly : true,
         secure : process.env.NODE_ENV === 'production',
         sameSite : 'lax',
         path : '/',
     })
 
-    cookieStore.set('refresh_token' , refreshToken , {
+    cookieStore.set('refreshToken' , refreshToken , {
         httpOnly : true,
         secure : process.env.NODE_ENV === 'production',
         sameSite : 'lax',
@@ -24,7 +24,7 @@ export async function createSession(token : string , refreshToken : string)  {
 
 export async function refreshSession() : Promise<string | null>{
     const cookieStore = await cookies();
-    const refreshToken = cookieStore.get('refresh_token')?.value;
+    const refreshToken = cookieStore.get('refreshToken')?.value;
 
     if(!refreshToken) return null;
 
@@ -50,9 +50,9 @@ export async function refreshSession() : Promise<string | null>{
 }
 
 export async function getMe () {
-    const {AxiosServerAPI} = await import ('../app/API/AxiosServer');
+    const {AxiosServerAPI} = await import ('../app/api/AxiosServer');
     const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+    const token = cookieStore.get("accessToken")?.value;
 
     if(!token) return null;
 
@@ -70,7 +70,7 @@ export async function getMe () {
 
 export async function getCurrentUser() {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = cookieStore.get('accessToken')?.value;
     
 
     if(token){

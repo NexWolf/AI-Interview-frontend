@@ -3,6 +3,7 @@ import {  Open_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { Toaster } from "sonner";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -24,12 +25,17 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", "font-sans", geist.variable)}
     >
       <body className={openSans.className}>
+              <Toaster theme="dark" position="top-right"/>
+
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
           enableSystem={false}
         >
         {children}
+        {/* <div className="absolute top-5 right-5 text-amber-700">
+          <Toaster />
+        </div> */}
         </ThemeProvider>
         </body>
     </html>

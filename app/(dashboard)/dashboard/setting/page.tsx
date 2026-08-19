@@ -1,18 +1,11 @@
 
-const InterviewPage = () => {
-
-    const handleStartInterview = async () => {
-
-    }
-
+const Setting = () => {
 
   return (
     <div>
-        <button onClick={handleStartInterview}>
-            Start Interview Now
-        </button>
+        
     </div>
   )
 }
 
-export default InterviewPage
+export default Setting
