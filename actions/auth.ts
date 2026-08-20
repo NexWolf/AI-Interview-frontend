@@ -50,7 +50,7 @@ export async function refreshSession() : Promise<string | null>{
 }
 
 export async function getMe () {
-    const {AxiosServerAPI} = await import ('../app/api/AxiosServer');
+    const {AxiosServerAPI} = await import ('@/app/API/AxiosServer');
     const cookieStore = await cookies();
     const token = cookieStore.get("accessToken")?.value;
 

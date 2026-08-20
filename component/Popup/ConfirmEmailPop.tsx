@@ -1,5 +1,5 @@
 "use client";
-import { AxiosAPI } from "@/app/api/Axios";
+import { AxiosAPI } from "@/app/API/AxiosAPI";
 import { API_URL } from "@/constants/routes";
 import { useTimerLeft } from "@/hook/ui/useTimerLeft";
 import { useState } from "react";

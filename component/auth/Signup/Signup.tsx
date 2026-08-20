@@ -1,5 +1,5 @@
 "use client";
-import { AxiosAPI } from "@/app/api/Axios";
+import { AxiosAPI } from "@/app/API/AxiosAPI";
 import AuthSignForm from "@/component/form/AuthSignForm";
 import ConfirmEmailPop from "@/component/Popup/ConfirmEmailPop";
 import { Input } from "@/component/ui/Input";
@@ -19,13 +19,11 @@ type props = {
   onConfirm: () => void;
 };
 
-
 export const Signup = forwardRef<HTMLDivElement, props>(
   ({ show, onConfirm }, ref) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [showConfirmPop, setShowConfirmPop] = useState<boolean>(false);
     const [userEmail, setUserEmail] = useState<string>("");
-
 
     const {
       register: registerData,
@@ -56,18 +54,18 @@ export const Signup = forwardRef<HTMLDivElement, props>(
           const { message, data } = response.data;
           console.log(data.user.isVerified);
           toast.success(message || "welcome");
-          resetForm()
+          resetForm();
           if (!data.user.isVerified) {
             setUserEmail(data.user.email);
             setShowConfirmPop(true);
           }
         }
       } catch (e: unknown) {
-        if(axios.isAxiosError(e)) {
+        if (axios.isAxiosError(e)) {
           toast.error(
-          e?.response?.data?.message || "Failed signup please try later!",
-        );
-        }else {
+            e?.response?.data?.message || "Failed signup please try later!",
+          );
+        } else {
           toast.error("Failed signup, please try later!");
         }
       } finally {

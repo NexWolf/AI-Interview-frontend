@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Input } from "@/component/ui/Input";
 import { FiAlertCircle } from "react-icons/fi";
-import { AxiosAPI } from "@/app/api/Axios";
+import { AxiosAPI } from "@/app/API/AxiosAPI";
 import { API_URL } from "@/constants/routes";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -36,29 +36,25 @@ export const Signin = forwardRef<HTMLDivElement, props>(
     });
 
     const onRegister = async (data: SigninType) => {
-      let isSuccess = false
+      let isSuccess = false;
       try {
-        setLoading(true)
-              const response = await axios.post("/api/auth/login",data)
-        toast.success(response?.data?.message)
-        isSuccess= true
+        setLoading(true);
+        const response = await axios.post("/api/auth/login", data);
+        toast.success(response?.data?.message);
+        isSuccess = true;
         resetForm();
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          toast.error(error.response?.data?.message || "Login failed");
+        } else {
+          toast.error("Something went wrong");
+        }
+      } finally {
+        setLoading(false);
+      }
 
-      } catch (error : unknown) {
-      if (axios.isAxiosError(error)) {
-      toast.error(
-        error.response?.data?.message || "Login failed"
-      );
-    } else {
-      toast.error("Something went wrong");
-    }
-
-      }    finally {
-        setLoading(false)
-      } 
-
-      if(isSuccess) {
-        router.push('/interview/setup')
+      if (isSuccess) {
+        router.push("/interview/setup");
       }
     };
 
