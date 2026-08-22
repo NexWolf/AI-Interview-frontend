@@ -29,7 +29,6 @@ export const SetupContainer = () => {
   const { register, handleSubmit , watch} = methods;
 
   const OnSubmit = async (data: setupInterview) => {
-    console.log(data);
   };
 
   const handleOpenInterview = () => {

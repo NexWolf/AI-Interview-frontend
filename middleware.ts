@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 const TOKEN_COOKIE_NAME = "accessToken";
  
 // الصفحات اللي مفتوحة للكل (بدون تسجيل دخول)
-const publicRoutes = ["/", "/auth", "/verify-email"];
+const publicRoutes = ["/", "/auth", "/verify-email", "/forgot-password", "/reset-password"];
  
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -16,7 +16,6 @@ export function middleware(request: NextRequest) {
  
   // 2. هل المستخدم معه token؟
   const token = request.cookies.get(TOKEN_COOKIE_NAME)?.value;
-  console.log("MIDDLEWARE GET TOKEN" ,request.cookies.getAll());
     
   // 3. إذا الصفحة عامة → خليه يفوت عادي، مهما كان الوضع
   if (isPublicRoute) {

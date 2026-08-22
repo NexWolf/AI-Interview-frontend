@@ -32,7 +32,7 @@ AxiosServerAPI.interceptors.response.use(
         originRequest._retry = true;
 
         try {
-            const {refreshSession} = await import("../../actions/auth");
+            const {refreshSession} = await import("@/actions/auth");
             const newToken = await refreshSession();
 
             if(!newToken) return Promise.reject(error);

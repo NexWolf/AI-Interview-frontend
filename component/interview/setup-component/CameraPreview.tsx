@@ -41,7 +41,6 @@ const CameraPreview = () => {
           videoRef.current.srcObject = stream;
         }
       } catch (e) {
-        console.log("Camera error :", e);
         setCameraError(true);
         setCameraReady(false);
       }

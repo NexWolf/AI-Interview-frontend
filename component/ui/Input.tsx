@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-import { forwardRef, useEffect, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { RegisterOptions } from "react-hook-form";
+import { forwardRef,  type InputHTMLAttributes, type ReactNode } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;

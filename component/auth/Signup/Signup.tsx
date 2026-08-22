@@ -1,11 +1,11 @@
 "use client";
-import { AxiosAPI } from "@/app/api/Axios";
+import { AxiosAPI } from "@/app/api/AxiosAPI";
 import AuthSignForm from "@/component/form/AuthSignForm";
 import ConfirmEmailPop from "@/component/Popup/ConfirmEmailPop";
 import { Input } from "@/component/ui/Input";
 import { API_URL } from "@/constants/routes";
 import { SignupType } from "@/types/auth";
-import { signupInput, SignupSchema } from "@/validations/authSchema";
+import { signupInput, SignupSchema } from "@/lib/validation/authSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forwardRef, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -19,13 +19,11 @@ type props = {
   onConfirm: () => void;
 };
 
-
 export const Signup = forwardRef<HTMLDivElement, props>(
   ({ show, onConfirm }, ref) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [showConfirmPop, setShowConfirmPop] = useState<boolean>(false);
     const [userEmail, setUserEmail] = useState<string>("");
-
 
     const {
       register: registerData,
@@ -45,7 +43,6 @@ export const Signup = forwardRef<HTMLDivElement, props>(
         confirmPassword: data.confirmPassword,
         userName: data.username,
       };
-      console.log(FormData);
       setLoading(true);
       try {
         const response = await AxiosAPI.post(
@@ -54,31 +51,28 @@ export const Signup = forwardRef<HTMLDivElement, props>(
         );
         if (response.data.success) {
           const { message, data } = response.data;
-          console.log(data.user.isVerified);
           toast.success(message || "welcome");
-          resetForm()
+          resetForm();
           if (!data.user.isVerified) {
             setUserEmail(data.user.email);
             setShowConfirmPop(true);
           }
         }
       } catch (e: unknown) {
-        if(axios.isAxiosError(e)) {
+        if (axios.isAxiosError(e)) {
           toast.error(
-          e?.response?.data?.message || "Failed signup please try later!",
-        );
-        }else {
+            e?.response?.data?.message || "Failed signup please try later!",
+          );
+        } else {
           toast.error("Failed signup, please try later!");
         }
       } finally {
         setLoading(false);
       }
-      console.log(data);
     };
 
     useEffect(() => {}, []);
 
-    // useLookScroll(showConfirmPop)
 
     return (
       <div

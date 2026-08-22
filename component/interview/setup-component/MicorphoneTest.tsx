@@ -119,7 +119,6 @@ const MicorphoneTest = ({ language }: PropsMic) => {
       );
       const avarage = sum / dataArray.length;
       setVolume(avarage);
-      console.log(avarage);
       animationFrameRef.current = requestAnimationFrame(updateVolume);
     };
 
