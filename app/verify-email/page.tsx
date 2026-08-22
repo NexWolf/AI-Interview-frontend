@@ -7,12 +7,10 @@ interface PageProps {
 }
 
 export default async function VerifyEmail({ searchParams }: PageProps) {
-  console.log("SEARCH PARAMS HERE : ",searchParams)
     const resolvedParams = await searchParams;
     const token = resolvedParams?.token;
 
   if (!token) {
-    console.log("Token not found in URL");
     return (
       <div className="bg-zinc-800 p-8 w-full h-fit">
         <p className="text-xl font-bold text-center">The link is invalid</p>

@@ -14,14 +14,13 @@ export const ConfirmEmailPop = ({ email, closePopup }: props) => {
 
   const handleResendConfirm = async () => {
     try {
-      const response = await AxiosAPI.post(
+       await AxiosAPI.post(
         `${API_URL}/api/v1/auth/resend-verification`,
       );
 
       setButtonDisabled(true);
-      console.log(response);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 

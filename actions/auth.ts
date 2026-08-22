@@ -44,7 +44,7 @@ export async function refreshSession(): Promise<string | null> {
 
         return newAccessToken
     } catch (e) {
-        console.log('Refresh token failed , logging out : ', e);
+        console.error('Refresh token failed , logging out : ', e);
         return null;
     }
 }
@@ -63,7 +63,7 @@ export async function getMe() {
 
         return res.data.data.client;
     } catch (e) {
-        console.log('Failed to fetch /me', e);
+        console.error('Failed to fetch /me', e);
         return null;
     }
 }

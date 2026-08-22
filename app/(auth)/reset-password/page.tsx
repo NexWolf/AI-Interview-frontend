@@ -42,7 +42,6 @@ export default function ResetPassword({ searchParams }: PageProps) {
     let isSuccess: boolean = false;
 
     if (!token) return;
-    console.log(token)
 
     try {
       const response = await AxiosAPI.post(

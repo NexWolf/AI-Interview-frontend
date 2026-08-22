@@ -32,14 +32,12 @@ export default function ForgotPassword() {
   const onSubmit = async ({ email }: { email: string }) => {
     const formData = new FormData();
     formData.append("email", email);
-    console.log(formData);
     try {
       const response = await AxiosAPI.post(
         `${API_URL}/api/v1/auth/forgot-password`,
         { email: email  ,     withCredentials: true
 },
       );
-      console.log(response);
       toast.success(response?.data?.message || "Reset link sent successfully!");
       reset();
       setIsSent(true);
@@ -50,7 +48,6 @@ export default function ForgotPassword() {
           e?.response?.data?.message ||
             "Somthing went wrong. please try again.",
         );
-        console.log("Foorget password Error", e);
       }
     }
   };

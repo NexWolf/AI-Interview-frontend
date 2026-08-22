@@ -48,7 +48,6 @@ export const Signin = forwardRef<HTMLDivElement, props>(
       } catch (error: unknown) {
         if (axios.isAxiosError(error)) {
           toast.error(error.response?.data?.message || "Login failed!");
-          console.log(error);
         } else {
           toast.error("Something went wrong");
         }

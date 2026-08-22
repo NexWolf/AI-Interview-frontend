@@ -43,7 +43,6 @@ export const Signup = forwardRef<HTMLDivElement, props>(
         confirmPassword: data.confirmPassword,
         userName: data.username,
       };
-      console.log(FormData);
       setLoading(true);
       try {
         const response = await AxiosAPI.post(
@@ -52,7 +51,6 @@ export const Signup = forwardRef<HTMLDivElement, props>(
         );
         if (response.data.success) {
           const { message, data } = response.data;
-          console.log(data.user.isVerified);
           toast.success(message || "welcome");
           resetForm();
           if (!data.user.isVerified) {
@@ -71,12 +69,10 @@ export const Signup = forwardRef<HTMLDivElement, props>(
       } finally {
         setLoading(false);
       }
-      console.log(data);
     };
 
     useEffect(() => {}, []);
 
-    // useLookScroll(showConfirmPop)
 
     return (
       <div

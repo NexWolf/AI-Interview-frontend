@@ -16,7 +16,6 @@ export function middleware(request: NextRequest) {
  
   // 2. هل المستخدم معه token؟
   const token = request.cookies.get(TOKEN_COOKIE_NAME)?.value;
-  console.log("MIDDLEWARE GET TOKEN" ,request.cookies.getAll());
     
   // 3. إذا الصفحة عامة → خليه يفوت عادي، مهما كان الوضع
   if (isPublicRoute) {
