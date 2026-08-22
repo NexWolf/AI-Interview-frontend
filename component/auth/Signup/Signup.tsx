@@ -1,11 +1,11 @@
 "use client";
-import { AxiosAPI } from "@/app/API/AxiosAPI";
+import { AxiosAPI } from "@/app/api/AxiosAPI";
 import AuthSignForm from "@/component/form/AuthSignForm";
 import ConfirmEmailPop from "@/component/Popup/ConfirmEmailPop";
 import { Input } from "@/component/ui/Input";
 import { API_URL } from "@/constants/routes";
 import { SignupType } from "@/types/auth";
-import { signupInput, SignupSchema } from "@/validations/authSchema";
+import { signupInput, SignupSchema } from "@/lib/validation/authSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forwardRef, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -43,7 +43,6 @@ export const Signup = forwardRef<HTMLDivElement, props>(
         confirmPassword: data.confirmPassword,
         userName: data.username,
       };
-      console.log(FormData);
       setLoading(true);
       try {
         const response = await AxiosAPI.post(
@@ -52,7 +51,6 @@ export const Signup = forwardRef<HTMLDivElement, props>(
         );
         if (response.data.success) {
           const { message, data } = response.data;
-          console.log(data.user.isVerified);
           toast.success(message || "welcome");
           resetForm();
           if (!data.user.isVerified) {
@@ -71,12 +69,10 @@ export const Signup = forwardRef<HTMLDivElement, props>(
       } finally {
         setLoading(false);
       }
-      console.log(data);
     };
 
     useEffect(() => {}, []);
 
-    // useLookScroll(showConfirmPop)
 
     return (
       <div

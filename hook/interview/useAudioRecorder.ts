@@ -56,7 +56,6 @@ const stopListening = () => {
             const audioBlob = new Blob(audioChunks, {
                 type: recorder.mimeType,
             })
-            console.log(audioBlob)
         }
 
         const audioContext = new AudioContext();
