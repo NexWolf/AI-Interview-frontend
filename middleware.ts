@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 const TOKEN_COOKIE_NAME = "accessToken";
  
 // الصفحات اللي مفتوحة للكل (بدون تسجيل دخول)
-const publicRoutes = ["/", "/auth", "/verify-email"];
+const publicRoutes = ["/", "/auth", "/verify-email", "/forgot-password", "/reset-password"];
  
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

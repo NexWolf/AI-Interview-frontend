@@ -1,6 +1,6 @@
 "use client";
 import AuthSignForm from "@/component/form/AuthSignForm";
-import { signinInput, SigninSchema } from "@/validations/authSchema";
+import { signinInput, SigninSchema } from "@/lib/validation/authSchema";
 import { forwardRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { SigninType } from "@/types/auth";
@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Input } from "@/component/ui/Input";
 import { FiAlertCircle } from "react-icons/fi";
-import { AxiosAPI } from "@/app/API/AxiosAPI";
+import { AxiosAPI } from "@/app/api/AxiosAPI";
 import { API_URL } from "@/constants/routes";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -39,13 +39,16 @@ export const Signin = forwardRef<HTMLDivElement, props>(
       let isSuccess = false;
       try {
         setLoading(true);
+
         const response = await axios.post("/api/auth/login", data);
-        toast.success(response?.data?.message);
+        toast.success(response?.data?.message || "Login successfully");
         isSuccess = true;
+
         resetForm();
       } catch (error: unknown) {
         if (axios.isAxiosError(error)) {
-          toast.error(error.response?.data?.message || "Login failed");
+          toast.error(error.response?.data?.message || "Login failed!");
+          console.log(error);
         } else {
           toast.error("Something went wrong");
         }

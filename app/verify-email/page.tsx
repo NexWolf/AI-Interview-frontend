@@ -7,6 +7,7 @@ interface PageProps {
 }
 
 export default async function VerifyEmail({ searchParams }: PageProps) {
+  console.log("SEARCH PARAMS HERE : ",searchParams)
     const resolvedParams = await searchParams;
     const token = resolvedParams?.token;
 
@@ -60,7 +61,6 @@ export default async function VerifyEmail({ searchParams }: PageProps) {
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
             <span className="text-2xl text-red-400">!</span>
           </div>
-
           <h1 className="text-2xl font-bold text-white">Confirmation Failed</h1>
 
           <p className="mt-3 text-sm leading-6 text-zinc-400">{errorMessage}</p>
