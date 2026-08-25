@@ -56,6 +56,7 @@ export const Signin = forwardRef<HTMLDivElement, props>(
       }
 
       if (isSuccess) {
+        router.refresh();
         router.push("/interview/setup");
       }
     };
