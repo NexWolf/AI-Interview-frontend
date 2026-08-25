@@ -28,7 +28,7 @@ export default function Sign() {
         <div className="relative z-20">
           <Image
             alt="logo"
-            src="/logo.png"
+            src="/AI.jpg"
             width={160}
             height={48}
             className="object-contain"
