@@ -11,9 +11,9 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader = ({ data, onAdd, onEdit }: ProfileHeaderProps) => {
-//   const currentXp = data.level?.currentXP ?? 0;
-//   const nextLevel = data.level?.maxXP ?? 0;
-//   const percentage = Math.min(Math.max((nextLevel / currentXp) * 100, 0));
+  //   const currentXp = data.level?.currentXP ?? 0;
+  //   const nextLevel = data.level?.maxXP ?? 0;
+  //   const percentage = Math.min(Math.max((nextLevel / currentXp) * 100, 0));
   return (
     <div className="relative w-full overflow-hidden rounded-md border border-slate-800/80 bg-[#0B0F17] p-6 text-slate-200 shadow-xl backdrop-blur-md ">
       <div
