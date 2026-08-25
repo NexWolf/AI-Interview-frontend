@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Input } from "@/component/ui/Input";
 import { FiAlertCircle } from "react-icons/fi";
-import { AxiosAPI } from "@/app/api/AxiosAPI";
+import { AxiosAPI } from "@/lib/AxiosAPI";
 import { API_URL } from "@/constants/routes";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";

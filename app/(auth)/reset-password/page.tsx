@@ -1,5 +1,5 @@
 "use client";
-import { AxiosAPI } from "@/app/api/AxiosAPI";
+import { AxiosAPI } from "@/lib/AxiosAPI";
 import InputError from "@/component/shared/InputError";
 import LoadingIcon from "@/component/shared/LoadingIcon";
 import { Input } from "@/component/ui/Input";
@@ -48,9 +48,9 @@ export default function ResetPassword({ searchParams }: PageProps) {
         `${API_URL}/api/v1/auth/reset-password`,
         {
           token,
-          password : data.password,
-          confirmPassword : data.confirmPassword
-        }
+          password: data.password,
+          confirmPassword: data.confirmPassword,
+        },
       );
 
       toast.success(
