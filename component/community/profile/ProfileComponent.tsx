@@ -2,6 +2,7 @@
 import { BioDataType, profileDataType } from "@/types/community/profile"
 import ProfileHeader  from "./ProfileHeader"
 import { SkillOverview } from "./SkillsOverview"
+import AboutSection from "./AboutSection"
 
 type ProfileProps ={
     ProfileData  : profileDataType
@@ -24,7 +25,9 @@ const ProfileComponent = ({ProfileData}: ProfileProps)  => {
             <SkillOverview skills={ProfileData.skills} />
         
 
-        
+        <div>
+            <AboutSection />
+        </div>
     </div>
   )
 }
