@@ -4,14 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "build": "NODE_OPTIONS='--max-old-space-size=2048' next build",
+    "start": "next start"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
-    "@splinetool/react-spline": "^4.1.0",
-    "@splinetool/runtime": "^2.0.5",
     "axios": "^1.19.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
