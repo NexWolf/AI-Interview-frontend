@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { Plus, Pencil, MapPin, Calendar, Link2 } from "lucide-react";
 import { BioDataType, profileDataType } from "@/types/community/profile";
-import ActionButton from "../shared/ActionButton";
+import ActionButton from "@/component/community/shared/ActionButton";
 
 interface ProfileHeaderProps {
   data: BioDataType;
