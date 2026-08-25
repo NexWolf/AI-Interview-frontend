@@ -1,5 +1,5 @@
 "use client";
-import { AxiosAPI } from "@/app/api/AxiosAPI";
+import { AxiosAPI } from "@/lib/AxiosAPI";
 import AuthSignForm from "@/component/form/AuthSignForm";
 import ConfirmEmailPop from "@/component/Popup/ConfirmEmailPop";
 import { Input } from "@/component/ui/Input";
@@ -72,7 +72,6 @@ export const Signup = forwardRef<HTMLDivElement, props>(
     };
 
     useEffect(() => {}, []);
-
 
     return (
       <div

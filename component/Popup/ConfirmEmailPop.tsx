@@ -1,5 +1,5 @@
 "use client";
-import { AxiosAPI } from "@/app/api/AxiosAPI";
+import { AxiosAPI } from "@/lib/AxiosAPI";
 import { API_URL } from "@/constants/routes";
 import { useTimerLeft } from "@/hook/ui/useTimerLeft";
 import { useState } from "react";
@@ -14,9 +14,7 @@ export const ConfirmEmailPop = ({ email, closePopup }: props) => {
 
   const handleResendConfirm = async () => {
     try {
-       await AxiosAPI.post(
-        `${API_URL}/api/v1/auth/resend-verification`,
-      );
+      await AxiosAPI.post(`${API_URL}/api/v1/auth/resend-verification`);
 
       setButtonDisabled(true);
     } catch (error) {

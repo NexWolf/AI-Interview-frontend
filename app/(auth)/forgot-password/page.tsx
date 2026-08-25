@@ -1,5 +1,5 @@
 "use client";
-import { AxiosAPI } from "@/app/api/AxiosAPI";
+import { AxiosAPI } from "@/lib/AxiosAPI";
 import InputError from "@/component/shared/InputError";
 import LoadingIcon from "@/component/shared/LoadingIcon";
 import { Input } from "@/component/ui/Input";
@@ -35,7 +35,7 @@ export default function ForgotPassword() {
     try {
       const response = await AxiosAPI.post(
         `${API_URL}/api/v1/auth/forgot-password`,
-        { email: email, },
+        { email: email },
       );
       toast.success(response?.data?.message || "Reset link sent successfully!");
       reset();
