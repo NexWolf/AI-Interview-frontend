@@ -1,8 +1,9 @@
 import { refreshSession } from "@/actions/auth";
+import { API_URL } from "@/constants/routes";
 import axios from "axios";
 
 export const AxiosAPI = axios.create({
-    baseURL : "/api",
+    baseURL : API_URL,
     withCredentials: true
 })
 

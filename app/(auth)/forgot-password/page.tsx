@@ -10,7 +10,7 @@ import {
 } from "@/lib/validation/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { ArrowRight, Loader2, Mail, MailCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Mail, MailCheck, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -35,8 +35,7 @@ export default function ForgotPassword() {
     try {
       const response = await AxiosAPI.post(
         `${API_URL}/api/v1/auth/forgot-password`,
-        { email: email  ,     withCredentials: true
-},
+        { email: email, },
       );
       toast.success(response?.data?.message || "Reset link sent successfully!");
       reset();
