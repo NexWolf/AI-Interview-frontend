@@ -11,14 +11,15 @@ export default function Sign() {
   return (
     <div className="relative flex h-screen w-screen overflow-hidden bg-card-gradient text-[#E5E7EB]">
   {/* الصورة كخلفية كاملة للصفحة */}
-  <Image src="/login.jpg" alt="login" fill className="object-cover" priority />
 
   <div className="absolute left-5 right-5 z-50">
     <ThemeToggle />
   </div>
 
   {/* العنوان فوق الصورة - absolute مش flex item */}
-  <div className="absolute inset-0 z-10 hidden md:flex items-center justify-center px-8 lg:right-1/2">
+  <div className="relative w-full inset-0 z-10 hidden md:flex items-center justify-center px-8 lg:right-1/2">
+    <Image src="/login.jpg" alt="login" fill className="object-cover" priority />
+
     <div className="bg-black/10 backdrop-blur-md rounded-2xl px-10 py-8 text-center max-w-md border border-white/10">
       <div className="text-center mb-6">
         <h2 className="text-heading text-2xl font-bold">
