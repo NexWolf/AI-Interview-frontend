@@ -4,106 +4,169 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer base {
+  :root {
+    /* خلفية الصفحة العامة - تدرّج سماوي مثل الصورة */
+    --background: 210 60% 92%;
+    --background-gradient: linear-gradient(180deg, hsl(205 70% 88%) 0%, hsl(210 55% 94%) 50%, hsl(0 0% 100%) 100%);
+    --foreground: 220 20% 15%;
 
 
+    --heading: 220 45% 18%;
+    /* النص التوضيحي تحت العنوان (متل "Make a new doc to bring...") */
+    --subheading: 215 20% 45%;
 
 
+    /* الكارد الزجاجي (Card) */
+    --card: 0 0% 100%;
+    --card-gradient: linear-gradient(160deg, hsl(205 70% 94% / 0.9) 0%, hsl(210 50% 98% / 0.85) 50%, hsl(0 0% 100% / 0.9) 100%);
+    --card-opacity: 0.85;
+    --card-border: 210 30% 90%;
+    --card-foreground: 220 25% 10%;
+
+    /* حقول الإدخال (Input) */
+    --input: 210 30% 96%;
+    --input-border: 210 20% 88%;
+    --input-foreground: 220 20% 15%;
+    --input-focus-border: 220 70% 50%;
+    --input-focus-ring: 220 80% 70%;
+
+    --button: 220 20% 12%;
+    /* خلفية الزر */
+    --button-foreground: 0 0% 100%;
+    /* لون النص جوا الزر */
+    --button-border: 220 20% 12%;
+    /* حدود الزر */
+    --button-hover: 220 20% 20%;
+    /* خلفية الزر عند hover */
+    --button-border-hover: 220 20% 20%;
+    /* حدود الزر عند hover */
+
+    
+     --button-secondary: 210 50% 84%;
+    --button-secondary-foreground: 220 30% 20%;
+    --button-secondary-border: 210 40% 78%;
+    --button-secondary-hover: 210 45% 76%;
+    --button-secondary-border-hover: 210 40% 70%;
+
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 15% 45%;
+
+    /* الزر الأساسي (زي زر "Get Started" الأسود بالصورة) */
+    --primary: 220 20% 12%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 220 20% 20%;
+
+    --accent: 210 40% 90%;
+    --accent-foreground: 220 25% 15%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 268 29% 5%;
+    --foreground: 240 5% 90%;
+
+    --heading: 210 40% 92%;
+    --subheading: 270 10% 65%;
+
+    --card: 268 25% 8%;
+    --card-opacity: 1;
+    --card-gradient: linear-gradient(160deg, hsl(268 30% 10% / 0.9) 0%, hsl(268 25% 8% / 0.85) 100%);
+    --card-opacity: 1;
+    --card-border: 268 20% 18%;
+    --card-foreground: 0 0% 95%;
+
+    --input: 268 20% 12%;
+    --input-border: 268 20% 22%;
+    --input-foreground: 240 5% 90%;
+    --input-focus-border: 268 85% 65%;
+    --input-focus-ring: 268 75% 45%;
+
+    --button: 268 85% 65%;
+    --button-foreground: 0 0% 100%;
+    --button-border: 268 85% 65%;
+    --button-hover: 268 85% 72%;
+    --button-border-hover: 268 85% 72%;
+
+    --button-secondary: 268 20% 16%;
+    --button-secondary-foreground: 0 0% 90%;
+    --button-secondary-border: 268 20% 24%;
+    --button-secondary-hover: 268 20% 22%;
+    --button-secondary-border-hover: 268 20% 30%;
 
 
+    --muted: 268 20% 12%;
+    --muted-foreground: 270 10% 65%;
 
+    --primary: 268 85% 65%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 268 85% 72%;
 
+    --accent: 268 70% 25%;
+    --accent-foreground: 268 85% 75%;
+  }
+}
 
-
-
-
-
-
-
-
-
-
-
-
+/* ربط المتغيرات مباشرة لنظام Tailwind v4 */
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: var(--font-geist-sans), 'Geist Fallback';
-  --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
 
-:root {
-  color-scheme: dark;
-  --background: 250 250 252;
-  --foreground: 15 15 20;         /* نص أسود تقريباً */
-  --card: 255 255 255;              /* كروت بيضاء صافية */
-  --card-hover: 245 245 248;        /* خلفية الكرت لما يصير عليها hover */
-  --border: 225 225 232;            /* بوردر رمادي فاتح للكروت العادية */
-  --border-muted: 235 235 240;      /* بوردر أخف للفواصل */
-  --muted-foreground: 100 100 115;  /* نص ثانوي (زي "Select the language...") */
-  --accent: 124 58 237;             /* نفس البنفسجي، بيضل هو هو */
-  --accent-light: 237 233 254;      /* خلفية فاتحة بنفسجية للعنصر المختار */
-  --accent-border: 168 130 245;  
-}
+  --color-heading: hsl(var(--heading));
+  --color-subheading: hsl(var(--subheading));
 
-.dark {
-  color-scheme: dark;
-  --background: 10 10 15;
-  --foreground: 255 255 255;
-  --card: 18 18 26;
-  --card-hover: 26 26 36;
-  --border: 45 45 60;
-  --border-muted: 35 35 48;
-  --muted-foreground: 160 160 175;
-  --accent: 147 112 240;
-  --accent-light: 45 35 75;
-  --accent-border: 124 58 237;
+  --color-card: hsl(var(--card) / var(--card-opacity));
+  --color--card-gradient: hsl(var(--card) / var(--card-opacity));
+  --color-card-border: hsl(var(--card-border));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-input: hsl(var(--input));
+  --color-input-border: hsl(var(--input-border));
+  --color-input-foreground: hsl(var(--input-foreground));
+  --color-input-focus-border: hsl(var(--input-focus-border));
+  --color-input-focus-ring: hsl(var(--input-focus-ring));
+
+  --color-button: hsl(var(--primary));
+  --color-button-foreground: hsl(var(--primary-foreground));
+  --color-button-border: hsl(var(--primary-border));
+  --color-button-hover: hsl(var(--primary-hover));
+  --color-button-border-hover: hsl(var(--primary-border-hover));
+
+  --color-button-secondary: hsl(var(--button-secondary));
+  --color-ؤ: hsl(var(--button-secondary-foreground));
+  --color-button-secondary-border: hsl(var(--button-secondary-border));
+  --color-button-secondary-hover: hsl(var(--button-secondary-hover));
+  --color-button-secondary-border-hover: hsl(var(--button-secondary-border-hover));
+
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-hover: hsl(var(--primary-hover));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --radius: var(--radius);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-card-border outline-none;
   }
+
+  @layer components {
+    .bg-card-gradient {
+      background: var(--card-gradient);
+    }
+  }
+
   body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
+    @apply text-foreground;
+    background: var(--background-gradient);
+    min-height: 100vh;
   }
 }

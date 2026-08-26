@@ -57,13 +57,13 @@ export const Signin = forwardRef<HTMLDivElement, props>(
 
       if (isSuccess) {
         router.refresh();
-        router.push("/interview/setup");
+        router.push("/profile");
       }
     };
 
     return (
       <div
-        className={`absolute h-full inset-0 transition-all duration-500  ${show ? "translate-x-full opacity-0 pointer-events-none" : "translate-x-0 opacity-100"}`}
+        className={`absolute h-full inset-0 transition-all duration-500  ${show ? "translate-x-full opacity-0 pointer-events-none" : "translate-x-0 opacity-100"} `}
       >
         <div ref={ref} className="h-full">
           <AuthSignForm
@@ -77,7 +77,6 @@ export const Signin = forwardRef<HTMLDivElement, props>(
               <Input
                 {...registerData("email")}
                 placeholder="eg. Ahmed@gmail.com"
-                className="bg-zinc-800 w-full px-3 py-2 border border-zinc-700 rounded-sm outline-none text-sm"
               />
               {errors.email && (
                 <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
@@ -93,7 +92,6 @@ export const Signin = forwardRef<HTMLDivElement, props>(
                 type="password"
                 {...registerData("password")}
                 placeholder="Enter your password"
-                className="bg-zinc-800 w-full px-3 py-2 border border-zinc-700 rounded-sm outline-none text-sm"
               />
               {errors.password && (
                 <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
@@ -106,7 +104,7 @@ export const Signin = forwardRef<HTMLDivElement, props>(
             <div className="w-full space-y-1 mt-5">
               <button
                 disabled={loading}
-                className="w-full bg-[#CBA07B] border border-gray-800 py-2 rounded-md text-white/70 hover:text-white hover:scale-105 cursor-pointer flex items-center justify-center gap-1 "
+                className="w-full bg-button border border-button-border py-2 rounded-md text-button-foreground  hover:scale-105 cursor-pointer flex items-center justify-center gap-1 "
               >
                 {loading ? (
                   <div className="flex gap-2">
@@ -122,7 +120,7 @@ export const Signin = forwardRef<HTMLDivElement, props>(
               <button
                 type="button"
                 onClick={() => router.push("/forgot-password")}
-                className="text-sm text-white/50 hover:text-white transition cursor-pointer"
+                className="text-sm text-foreground hover:text-green-600 transition cursor-pointer"
               >
                 Forgot password?
               </button>

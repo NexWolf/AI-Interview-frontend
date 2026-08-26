@@ -43,9 +43,5 @@ AxiosServerAPI.interceptors.response.use(
             return Promise.reject(e)
         }
     }
-
-    
-
-
 )
 

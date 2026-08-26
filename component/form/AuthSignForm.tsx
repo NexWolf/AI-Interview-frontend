@@ -19,13 +19,13 @@ export const AuthSignForm = ({
 }: AuthFormProps) => {
   return (
     <>
-      <div className="flex flex-col gap-4 items-center justify-center w-full h-full">
+      <div className="flex flex-col gap-4 items-center justify-center w-full h-full ">
         <div className="text-center space-y-1.5">
-          <h2 className="font-bold text-xl sm:text-2xl text-white tracking-tight">
+          <h2 className="font-bold text-xl sm:text-2xl text-heading tracking-tight">
             {title}
           </h2>
 
-          <p className="text-center text-xs sm:text-sm text-[#9DA5B4]">
+          <p className="text-center text-xs sm:text-sm text-subheading">
             Enter your details below to continue
           </p>
         </div>
@@ -33,7 +33,7 @@ export const AuthSignForm = ({
         <div className="w-full flex justify-between gap-3 pt-2">
           <button
             type="button"
-            className="w-1/2 bg-[#161C22] border border-[#232B34] hover:bg-[#232B34] py-2.5 rounded-lg text-xs sm:text-sm text-[#9DA5B4] hover:text-white transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+            className="w-1/2 bg-button-secondary border border-button-border hover:bg-button-hover py-2.5 rounded-lg text-xs sm:text-sm text-[#9DA5B4] hover:text-white transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
           >
             <FaGoogle className="text-base" />
             <span>Google</span>
@@ -41,7 +41,7 @@ export const AuthSignForm = ({
 
           <button
             type="button"
-            className="w-1/2 bg-[#161C22] border border-[#232B34] hover:bg-[#232B34] py-2.5 rounded-lg text-xs sm:text-sm text-[#9DA5B4] hover:text-white transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+            className="w-1/2 bg-button-secondary border border-button-border hover:bg-button-hover py-2.5 rounded-lg text-xs sm:text-sm text-[#9DA5B4] hover:text-white transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
           >
             <FiGithub className="text-base" />
             <span>Github</span>
