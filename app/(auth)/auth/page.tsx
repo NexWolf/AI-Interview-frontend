@@ -1,81 +1,47 @@
 "use client";
 import { Signin } from "@/component/auth/Signin/Signin";
 import { Signup } from "@/component/auth/Signup/Signup";
-import {  useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
+import { ThemeToggle } from "@/component/shared/ThemeToggle";
 
 export default function Sign() {
   const [showForm, setShowForm] = useState<boolean>(true);
 
-
   return (
-    <div className="relative flex h-screen w-screen overflow-hidden bg-[#0B0E11] text-[#E5E7EB]">
-      
-      {/* القسم الأيسر: الصورة والشعار والعبارة الترحيبية */}
-      <div className="relative hidden lg:flex w-[80%] h-full flex-col justify-between  p-12 overflow-hidden">
-        
-        {/* خلفية الصورة مع Overlay داكن */}
-        <Image
-          alt="NEXWOLF_IMAGE"
-          src="/signBG.jpeg"
-          fill
-          priority
-          className="object-cover object-center z-0 opacity-60"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E11] via-transparent to-black/40 z-10"/>
+    <div className="relative flex h-screen w-screen overflow-hidden bg-card-gradient text-[#E5E7EB]">
+  {/* الصورة كخلفية كاملة للصفحة */}
+  <Image src="/login.jpg" alt="login" fill className="object-cover" priority />
 
-        {/* الشعار Top Left */}
-        <div className="relative z-20">
-          <Image
-            alt="logo"
-            src="/AI.jpg"
-            width={160}
-            height={48}
-            className="object-contain"
-          />
-        </div>
+  <div className="absolute left-5 right-5 z-50">
+    <ThemeToggle />
+  </div>
 
-        {/* العناوين والوصف */}
-        <div className="relative z-20 max-w-md space-y-3">
-          <h2 className="text-4xl font-bold tracking-tight text-white">
-            {showForm ? "Build the future." : "Welcome"}{" "}
-            <span className="text-[#B38861] ">
-              {showForm ? "Create impact." : "back!"}
-            </span>
-          </h2>
-          <p className="text-base text-[#9DA5B4] leading-relaxed">
-            {showForm
-              ? "Join Nexwolf and start your journey towards growth and excellence."
-              : "Sign in to continue your journey and achieve more with Nexwolf."}
-          </p>
-        </div>
-
-        <div className="relative z-20 grid grid-cols-4 gap-4 pt-6 border-t border-[#232B34]/60 text-xs text-[#9DA5B4]">
-          <div>Innovative Solutions</div>
-          <div>Quality Focused</div>
-          <div>Scalable Products</div>
-          <div>Impact Driven</div>
-        </div>
+  {/* العنوان فوق الصورة - absolute مش flex item */}
+  <div className="absolute inset-0 z-10 hidden md:flex items-center justify-center px-8 lg:right-1/2">
+    <div className="bg-black/10 backdrop-blur-md rounded-2xl px-10 py-8 text-center max-w-md border border-white/10">
+      <div className="text-center mb-6">
+        <h2 className="text-heading text-2xl font-bold">
+          {showForm ? "Create a new account" : "Sign in to your account"}
+        </h2>
+        <p className="mt-2 text-subheading text-sm">
+          {showForm
+            ? "Fill in your details below to get started for free."
+            : "Welcome back! Please enter your details to continue."}
+        </p>
       </div>
-
-      {/* القسم الأيمن: نموذج التسجيل / الدخول */}
-      <div className="relative flex w-full lg:w-1/2 h-screen items-center justify-center p-4 sm:p-8 z-20 bg-[#0B0E11] overflow-y-auto lg:overflow-hidden">
-        <div
-          className="w-full h-full max-w-md rounded-2xl bg-[#11161B] border border-[#232B34] p-6 sm:p-8 shadow-2xl transition-[height] duration-300 overflow-hidden"
-        >
-          <div className="relative h-full">
-            <Signup
-              onConfirm={() => setShowForm(false)}
-              show={showForm}
-            />
-            <Signin
-              onConfirm={() => setShowForm(true)}
-              show={showForm}
-            />
-          </div>
-        </div>
-      </div>
-
     </div>
+  </div>
+
+  {/* القسم الأيمن: نموذج التسجيل / الدخول */}
+  <div className="relative flex w-full lg:w-1/2 h-screen items-center justify-center p-4 sm:p-8 z-20 bg-background overflow-y-auto lg:overflow-hidden ms-auto">
+    <div className="w-full h-full max-w-md rounded-2xl bg-card border border-card-border p-6 sm:p-8 shadow-2xl transition-[height] duration-300 overflow-hidden">
+      <div className="relative h-full">
+        <Signup onConfirm={() => setShowForm(false)} show={showForm} />
+        <Signin onConfirm={() => setShowForm(true)} show={showForm} />
+      </div>
+    </div>
+  </div>
+</div>
   );
 }

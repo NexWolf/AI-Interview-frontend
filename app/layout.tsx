@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import {  Open_Sans, Geist } from "next/font/google";
+import { Open_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Toaster } from "sonner";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
-const openSans = Open_Sans({subsets:["latin"]})
+const openSans = Open_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "AI Interview Coach",
@@ -22,22 +22,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      // suppressHydrationWarning تمنع تحذيرات التزامن الخاصة بـ next-themes
+      suppressHydrationWarning
       className={cn("h-full", "antialiased", "font-sans", geist.variable)}
     >
-      <body className={openSans.className}>
-              <Toaster theme="dark" position="top-right"/>
-
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-        >
-        {children}
-        {/* <div className="absolute top-5 right-5 text-amber-700">
-          <Toaster />
-        </div> */}
+      <body className={cn((openSans.className,  "min-h-full bg-background text-foreground"))}>
+        <ThemeProvider attribute="class">
+          <Toaster theme="dark" position="top-right" />
+          {children}
         </ThemeProvider>
-        </body>
+      </body>
     </html>
   );
 }

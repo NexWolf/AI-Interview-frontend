@@ -71,7 +71,6 @@ export const Signup = forwardRef<HTMLDivElement, props>(
       }
     };
 
-    useEffect(() => {}, []);
 
     return (
       <div
@@ -176,7 +175,7 @@ export const Signup = forwardRef<HTMLDivElement, props>(
             <div className="w-full space-y-1 mt-5">
               <button
                 disabled={loading}
-                className="w-full bg-[#CBA07B] border border-gray-800 py-2 rounded-md text-white/70 hover:text-white hover:scale-105 cursor-pointer flex items-center justify-center gap-1 "
+                className="w-full bg-button border border-button-border py-2 rounded-md text-button-foreground  hover:scale-105 cursor-pointer flex items-center justify-center gap-1 "
               >
                 {loading ? (
                   <div className="flex gap-2">
