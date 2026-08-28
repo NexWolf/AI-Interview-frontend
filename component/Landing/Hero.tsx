@@ -1,72 +1,274 @@
-import Image from "next/image"
-import { ArrowRight, Sparkles, Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowUpRight } from "lucide-react";
+
+import { SplineScene } from "@/components/ui/spline";
+import { Button } from "@/components/ui/button";
+import { TextShimmer } from "@/components/ui/text-shimmer";
+import { Spotlight } from "@/components/ui/spotlight";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      {/* subtle radial glow */}
+    <section className="relative h-[100svh] overflow-hidden bg-black">
+
+      {/* =========================================
+          Spotlight
+      ========================================= */}
+      <Spotlight />
+
+      {/* =========================================
+          Background Grid
+      ========================================= */}
       <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[480px] w-[820px] -translate-x-1/2 rounded-full bg-primary/15 blur-[140px]"
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+          z-0
+          opacity-[0.18]
+          [background-image:linear-gradient(rgba(163,106,246,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(163,106,246,0.18)_1px,transparent_1px)]
+          [background-size:70px_70px]
+          [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_80%)]
+        "
       />
 
-      <div className="mx-auto max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            AI-powered mock interviews
-          </div>
+      {/* =========================================
+          Background Glow
+      ========================================= */}
+      <div
+        className="
+          pointer-events-none
+          absolute
+          right-[10%]
+          top-1/2
+          z-[1]
+          h-[500px]
+          w-[500px]
+          -translate-y-1/2
+          rounded-full
+          bg-[#7D5BA6]/10
+          blur-[120px]
+        "
+      />
 
-          <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Practice interviews with an AI coach that helps you{" "}
-            <span className="text-primary">land the offer</span>
-          </h1>
+      {/* =========================================
+          Hero Content
+      ========================================= */}
+      <div
+        className="
+          relative
+          z-10
+          mx-auto
+          grid
+          h-full
+          w-full
+          max-w-[1400px]
+          grid-cols-1
+          items-center
+          gap-10
+          px-8
+          py-16
+          sm:px-12
+          sm:py-20
+          lg:grid-cols-2
+          lg:px-16
+          lg:py-12
+          xl:px-20
+        "
+      >
 
-          <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Rehearse runs realistic mock interviews, listens to your answers, and
-            delivers instant, specific feedback on your content, clarity, and
-            confidence — so you walk in ready.
+        {/* =========================================
+            Left Content
+        ========================================= */}
+        <div className="relative z-10">
+
+          {/* Heading */}
+          <TextShimmer
+            as="h1"
+            duration={3}
+            spread={3}
+            className="
+              max-w-xl
+              text-4xl
+              font-bold
+              leading-[1.08]
+              tracking-tight
+              sm:text-5xl
+              lg:text-6xl
+            "
+            style={
+              {
+                "--base-color": "#ffffff",
+                "--base-gradient-color": "#A36AF6",
+              } as React.CSSProperties
+            }
+          >
+            Intelligent Insights for Agile Enterprises
+          </TextShimmer>
+
+          {/* Description */}
+          <p
+            className="
+              mt-5
+              max-w-lg
+              text-sm
+              leading-6
+              text-white/45
+              sm:text-base
+              sm:leading-7
+              lg:text-lg
+            "
+          >
+            Lorem ipsum dolor sit amet consectetur. Integer tellus eu
+            scelerisque nunc. Integer ac convallis tempus nibh ac tristique
+            penatibus nulla a.
           </p>
 
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button size="lg" className="group w-full rounded-full px-6 sm:w-auto">
-              Start practicing free
-              <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </Button>
+          {/* =========================================
+              Button + Companies
+          ========================================= */}
+          <div className="mt-7 flex flex-wrap items-center gap-5">
+
+            {/* Start Now */}
             <Button
+              asChild
               size="lg"
-              variant="outline"
-              className="w-full rounded-full border-border bg-transparent px-6 sm:w-auto"
+              variant="default"
             >
-              Watch demo
+              <Link href="/signup">
+                Start Now
+                <ArrowUpRight />
+              </Link>
             </Button>
-          </div>
 
-          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-              ))}
+            {/* Companies */}
+            <div className="flex items-center gap-3">
+
+              <div className="flex -space-x-2">
+
+                <div
+                  className="
+                    relative
+                    h-7
+                    w-7
+                    overflow-hidden
+                    rounded-full
+                    border-2
+                    border-black
+                  "
+                >
+                  <Image
+                    src="/images/mohammed.jpg"
+                    alt="Customer"
+                    fill
+                    sizes="28px"
+                    className="object-cover"
+                  />
+                </div>
+
+                <div
+                  className="
+                    relative
+                    h-7
+                    w-7
+                    overflow-hidden
+                    rounded-full
+                    border-2
+                    border-black
+                  "
+                >
+                  <Image
+                    src="/images/ahmed.jpg"
+                    alt="Customer"
+                    fill
+                    sizes="28px"
+                    className="object-cover"
+                  />
+                </div>
+
+                <div
+                  className="
+                    relative
+                    h-7
+                    w-7
+                    overflow-hidden
+                    rounded-full
+                    border-2
+                    border-black
+                  "
+                >
+                  <Image
+                    src="/images/adham.jpg"
+                    alt="Customer"
+                    fill
+                    sizes="28px"
+                    className="object-cover"
+                  />
+                </div>
+
+              </div>
+
+              <span className="text-xs font-medium text-white/55">
+                1000+ Satisfied Companies
+              </span>
+
             </div>
-            <span>Trusted by 40,000+ job seekers</span>
           </div>
         </div>
 
-        {/* product preview */}
-        <div className="relative mx-auto mt-16 max-w-4xl">
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/40">
-            <Image
-              src="/AI.jpg"
-              alt="Rehearse AI interview session showing a live mock interview, transcript, and a score of 86"
-              width={1600}
-              height={1000}
-              className="h-auto w-full"
-              priority
-            />
-          </div>
+        {/* =========================================
+            Right - Spline
+        ========================================= */}
+        <div
+          className="
+            relative
+            flex
+            h-[380px]
+            w-full
+            items-center
+            justify-center
+            sm:h-[430px]
+            lg:h-[500px]
+          "
+        >
+
+          {/* Spline Glow */}
+          <div
+            className="
+              pointer-events-none
+              absolute
+              left-1/2
+              top-1/2
+              h-[320px]
+              w-[320px]
+              -translate-x-1/2
+              -translate-y-1/2
+              rounded-full
+              bg-[#8B5CF6]/10
+              blur-[100px]
+              sm:h-[360px]
+              sm:w-[360px]
+              lg:h-[400px]
+              lg:w-[400px]
+            "
+          />
+
+          {/* Spline */}
+          <SplineScene
+            scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+            className="
+              relative
+              z-10
+              h-full
+              w-full
+            "
+          />
+
         </div>
+
       </div>
     </section>
-  )
+  );
 }

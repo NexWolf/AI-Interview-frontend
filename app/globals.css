@@ -170,3 +170,14 @@
     min-height: 100vh;
   }
 }
+
+@layer components {
+  /* التدرج السماوي الخاص بالـ Landing Page الجديدة */
+  .landing-theme {
+    --background: 210 60% 92%;
+    --foreground: 220 20% 15%;
+    background: linear-gradient(180deg, hsl(205 70% 88%) 0%, hsl(210 55% 94%) 50%, hsl(0 0% 100%) 100%);
+    color: hsl(220 20% 15%);
+    min-height: 100vh;
+  }
+}
