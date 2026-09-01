@@ -14,7 +14,7 @@ export type RoleStatus = "ADMIN" | "USER"
 
 export interface EducationApi {
     institution: string;     // اسم الجامعة
-    degree: string;          // الدرجة العلمية
+    degree: number | null;          // الدرجة العلمية
     fieldOfStudy: string;    // التخصص
     startDate: string;       // ISO Date or "YYYY-MM"
     endDate?: string;        // ISO Date or "YYYY-MM" (Optional if isCurrent)
@@ -22,15 +22,23 @@ export interface EducationApi {
     description?: string;    // الوصف (اختياري)
 };
 
-export interface UserInfoApi {
-    id: string,
+export interface BasicApi {
     email: string,
     firstName: string,
     lastName: string,
     userName: string,
-    avatar: File | null,
     phoneNumber?: string | null,
+}
+
+export interface BioApi {
+    avatar: File | null,
     bio: string | null,
+    socialLink : string | null,
+}
+export interface profileSetup {
+    id: number | null,
+    basicData  : BasicApi,
+    bioData : BioApi
     education: EducationApi[],
     skills: string[],
     isVerified: boolean,
@@ -41,3 +49,19 @@ export interface UserInfoApi {
     updatedAt: string,
 }
 
+export interface UserInfoApi {
+    id : string,
+    email : string,
+    firstName : string,
+    lastName : string,
+    userName : string,
+    phoneNumber : string | null,
+    bio : string | null,
+    avatarUrl : string | null,
+    socialLinks : string | null,
+    isVerified : boolean,
+    lang : string | null,
+    authProvier : "LOCAL",
+    createdAt : string,
+    updatedAt : string,
+}

@@ -1,6 +1,6 @@
 
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
  
 // 👇 غيّر هاد الاسم إذا اسم الـ cookie تبعك مختلف
 const TOKEN_COOKIE_NAME = "accessToken";
@@ -16,11 +16,16 @@ export function middleware(request: NextRequest) {
  
   // 2. هل المستخدم معه token؟
   const token = request.cookies.get(TOKEN_COOKIE_NAME)?.value;
-    
+  // if(token) return NextResponse.redirect(new URL("/onboarding", request.url))
+    if(token && pathname === "/auth") {
+      return NextResponse.redirect(new URL("/onboarding" , request.url));
+    }
   // 3. إذا الصفحة عامة → خليه يفوت عادي، مهما كان الوضع
   if (isPublicRoute) {
     return NextResponse.next();
   }
+
+
  
   // 4. إذا الصفحة محمية وما معه token → رجعو عـ /auth
   if (!token) {

@@ -1,16 +1,13 @@
-import ProfileComponent from "@/component/community/profile/ProfileComponent"
-import { profileDataType } from "@/types/community/profile"
-import {profileData} from "@/constants/mockProfieData";
-import { getUserData } from "@/actions/profile/getUserData";
+import ProfilePreview from "@/features/profile/components/ProfilePreview"
+
 
 const page = async () => {
 
-  const responseBackend = await getUserData() 
-  console.log(responseBackend)
-    const response : profileDataType= profileData
+
+
   return (
     <div>
-        <ProfileComponent ProfileData = {response}/>
+        <ProfilePreview/>
     </div>
   )
 }

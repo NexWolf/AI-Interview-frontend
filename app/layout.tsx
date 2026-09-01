@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Open_Sans, Geist } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { cn } from "@/shared/lib/utils";
+import { ThemeProvider } from "@/shared/components/provider/ThemeProvider";
 import { Toaster } from "sonner";
+import { Providers } from "@/app/providers";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -26,10 +27,14 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("h-full", "antialiased", "font-sans", geist.variable)}
     >
-      <body className={cn((openSans.className,  "min-h-full bg-background text-foreground"))}>
+      <body
+        className={cn(
+          (openSans.className, "min-h-full bg-background text-foreground"),
+        )}
+      >
         <ThemeProvider attribute="class">
           <Toaster theme="dark" position="top-right" />
-          {children}
+          <Providers>{children}</Providers>
         </ThemeProvider>
       </body>
     </html>
