@@ -70,7 +70,7 @@ const OnBoardingComponent = () => {
     mode: "onBlur",
   });
 
-  const { watch, reset, trigger, getValues, handleSubmit } = methods;
+  const {  reset, trigger, getValues, handleSubmit } = methods;
 
   useEffect(() => {
     async function loadSaveData() {
@@ -120,58 +120,59 @@ const OnBoardingComponent = () => {
 
   if (!isDbLoaded) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
+      <div className="min-h-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   const onSubmit = async (data: OnboardingForm) => {
-    const formData = new FormData();
+    
+    // formData.append("firstName", data.basicData.firstName);
+    // formData.append("lastName", data.basicData.lastName);
+    // data.skills.forEach((skill) => {
+    //   formData.append("skills", skill);
+    // });
+    // if (data.basicData.phoneNumber)
+    //   formData.append("phoneNumber", data.basicData.phoneNumber);
+    // if (data.bioData.avatar) formData.append("avatar", data.bioData.avatar);
+    // if (data.bioData.bio) formData.append("bio", data.bioData.bio);
+    // if (data.bioData.socialLink)
+    //   formData.append("socialLink", data.bioData.socialLink);
+    // if (data.education && data.education.length > 0) {
+    //   data.education.forEach((info, index) => {
+    //     if (info.institution)
+    //       formData.append(`education[${index}][institution]`, info.institution);
+    //     if (info.degree)
+    //       formData.append(`education[${index}][degree]`, String(info.degree));
+    //     if (info.fieldOfStudy)
+    //       formData.append(
+    //         `education[${index}][fieldOfStudy]`,
+    //         info.fieldOfStudy,
+    //       );
+    //     if (info.startDate)
+    //       formData.append(`education[${index}][startDate]`, info.startDate);
+    //     if (info.endDate)
+    //       formData.append(`education[${index}][endDate]`, info.endDate);
+    //     if (info.isCurrent)
+    //       formData.append(
+    //         `education[${index}][isCurrent]`,
+    //         String(info.isCurrent),
+    //       );
+    //     if (info.description)
+    //       formData.append(`education[${index}][description]`, info.description);
+    //   });
+    // }
 
-    formData.append("firstName", data.basicData.firstName);
-    formData.append("lastName", data.basicData.lastName);
-    data.skills.forEach((skill) => {
-      formData.append("skills", skill);
-    });
-    if (data.basicData.phoneNumber)
-      formData.append("phoneNumber", data.basicData.phoneNumber);
-    if (data.bioData.avatar) formData.append("avatar", data.bioData.avatar);
-    if (data.bioData.bio) formData.append("bio", data.bioData.bio);
-    if (data.bioData.socialLink)
-      formData.append("socialLink", data.bioData.socialLink);
-    if (data.education && data.education.length > 0) {
-      data.education.forEach((info, index) => {
-        if (info.institution)
-          formData.append(`education[${index}][institution]`, info.institution);
-        if (info.degree)
-          formData.append(`education[${index}][degree]`, String(info.degree));
-        if (info.fieldOfStudy)
-          formData.append(
-            `education[${index}][fieldOfStudy]`,
-            info.fieldOfStudy,
-          );
-        if (info.startDate)
-          formData.append(`education[${index}][startDate]`, info.startDate);
-        if (info.endDate)
-          formData.append(`education[${index}][endDate]`, info.endDate);
-        if (info.isCurrent)
-          formData.append(
-            `education[${index}][isCurrent]`,
-            String(info.isCurrent),
-          );
-        if (info.description)
-          formData.append(`education[${index}][description]`, info.description);
-      });
-    }
 
-    mutate(formData, {
+
+    mutate(data, {
       onSuccess: async () => {
         await dbStore.clear();
         router.push("/profile");
       },
     });
-    console.log(formData);
+    console.log(data);
   };
 
   return (

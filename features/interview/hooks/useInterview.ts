@@ -1,5 +1,5 @@
 import { mockInterview } from "@/constants/mockInterview"; 
-import { InterviewStatus } from "@/types/interview/interview"; 
+import { InterviewStatus } from "@/features/interview/types/interview"; 
 import { useState } from "react"; 
  
 export function useInterview () { 

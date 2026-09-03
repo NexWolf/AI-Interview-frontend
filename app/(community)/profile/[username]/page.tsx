@@ -4,5 +4,9 @@ import { useParams } from "next/navigation";
 
 export default function UserProfilePage () {
     const {userName} = useParams<{userName : string}>();
-    return <ProfilePreview userName={userName} />
+
+    /* FETCH USER DATA BY USERNAME ELEMENT */
+
+
+    return <ProfilePreview userData={null} />
 }

@@ -17,7 +17,7 @@ export interface BasicApi {
 export interface BioApi {
     avatar: File | null,
     bio: string | null,
-    socialLink: string | null,
+    socialLink: string | null, //ADD AS {LINKEDIN , GITHUB , PORTFOLIO , ANOTHER}
 }
 
 export interface OnboardingPostApi {

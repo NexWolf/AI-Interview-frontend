@@ -1,16 +1,24 @@
-import { setupInterview } from "@/types/interview/setup";
-import {  UseFormRegister } from "react-hook-form"
+import { setupInterview } from "@/features/interview/types/setup";
+import { UseFormRegister } from "react-hook-form";
 
 type PropsTechnologies = {
-    register  : UseFormRegister<setupInterview>;
-}
+  register: UseFormRegister<setupInterview>;
+};
 
-export const TecnologiesSelect = ({register} : PropsTechnologies) => {
+export const TecnologiesSelect = ({ register }: PropsTechnologies) => {
+  const technologies: string[] = [
+    "React",
+    "TailwindCss",
+    "Css 5",
+    "Html",
+    "Node.js",
+    "JavaScript",
+    "Doker",
+    "AWS",
+  ];
 
-    const technologies : string[] = ["React" , "TailwindCss" , "Css 5" , "Html" , "Node.js" , "JavaScript" , "Doker" , "AWS"]
-
-    return (
-        <div className="w-full">
+  return (
+    <div className="w-full">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {technologies.map((tec, index) => {
           return (
@@ -33,7 +41,7 @@ export const TecnologiesSelect = ({register} : PropsTechnologies) => {
         })}
       </div>
     </div>
-    )
-}
+  );
+};
 
-export default TecnologiesSelect
+export default TecnologiesSelect;

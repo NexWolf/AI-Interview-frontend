@@ -3,17 +3,18 @@
 import { Input } from "@/shared/components/ui/Input";
 import { get, useFormContext } from "react-hook-form";
 import "react-phone-number-input/style.css";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useUserInfo } from "@/shared/hook/useUserInfo";
 import PhoneNumber from "./PhoneNumber";
 import FormHeader from "./FormHeader";
 
 type PropsBasics = {
-  onNext: () => void;
+  onNext ?: () => void;
+  editMode ?: boolean;
 };
 
-const BasicStep = ({ onNext }: PropsBasics) => {
-  const { data: userInfo, isLoading } = useUserInfo();
+const BasicStep = ({ onNext , editMode = false}: PropsBasics) => {
+  const { data: userInfo } = useUserInfo();
 
   const {
     register,
@@ -128,16 +129,17 @@ const BasicStep = ({ onNext }: PropsBasics) => {
         </div>
       </div>
 
-      {/* Action Footer */}
-      <div className="flex justify-end pt-4 border-t border-border/40">
+      {onNext &&  (
+        <div className="flex justify-end pt-4 border-t border-border/40">
         <button
           type="button"
           onClick={onNext}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2.5 rounded-xl font-medium text-sm shadow-xs transition-all duration-200 cursor-pointer"
-        >
+          className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2.5 rounded-xl font-medium text-sm shadow-xs transition-all duration-200 cursor-pointer">
           Next
         </button>
       </div>
+      )}
+      
     </div>
   );
 };

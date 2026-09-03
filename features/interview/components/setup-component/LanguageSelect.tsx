@@ -1,4 +1,4 @@
-import { setupInterview } from "@/types/interview/setup";
+import { setupInterview } from "@/features/interview/types/setup";
 import { Globe } from "lucide-react";
 import { UseFormRegister, UseFormWatch } from "react-hook-form";
 

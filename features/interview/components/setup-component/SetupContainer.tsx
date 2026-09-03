@@ -2,7 +2,7 @@
 import CameraPreview from "@/features/interview/components/setup-component/CameraPreview";
 import MicorphoneTest from "@/features/interview/components/setup-component/MicorphoneTest";
 import { useForm } from "react-hook-form";
-import { setupInterview } from "@/types/interview/setup";
+import { setupInterview } from "@/features/interview/types/setup";
 import LanguageSelect from "./LanguageSelect";
 import TecnologiesSelect from "./TechnologiesSelect";
 import InterviewLevelSelect from "./InterviewLevelSelect";

@@ -1,4 +1,4 @@
-import { setupInterview } from "@/types/interview/setup";
+import { setupInterview } from "@/features/interview/types/setup";
 import { UseFormRegister } from "react-hook-form";
 
 type PropsLevel = {
@@ -30,9 +30,7 @@ const InterviewLevelSelect = ({ register }: PropsLevel) => {
               <span className="text-sm font-semibold text-white">
                 {level.title}
               </span>
-              <span className="text-xs text-gray-400">
-                {level.subTitle}
-              </span>
+              <span className="text-xs text-gray-400">{level.subTitle}</span>
             </div>
           </label>
         );

@@ -1,11 +1,9 @@
 "use client";
 import AuthSignForm from "@/features/auth/components/AuthSignForm";
-import {
-  signinInput,
-} from "@/features/auth/schema/signup.schema";
+import { signinInput } from "@/features/auth/schema/signup.schema";
 import { forwardRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { SigninType } from "@/types/auth";
+import { SigninType } from "@/features/auth/types/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Input } from "@/shared/components/ui/Input";

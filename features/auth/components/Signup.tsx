@@ -4,7 +4,7 @@ import AuthSignForm from "@/features/auth/components/AuthSignForm";
 import ConfirmEmailPop from "@/features/auth/components/ConfirmEmailPop";
 import { Input } from "@/shared/components/ui/Input";
 import { API_URL } from "@/constants/routes";
-import { SignupType } from "@/types/auth";
+import { SignupType } from "@/features/auth/types/auth";
 import {
   signupInput,
   SignupSchema,
