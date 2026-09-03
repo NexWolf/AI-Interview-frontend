@@ -1,13 +1,13 @@
 "use client";
-import { AxiosAPI } from "@/lib/AxiosAPI";
-import InputError from "@/component/shared/InputError";
-import LoadingIcon from "@/component/shared/LoadingIcon";
-import { Input } from "@/component/ui/Input";
+import { AxiosAPI } from "@/shared/lib/AxiosAPI";
+import InputError from "@/shared/components/ui/InputError";
+import LoadingIcon from "@/shared/components/ui/LoadingIcon";
+import { Input } from "@/shared/components/ui/Input";
 import { API_URL } from "@/constants/routes";
 import {
   ConfirmPasswordInput,
   confirmPasswordSchema,
-} from "@/lib/validation/auth";
+} from "@/features/auth/schema/confirmPassword.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { ArrowRight, KeyRound, ShieldCheck, Lock } from "lucide-react";

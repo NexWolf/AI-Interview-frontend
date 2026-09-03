@@ -1,127 +1,43 @@
-export interface LevelDataType {
-    level : number,
-    currentXP : number,
-    maxXP : number,
+export interface BioInfoApi {
+    avatar: string,
+    headline: string,
+    bio: string,
 }
 
-
-export interface BioDataType {
+export interface SkillApi {
     id: number,
+    name: string;            // اسم المهارة (مثل: TypeScript)
+    level?: 'Beginner' | 'Intermediate' | 'Expert'; // المستوى (اختياري)
+};
+
+export type RoleStatus = "ADMIN" | "USER"
+
+export interface EducationApi {
+    institution: string;     // اسم الجامعة
+    degree: string;          // الدرجة العلمية
+    fieldOfStudy: string;    // التخصص
+    startDate: string;       // ISO Date or "YYYY-MM"
+    endDate?: string;        // ISO Date or "YYYY-MM" (Optional if isCurrent)
+    isCurrent: boolean;      // يدرس حالياً
+    description?: string;    // الوصف (اختياري)
+};
+
+export interface UserInfoApi {
+    id: string,
+    email: string,
     firstName: string,
     lastName: string,
-    headline: string,
-    location: string,
-    about: string,
-    university ?: string,
-    personal_photo ?: string,
-    join_at: string,
-    level ?: LevelDataType,
-    website_url : string
+    userName: string,
+    avatar: File | null,
+    phoneNumber?: string | null,
+    bio: string | null,
+    education: EducationApi[],
+    skills: string[],
+    isVerified: boolean,
+    lang: string | null,
+    role: RoleStatus,
+    authProvider: string,
+    createdAt: string,
+    updatedAt: string,
 }
 
-export interface Educations {
-    id: number,
-    school: string,
-    degree: number,
-    study_field: string,
-    start_at: string,
-    end_at: string,
-    description: string,
-    media_url: string,
-    image_url : string
-}
-
-export type ProfileLanguageType = "ar" | "en"
-
-export interface ProjectType {
-    id: number,
-    image: string,
-    name: string,
-    url: string
-}
-
-export interface CertificateType {
-    id: number,
-    title: string;
-    media_url?: string;
-    image?: string;
-}
-
-
-export interface SkillsDataType {
-    id: number,
-    icon_key: string,
-    name: string,
-    rate: number,
-    status: "weak" | "medium" | "strong" | "good" | "needed"
-}
-
-
-export interface profileDataType {
-    id: number,
-    bio: BioDataType,
-    skills: SkillsDataType[],
-    about: string,
-    strengths: string,
-    need_improve: string,
-    activity: null,
-    education: Educations[],
-    profile_language: ProfileLanguageType,
-    certificate: CertificateType[],
-    projects: ProjectType[]
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// /* on edit mode */
-// /* data of profile need frombackend */
-// export interface BioDataType {
-//     firstName : string,
-//     lastName : string,
-//     additional_name : string,
-//     headline : string,
-//     about : string,
-//     location : string,
-//     education : string,
-//     connections : number,
-// }
-
-// export interface core {
-//     education :
-// }
-
-// export interface ProfileSetupSections {
-//     core :
-// }
-
-// interface websiteDataType {
-//     name : string,
-//     type : string,
-// }
-
-// export interface editContentInfo {
-//     profile_Url : string,
-//     email : string,
-//     phone_number : string,
-//     address : string,
-//     birithday : string,
-//    website : websiteDataType[]
-// }
-
-// export interface ProfileDoumyData  {
-//     bio :
-// } 
