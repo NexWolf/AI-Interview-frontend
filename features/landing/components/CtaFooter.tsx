@@ -1,5 +1,5 @@
-import { Mic, ArrowRight } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
+import { Mic, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export const CtaFooter = () => {
   return (
@@ -33,18 +33,10 @@ export const CtaFooter = () => {
             <span className="font-semibold tracking-tight">Rehearse</span>
           </div>
           <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            <a href="#features" className="hover:text-foreground">
-              Features
-            </a>
-            <a href="#pricing" className="hover:text-foreground">
-              Pricing
-            </a>
-            <a href="#faq" className="hover:text-foreground">
-              FAQ
-            </a>
-            <a href="#" className="hover:text-foreground">
-              Privacy
-            </a>
+            <a href="#features" className="hover:text-foreground">Features</a>
+            <a href="#pricing" className="hover:text-foreground">Pricing</a>
+            <a href="#faq" className="hover:text-foreground">FAQ</a>
+            <a href="#" className="hover:text-foreground">Privacy</a>
           </nav>
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} Rehearse
@@ -52,7 +44,7 @@ export const CtaFooter = () => {
         </div>
       </section>
     </footer>
-  );
-};
+  )
+}
 
 export default CtaFooter;
