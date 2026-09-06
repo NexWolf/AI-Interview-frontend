@@ -1,11 +1,12 @@
 "use client";
-import { useFormContext } from "react-hook-form";
-import { Input } from "@/shared/components/ui/Input";
-import Image from "next/image";
+
 import { useEffect, useState } from "react";
+import { get, useFormContext } from "react-hook-form";
+import Image from "next/image";
+import { Input } from "@/shared/components/ui/Input";
 import { dbStore } from "@/shared/lib/dbStore";
-import FormHeader from "./FormHeader";
 import { FileUploadInput } from "./FileUploadInput";
+import { ArrowLeft, ArrowRight, X, Sparkles } from "lucide-react";
 
 type PropsBio = {
   onNext?: () => void;
@@ -22,6 +23,10 @@ export const BioStep = ({ onNext, onBack }: PropsBio) => {
 
   const avatarValue = watch("bioData.avatar");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // استخراج الأخطاء المتداخلة بأمان
+  const socialLinkError = get(errors, "bioData.socialLink");
+  const bioError = get(errors, "bioData.bio");
 
   /* FUNCTION TO GET FILE VALUE */
   const extractFile = (data: any): File | string | null => {
@@ -51,10 +56,6 @@ export const BioStep = ({ onNext, onBack }: PropsBio) => {
     };
   }, [avatarValue]);
 
-  useEffect(() => {
-    console.log(avatarPreview);
-  }, [avatarPreview]);
-
   const handleClearAvatar = async () => {
     if (avatarPreview && avatarPreview.startsWith("blob:")) {
       URL.revokeObjectURL(avatarPreview);
@@ -74,97 +75,109 @@ export const BioStep = ({ onNext, onBack }: PropsBio) => {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto space-y-6">
-      <FormHeader
-        leftStep="One step left"
-        title="Complete Your Profile"
-        description="Please fill in the required fields below to personalize your workspace experience."
-      />
-
-      <div className="flex flex-col gap-6 bg-card/50 p-6 rounded-2xl border border-border/40 shadow-xs">
-        {/* Avatar Section */}
+    <div className="space-y-6">
+      {/* 1. الحاوية الرئيسية الموحدة للحقول */}
+      <div className="space-y-5 rounded-2xl border border-border/50 dark:border-border/30 bg-secondary/20 dark:bg-secondary/10 p-5 sm:p-6 backdrop-blur-xs">
+        
+        {/* قسم رفع ومعاينة الصورة الرمزية (Avatar Section) */}
         <div className="flex flex-col items-center justify-center py-2">
           {avatarPreview ? (
             <div className="relative group">
-              <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-primary/20 shadow-md ring-4 ring-background">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-primary/40 shadow-lg ring-4 ring-background transition-transform duration-300 group-hover:scale-105">
                 <Image
-                  alt="Avatar Image Url"
+                  alt="Avatar Preview"
                   src={avatarPreview}
                   fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="object-cover"
                 />
               </div>
               <button
                 type="button"
                 onClick={handleClearAvatar}
                 title="Remove image"
-                className="absolute -top-1 -right-1 z-30 bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all duration-200 rounded-full w-7 h-7 flex justify-center items-center text-xs font-semibold shadow-md hover:scale-110 cursor-pointer"
+                className="absolute -top-1 -right-1 z-20 bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all duration-200 rounded-full w-7 h-7 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
           ) : (
             <div className="w-full">
               <FileUploadInput
                 name="bioData.avatar"
-                label="Upload Your Avatar!"
+                label="Upload Profile Photo"
               />
             </div>
           )}
         </div>
 
-        {/* Social Links Field */}
-        <div className="space-y-1.5">
+        {/* حقل الروابط الاجتماعية (Social Links) */}
+        <div className="space-y-1">
           <Input
-            {...register("bioData.socialLink", {})}
-            label="Social Links"
+            {...register("bioData.socialLink")}
+            label="Social Profile or Portfolio"
             placeholder="https://linkedin.com/in/username"
           />
-          {errors.socialLinks && (
-            <p className="text-destructive text-xs font-medium mt-1">
-              {String(errors.socialLinks.message)}
+          {socialLinkError && (
+            <p className="text-destructive text-xs font-medium px-1">
+              {String(socialLinkError.message)}
             </p>
           )}
         </div>
 
-        {/* Bio Textarea Field */}
+        {/* حقل النبذة الشخصية (Bio Textarea) */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Bio</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              About You (Bio)
+            </label>
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-primary" />
+              Brief summary
+            </span>
+          </div>
+
           <textarea
-            className="w-full rounded-xl border border-input bg-background/50 px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all duration-200 min-h-[100px] resize-none"
-            {...register("bioData.bio", {})}
-            placeholder="Tell us a little about yourself and your professional journey..."
+            className="w-full rounded-2xl border border-border/70 dark:border-border/40 bg-input/40 dark:bg-input/20 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 min-h-[110px] resize-none"
+            {...register("bioData.bio")}
+            placeholder="Tell us a little about your journey, interests, and what you're building..."
           />
-          {errors.bio && (
-            <p className="text-destructive text-xs font-medium mt-1">
-              {String(errors.bio.message)}
+
+          {bioError && (
+            <p className="text-destructive text-xs font-medium px-1">
+              {String(bioError.message)}
             </p>
           )}
         </div>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-2">
-        {onBack && (
+      {/* 2. أزرار التنقل (Back & Continue) */}
+      <div className="flex items-center justify-between pt-6 border-t border-border/50 dark:border-border/30">
+        {onBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50 px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer"
+            className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/60 dark:border-border/40 px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 active:scale-[0.98] cursor-pointer"
           >
-            Back
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
           </button>
+        ) : (
+          <div />
         )}
 
         {onNext && (
           <button
             type="button"
             onClick={onNext}
-            className="ml-auto bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2.5 rounded-xl font-medium text-sm shadow-xs transition-all duration-200 cursor-pointer"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-7 py-2.5 rounded-xl font-medium text-sm shadow-md hover:shadow-lg dark:shadow-none transition-all duration-200 active:scale-[0.98] cursor-pointer"
           >
-            Next
+            <span>Continue</span>
+            <ArrowRight className="h-4 w-4" />
           </button>
         )}
       </div>
     </div>
   );
 };
+
+export default BioStep;

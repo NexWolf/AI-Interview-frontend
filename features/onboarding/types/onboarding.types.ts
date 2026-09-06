@@ -1,6 +1,6 @@
 export interface EducationApi {
     institution: string;     // اسم الجامعة
-    degree: number | null;          // الدرجة العلمية
+    degree: string | null;          // الدرجة العلمية
     fieldOfStudy: string;    // التخصص
     startDate: string;       // ISO Date or "YYYY-MM"
     endDate?: string;        // ISO Date or "YYYY-MM" (Optional if isCurrent)
@@ -17,7 +17,7 @@ export interface BasicApi {
 export interface BioApi {
     avatar: File | null,
     bio: string | null,
-    socialLink: string | null, //ADD AS {LINKEDIN , GITHUB , PORTFOLIO , ANOTHER}
+    socialLink: string[], //ADD AS {LINKEDIN , GITHUB , PORTFOLIO , ANOTHER}
 }
 
 export interface OnboardingPostApi {
@@ -46,3 +46,33 @@ export interface OnboardingForm {
         education: EducationApi[],
         skills: string[],
 }
+
+
+
+/*************************************************** */
+/* POST API REQUEST TYPE */
+export interface OnboardingService {
+  phoneNumber?: string | null;
+  bio?: string | null;
+  avatarUrl?: File | string | null;
+  socialLinks?: string | null;
+  skills : string[];
+  education ?: EducationApi[];
+}
+/*************************************************** */
+
+/*************************************************** */
+/* type data for IndexedDB  */
+export interface IndexedDBType {
+    firstName : string,
+    lastName : string,
+    email : string,
+    userName : string,
+  phoneNumber?: string | null;
+  bio?: string | null;
+  avatarUrl?: File | string | null;
+  socialLinks?: string | null;
+  skills : string[];
+  education ?: EducationApi[];
+}
+/*************************************************** */

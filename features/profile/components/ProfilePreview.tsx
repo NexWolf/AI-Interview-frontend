@@ -1,18 +1,15 @@
 "use client";
 
-import { ProfileData } from "../types/profile.types";
+import { useEffect } from "react";
+import { useProfile } from "../hook/useProfile";
+import { SkillApi } from "../types/profile.types";
 import ProfileEducation from "./ProfileEducation";
 import ProfileHeader from "./ProfileHeader";
 import ProfileSkills from "./ProfileSkills";
 
-export interface SkillApi {
-  id: number;
-  name: string;
-  level?: "Beginner" | "Intermediate" | "Expert" | "Not Assessed";
-}
+
 
 type ProfileViewProps = {
-  userData: ProfileData | null;
   editable ?: boolean; 
 };
 
@@ -53,6 +50,16 @@ export const mockProfileData = {
   isVerified: true,
 };
 
+
+
+export const ProfilePreview = ({ editable = false}: ProfileViewProps) => {
+  const {data : profileData } = useProfile();
+
+  useEffect(() => {
+    console.log(profileData)
+  },[profileData])
+
+
 /* START INTERVIEW ACTION */
 const handleStartInterview = () => {
   console.log("interview")
@@ -81,18 +88,17 @@ const handleEditEducation = () => {
   console.log("interview")
 }
 
-export const ProfilePreview = ({ userData ,editable = false}: ProfileViewProps) => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12 pt-12">
 
       {/* 1. Main Header Card (Banner + Avatar + Basic Info) */}
-      <ProfileHeader editable={editable} basicData={null} bioData={null} onEdit={handleEditHeader} onStart={handleStartInterview}/>
+      <ProfileHeader data={profileData} editable={editable}  onEdit={handleEditHeader} onStart={handleStartInterview}/>
 
       {/* 3. Skills Section */}
-      <ProfileSkills skillsData={null} editable={editable} onEdit={handleEditSkills} onAdd={handleAddSkills}/>
+      <ProfileSkills skillsData={profileData?.skills || []} editable={editable} onEdit={handleEditSkills} onAdd={handleAddSkills}/>
 
       {/* 2. Education Section */}
-      <ProfileEducation  editable={editable} educationData={null} onAdd={handleAddEducation} onEdit={handleEditEducation}  />
+      <ProfileEducation  editable={editable} educationData={profileData?.educations || []} onAdd={handleAddEducation} onEdit={handleEditEducation}  />
     </div>
   );
 };

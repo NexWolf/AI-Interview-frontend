@@ -1,6 +1,15 @@
 "use client";
+
 import { Controller, get, useFormContext } from "react-hook-form";
-import FormHeader from "./FormHeader";
+import { 
+  X, 
+  ChevronDown, 
+  Plus, 
+  Sparkles, 
+  ArrowLeft, 
+  ArrowRight, 
+  Award 
+} from "lucide-react";
 
 type PropsSkills = {
   onNext?: () => void;
@@ -27,68 +36,91 @@ const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
     watch,
     control,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useFormContext();
+
   const selectedSkills: string[] = watch("skills") || [];
 
+  const addSkill = (skillToAdd: string) => {
+    if (!selectedSkills.includes(skillToAdd)) {
+      setValue("skills", [...selectedSkills, skillToAdd], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  };
+
   const removeSkills = (skillToRemove: string) => {
-    const updateRemoveSkills = selectedSkills.filter(
-      (skill, _) => skill !== skillToRemove,
-    );
-    setValue("skills", updateRemoveSkills, { shouldValidate: true });
+    const updated = selectedSkills.filter((skill) => skill !== skillToRemove);
+    setValue("skills", updated, { 
+      shouldValidate: true, 
+      shouldDirty: true 
+    });
   };
 
   const skillsErrors = get(errors, "skills");
 
-  return (
-    <div className="space-y-6 max-w-xl mx-auto p-6 bg-card rounded-2xl border border-border/50 shadow-sm">
-      {/* Header & Title */}
-      <FormHeader
-        leftStep="One step left"
-        title="Technical Skills"
-        description="text-xs text-muted-foreground"
-      />
+  // المهارات المقترحة التي لم يتم اختيارها بعد
+  const availableSuggestions = PREDEFINED_SKILLS.filter(
+    (s) => !selectedSkills.includes(s)
+  );
 
-      {/* Selected Skills Chips */}
-      {selectedSkills.length > 0 && (
-        <div className="flex flex-wrap gap-2.5 p-3 bg-muted/30 rounded-xl border border-border/40 min-h-[52px] items-center">
-          {selectedSkills.map((skill, index) => {
-            return (
+  return (
+    <div className="space-y-6">
+      {/* 1. قسم المهارات المختارة (Selected Skills Container) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Award className="h-3.5 w-3.5 text-primary" />
+            <span>Selected Skills ({selectedSkills.length})</span>
+          </label>
+          {selectedSkills.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setValue("skills", [], { shouldValidate: true })}
+              className="text-[11px] text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 p-3.5 rounded-2xl border border-border/60 dark:border-border/40 bg-secondary/20 dark:bg-secondary/10 min-h-[58px] items-center backdrop-blur-xs">
+          {selectedSkills.length > 0 ? (
+            selectedSkills.map((skill, index) => (
               <div
                 key={index}
-                className="group relative inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-xs font-medium px-3 py-1.5 rounded-lg border border-border/60 shadow-2xs transition-all duration-150 hover:border-destructive/40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 text-primary px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all animate-in zoom-in-95"
               >
                 <span>{skill}</span>
                 <button
-                  onClick={() => removeSkills(skill)}
                   type="button"
+                  onClick={() => removeSkills(skill)}
                   aria-label={`Remove ${skill}`}
-                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md p-0.5 transition-colors cursor-pointer"
+                  className="rounded-md p-0.5 text-primary/70 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            );
-          })}
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground px-1 select-none">
+              No skills selected yet. Choose from the list below or click the quick suggestions.
+            </p>
+          )}
         </div>
-      )}
 
-      {/* Controller / Select Input */}
+        {skillsErrors && (
+          <p className="text-destructive text-xs font-medium px-1 mt-1">
+            {String(skillsErrors.message)}
+          </p>
+        )}
+      </div>
+
+      {/* 2. القائمة المنسدلة لاختيار المهارات (Select Dropdown) */}
       <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground">
-          Add Skill
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Select or Search Skill
         </label>
         <Controller
           name="skills"
@@ -104,68 +136,82 @@ const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
                     field.onChange([...field.value, selectedValue]);
                   }
                 }}
-                className="w-full h-11 pl-3.5 pr-10 text-sm bg-background text-foreground rounded-xl border border-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200 appearance-none [-webkit-appearance:none] [-moz-appearance:none] cursor-pointer"
+                className="w-full h-11 pl-4 pr-10 text-sm bg-input/40 dark:bg-input/20 text-foreground rounded-2xl border border-border/70 dark:border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
               >
                 <option value="" disabled hidden>
                   Choose a skill to add...
                 </option>
-                {PREDEFINED_SKILLS.map((option) => (
-                  <option
-                    key={option}
-                    value={option}
-                    className="py-2 bg-background text-foreground"
-                  >
-                    {option}
-                  </option>
-                ))}
+                {PREDEFINED_SKILLS.map((option) => {
+                  const isAlreadySelected = selectedSkills.includes(option);
+                  return (
+                    <option
+                      key={option}
+                      value={option}
+                      disabled={isAlreadySelected}
+                      className="py-2 bg-background text-foreground"
+                    >
+                      {option} {isAlreadySelected ? "(Added)" : ""}
+                    </option>
+                  );
+                })}
               </select>
 
-              {/* Custom Arrow Icon */}
+              {/* أيقونة السهم المنسدل */}
               <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center text-muted-foreground">
-                <svg
-                  className="w-4 h-4 opacity-70"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                <ChevronDown className="w-4 h-4" />
               </div>
             </div>
           )}
         />
-
-        {skillsErrors && (
-          <p className="text-destructive text-xs mt-1.5 font-medium">
-            {String(skillsErrors.message)}
-          </p>
-        )}
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-4 border-t border-border/40">
-        {onBack && (
+      {/* 3. اقتراحات سريعة بنقرة واحدة (Quick Suggestions) */}
+      {availableSuggestions.length > 0 && (
+        <div className="space-y-2.5 pt-1">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <span>Popular Suggestions (Click to quick-add)</span>
+          </label>
+
+          <div className="flex flex-wrap gap-1.5">
+            {availableSuggestions.map((skill) => (
+              <button
+                key={skill}
+                type="button"
+                onClick={() => addSkill(skill)}
+                className="group inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-border/60 dark:border-border/40 bg-card/60 dark:bg-card/20 hover:border-primary/40 hover:bg-primary/10 text-xs font-medium text-foreground hover:text-primary transition-all duration-150 active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span>{skill}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4. أزرار التنقل (Back & Continue) */}
+      <div className="flex items-center justify-between pt-6 border-t border-border/50 dark:border-border/30">
+        {onBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50 px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer"
+            className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/60 dark:border-border/40 px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 active:scale-[0.98] cursor-pointer"
           >
-            Back
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
           </button>
+        ) : (
+          <div />
         )}
 
         {onNext && (
           <button
             type="button"
             onClick={onNext}
-            className="ml-auto bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2.5 rounded-xl font-medium text-sm shadow-xs transition-all duration-200 cursor-pointer"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-7 py-2.5 rounded-xl font-medium text-sm shadow-md hover:shadow-lg dark:shadow-none transition-all duration-200 active:scale-[0.98] cursor-pointer"
           >
-            Next
+            <span>Continue</span>
+            <ArrowRight className="h-4 w-4" />
           </button>
         )}
       </div>

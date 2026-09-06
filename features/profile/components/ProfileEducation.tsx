@@ -1,9 +1,10 @@
 import ActionIcons from "@/shared/components/ui/ActionIcons";
 import { mockProfileData } from "./ProfilePreview";
+import { EducationApi } from "../types/profile.types";
 
 type EducationProps = {
     editable : boolean,
-    educationData : null,
+    educationData : EducationApi[] | [],
     onEdit ?: () => void,
     onAdd ?: () => void, 
 }
@@ -25,7 +26,7 @@ export const ProfileEducation = ({educationData , onEdit , onAdd , editable} : E
             <p className="text-xs text-muted-foreground italic">No education entries added yet.</p>
         ) : (
           <div className="space-y-6">
-            {mockProfileData.education.map((edu, index) => (
+            {educationData.map((edu, index) => (
               <div key={index} className="flex gap-4 items-start">
                 <div className="w-10 h-10 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 text-muted-foreground font-semibold text-sm">
                   🎓

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Cloud } from "lucide-react";
+import { Cloud, FileText, X } from "lucide-react";
 import {
   Controller,
   FieldPath,
@@ -25,8 +25,8 @@ type PropsUpload<T extends FieldValues> = {
   multiple?: boolean;
   maxSizeMB?: number;
   acceptedTypes?: string[];
-  acceptedLabel?: string,
-  rules?:RegisterOptions<T , FieldPath<T>>
+  acceptedLabel?: string;
+  rules?: RegisterOptions<T, FieldPath<T>>;
 };
 
 export function FileUploadInput<T extends FieldValues>({
@@ -75,11 +75,13 @@ export function FileUploadInput<T extends FieldValues>({
         };
 
         return (
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-wide text-navy-700">
+          <div className="flex flex-col gap-2 w-full">
+            {/* عنوان الحقل */}
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {label}
             </label>
 
+            {/* منطقة الإفلات والرفع الزجاجية */}
             <label
               htmlFor={name}
               onDragOver={(e) => {
@@ -88,21 +90,23 @@ export function FileUploadInput<T extends FieldValues>({
               }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={handleDrop}
-              className={`flex flex-col items-center justify-center gap-3 w-full rounded-2xl border-2 border-dashed p-10 cursor-pointer transition-colors ${
+              className={`group flex flex-col items-center justify-center gap-3 w-full rounded-2xl border-2 border-dashed p-8 sm:p-10 cursor-pointer transition-all duration-200 ${
                 isDragging
-                  ? "border-emerald-400 bg-emerald-50"
-                  : "border-gray-300 bg-white hover:bg-gray-50"
+                  ? "border-primary bg-primary/10 ring-4 ring-primary/10"
+                  : "border-border/70 dark:border-border/40 bg-card/40 dark:bg-card/20 hover:border-primary/50 hover:bg-primary/5"
               }`}
             >
-              <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
-                <Cloud className="w-6 h-6 text-white" />
+              {/* أيقونة السحابة التفاعلية */}
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary transition-transform duration-300 group-hover:scale-110 shadow-xs">
+                <Cloud className="w-6 h-6" />
               </div>
 
-              <div className="text-center">
-                <p className="text-sm text-gray-800">
+              {/* النصوص التوضيحية */}
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                   Click to upload or drag and drop
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground">
                   Maximum file size {maxSizeMB}MB ({acceptedLabel})
                 </p>
               </div>
@@ -120,24 +124,36 @@ export function FileUploadInput<T extends FieldValues>({
               />
             </label>
 
+            {/* رسالة الخطأ المتوافقة مع الثيم */}
             {error && (
-              <p className="text-xs text-red-500">{error.message}</p>
+              <p className="text-destructive text-xs font-medium px-1 mt-0.5">
+                {error.message}
+              </p>
             )}
 
+            {/* قائمة الملفات التي تم رفعها */}
             {files.length > 0 && (
-              <ul className="flex flex-col gap-2 mt-1">
+              <ul className="flex flex-col gap-2 mt-2">
                 {files.map((file, index) => (
                   <li
                     key={`${file.name}-${index}`}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-700"
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-border/60 dark:border-border/40 bg-secondary/40 dark:bg-secondary/20 text-xs text-foreground backdrop-blur-xs transition-all animate-in fade-in"
                   >
-                    <span className="truncate">{file.name}</span>
+                    <div className="flex items-center gap-2.5 truncate">
+                      <FileText className="w-4 h-4 text-primary shrink-0" />
+                      <span className="truncate font-medium">{file.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+                      </span>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => handleRemove(index)}
-                      className="text-gray-400 hover:text-red-500 ml-2"
+                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1 rounded-md transition-all ml-2 cursor-pointer"
+                      title="Remove file"
                     >
-                      Remove
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </li>
                 ))}
@@ -149,3 +165,5 @@ export function FileUploadInput<T extends FieldValues>({
     />
   );
 }
+
+export default FileUploadInput;

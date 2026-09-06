@@ -1,8 +1,8 @@
 import ActionIcons from "@/shared/components/ui/ActionIcons";
-import { mockProfileData, SkillApi } from "./ProfilePreview";
+import { SkillApi } from "../types/profile.types";
 
 type PropsSkills = {
-  skillsData: SkillApi | null;
+  skillsData: SkillApi[] | [];
   onEdit?: () => void;
   onAdd?: () => void;
   editable ?: boolean;
@@ -47,7 +47,7 @@ export const ProfileSkills = ({ skillsData, onEdit, onAdd , editable}: PropsSkil
             Skills & Expertise
           </h2>
           <span className="text-xs text-muted-foreground">
-            {mockProfileData.skills.length} Skills
+            {skillsData?.length} Skills
           </span>
         </div>
 
@@ -55,33 +55,34 @@ export const ProfileSkills = ({ skillsData, onEdit, onAdd , editable}: PropsSkil
         {editable && <ActionIcons onAdd={onAdd} onEdit={onEdit}/>}
       </div>
 
-      {mockProfileData.skills.length === 0 ? (
+      {skillsData?.length === 0 ? (
         <p className="text-xs text-muted-foreground italic">
           No skills added yet.
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {mockProfileData.skills.map((skill) => {
-            const badge = getLevelBadge(skill.level);
+          {skillsData.map((skill , index) => {
+            // const badge = getLevelBadge(skill.level);
             return (
               <div
-                key={skill.id}
+                // key={skill.id}
+                key={index}
                 className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 hover:border-border transition-colors"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   {/* الدائرة الموحدة بالحرف الأول */}
                   <div className="w-7 h-7 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center text-xs font-bold uppercase shrink-0">
-                    {skill.name[0]}
+                    {/* {skill.name[0]} */}
                   </div>
                   <span className="text-sm font-medium text-foreground truncate">
-                    {skill.name}
+                    {skill}
                   </span>
                 </div>
 
                 <span
-                  className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border shrink-0 ${badge.className}`}
+                  // className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border shrink-0 ${badge.className}`}
                 >
-                  {badge.label}
+                  {/* {badge.label} */}
                 </span>
               </div>
             );

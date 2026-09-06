@@ -9,6 +9,8 @@ const TOKEN_COOKIE_NAME = "accessToken";
 const publicRoutes = ["/", "/auth", "/verify-email", "/forgot-password", "/reset-password" , "/login.jpg"];
  
 export function middleware(request: NextRequest) {
+  console.log("MIDDLEWARE HIT :" , request.nextUrl.pathname);
+  
   const { pathname } = request.nextUrl;
  
   // 1. هل هاد المسار من الصفحات العامة؟

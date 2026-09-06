@@ -14,20 +14,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil } from "lucide-react";
+import { ProfileApi } from "../types/profile.types";
 
 type PropsPropfile = {
   onEdit ?: () => void;
   onStart ?: () => void;
   editable ?: boolean; 
-  bioData : null;
-  basicData : null
+  data : ProfileApi | null | undefined
 };
 
 const handleEditHeader = () => {
   console.log("submited");
 }
 
-export const ProfileHeader = ({ onEdit, onStart , bioData , basicData , editable}: PropsPropfile) => {
+export const ProfileHeader = ({ onEdit, onStart , data, editable}: PropsPropfile) => {
   const [openForm , setOpenForm] = useState<boolean>(true);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export const ProfileHeader = ({ onEdit, onStart , bioData , basicData , editable
         <div className="pt-2">
           <FormTag
             onSubmit={handleEditHeader}
-            FORM_DATA={BasicStep}
+            
           >
             <BasicStep  />
           </FormTag>

@@ -1,5 +1,5 @@
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
-import { UserInfoApi } from "@/types/community/onboarding";
+import { UserInfoApi } from "@/types/community/profile";
 
 export const userService = {
     getMe: async (): Promise<UserInfoApi> => {
