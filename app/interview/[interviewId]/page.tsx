@@ -26,6 +26,13 @@ import { useInterviewTimer } from "@/shared/hook/useInterviewTimer";
 import { useInterviewProtection } from "@/features/interview/hooks/useInterviewProtection";
 import CameraPreview from "@/features/interview/components/setup-component/CameraPreview";
 import { useIntegrityMonitor } from "@/shared/hook/useIntegrityMonitor";
+import {
+  useInterviewSocket,
+  QuestionStreamPayload,
+  QuestionNewPayload,
+  SummaryDonePayload,
+  SocketErrorPayload,
+} from "@/shared/hook/useInterviewSocket";
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -76,6 +83,20 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
   const recognitionRef = useRef<any>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  // Snapshot of text that existed before live transcription started, so we
+  // don't wipe user's typed text or duplicate interim results.
+  const draftBaseRef = useRef<string>("");
+
+  // Live socket integration
+  const { connected: liveConnected, emitEvent, onEvent } = useInterviewSocket();
+  const [liveQuestionText, setLiveQuestionText] = useState<string>("");
+  const [reportLiveText, setReportLiveText] = useState<string>("");
+  const languageRef = useRef<string>("English");
+  useEffect(() => {
+    if (RoomData?.interviewLanguage) {
+      languageRef.current = RoomData.interviewLanguage;
+    }
+  }, [RoomData?.interviewLanguage]);
 
   // Speak question aloud using audio URL or Web Speech API synthesis
   const speakQuestion = useCallback((text: string, audioUrl?: string | null, language: string = "English") => {
@@ -127,21 +148,99 @@ export default function InterviewSessionPage({ params }: PageProps) {
     setIsAISpeaking(false);
   };
 
-  // Generate a new question from backend
+  // Subscribe to live interview events + join the room for this interview
+  useEffect(() => {
+    if (!interviewId) return;
+    emitEvent("interview:join", { interviewId });
+
+    const offs = [
+      onEvent<QuestionStreamPayload>("question:stream", ({ text }) => {
+        setLiveQuestionText((prev) => prev + text);
+      }),
+      onEvent<QuestionNewPayload>("question:new", ({ question }) => {
+        const audioDataUrl = question.questionAudio
+          ? `data:${question.questionAudio.mimeType};base64,${question.questionAudio.audioBase64}`
+          : null;
+        const newQuestion: QuestionItem = {
+          id: String(question.questionId),
+          question: question.question,
+          questionOrder: question.questionOrder,
+          keyTopics: question.keyTopics || [],
+          questionAudio: audioDataUrl,
+          isAnswered: false,
+        };
+        setCurrentQuestion(newQuestion);
+        setQuestionList((prev) => {
+          if (prev.some((q) => q.id === newQuestion.id)) return prev;
+          return [...prev, newQuestion];
+        });
+        setLiveQuestionText("");
+        setAnswerText("");
+        setIsGeneratingQuestion(false);
+        speakQuestion(
+          newQuestion.question,
+          audioDataUrl,
+          languageRef.current || "English",
+        );
+      }),
+      onEvent<SocketErrorPayload>("question:error", ({ message }) => {
+        setIsGeneratingQuestion(false);
+        toast.error(message || "Failed to generate next question");
+      }),
+      onEvent<SocketErrorPayload>("answer:error", ({ message }) => {
+        setIsSubmittingAnswer(false);
+        toast.error(message || "Failed to save answer");
+      }),
+      onEvent<SocketErrorPayload>("summary:error", ({ message }) => {
+        setIsFinishing(false);
+        toast.dismiss();
+        toast.error(message || "Error generating report");
+      }),
+      onEvent<{ text: string }>("summary:stream", ({ text }) => {
+        setReportLiveText((prev) => prev + text);
+      }),
+      onEvent<SummaryDonePayload>("summary:done", () => {
+        setReportLiveText("");
+        setIsFinishing(false);
+        toast.dismiss();
+        toast.success("Interview completed! Loading your evaluation report...");
+        setTimeout(() => {
+          router.push(`/dashboard/interviewDetails?id=${interviewId}`);
+        }, 600);
+      }),
+    ];
+
+    return () => {
+      offs.forEach((off) => off());
+    };
+  }, [interviewId, emitEvent, onEvent, speakQuestion, router]);
+
+  // Generate a new question from backend (live socket first, HTTP fallback)
   const handleGenerateQuestion = useCallback(async () => {
+    setIsGeneratingQuestion(true);
+    setLiveQuestionText("");
+
+    if (liveConnected) {
+      // Live path: streams "question:stream" chunks, finalized by "question:new"
+      emitEvent("question:generate", { interviewId, speakQuestion: true });
+      return;
+    }
+
     try {
-      setIsGeneratingQuestion(true);
       const res = await AxiosAPI.post(`/api/interviews/${interviewId}/questions/generate`, {
         speakQuestion: true,
       });
 
       const questionData = res.data.data;
+      const audioDataUrl = questionData.questionAudio
+        ? `data:${questionData.questionAudio.mimeType};base64,${questionData.questionAudio.audioBase64}`
+        : null;
       const newQuestion: QuestionItem = {
         id: String(questionData.questionId),
         question: questionData.question,
         questionOrder: questionData.questionOrder,
         keyTopics: questionData.keyTopics || [],
-        questionAudio: questionData.questionAudio || null,
+        questionAudio: audioDataUrl,
         isAnswered: false,
       };
 
@@ -151,8 +250,8 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
       speakQuestion(
         newQuestion.question,
-        newQuestion.questionAudio,
-        RoomData?.interviewLanguage || "English",
+        audioDataUrl,
+        languageRef.current || "English",
       );
     } catch (e: any) {
       console.error("Generate question error:", e);
@@ -160,7 +259,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     } finally {
       setIsGeneratingQuestion(false);
     }
-  }, [interviewId, RoomData?.interviewLanguage, speakQuestion]);
+  }, [interviewId, liveConnected, emitEvent, speakQuestion]);
 
   // Initial load: determine question or trigger generation
   useEffect(() => {
@@ -197,11 +296,15 @@ export default function InterviewSessionPage({ params }: PageProps) {
       recognition.lang = RoomData?.interviewLanguage === "Arabic" ? "ar-SA" : "en-US";
 
       recognition.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+        // Rebuild the whole transcript from event.results every time instead of
+        // appending. Interim results get re-expanded in place, so appending
+        // caused words to repeat (e.g. "normal JavaScript normal JavaScript...").
+        let fullTranscript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          fullTranscript += event.results[i][0].transcript;
         }
-        setAnswerText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        const base = draftBaseRef.current.trim();
+        setAnswerText(base ? `${base} ${fullTranscript}`.trim() : fullTranscript.trim());
       };
 
       recognition.onerror = (err: any) => {
@@ -251,38 +354,75 @@ export default function InterviewSessionPage({ params }: PageProps) {
       setIsListening(false);
     }
 
-    try {
-      setIsSubmittingAnswer(true);
+    const saveAnswer = async () => {
+      if (liveConnected) {
+        emitEvent(
+          "answer:submit",
+          {
+            interviewId,
+            questionId: currentQuestion.id,
+            answerText: answerText.trim(),
+          },
+          ({ ok, message }) => {
+            if (!ok) {
+              setIsSubmittingAnswer(false);
+              toast.error(message || "Failed to save answer");
+              return;
+            }
+            toast.success("Answer recorded successfully!");
+            setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
+            setIsSubmittingAnswer(false);
+            void handleGenerateQuestion();
+          },
+        );
+        return;
+      }
+
       await AxiosAPI.post(
         `/api/interviews/${interviewId}/questions/${currentQuestion.id}/answer`,
         { answerText: answerText.trim() },
       );
-
       toast.success("Answer recorded successfully!");
       setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
-
-      // Auto-generate next question
+      setIsSubmittingAnswer(false);
       await handleGenerateQuestion();
+    };
+
+    try {
+      setIsSubmittingAnswer(true);
+      await saveAnswer();
     } catch (e: any) {
       console.error("Save answer error:", e);
-      toast.error(e?.response?.data?.message || "Failed to save answer");
-    } finally {
       setIsSubmittingAnswer(false);
+      toast.error(e?.response?.data?.message || "Failed to save answer");
     }
   };
 
   // Skip question
   const handleSkipQuestion = async () => {
     toast.info("Question skipped");
-    await handleGenerateQuestion();
+    setIsGeneratingQuestion(true);
+    setLiveQuestionText("");
+    if (liveConnected) {
+      emitEvent("question:generate", { interviewId, speakQuestion: true });
+    } else {
+      await handleGenerateQuestion();
+    }
   };
 
   // Finish Interview & Generate Summary
   const handleFinishInterview = async () => {
+    if (isFinishing) return;
     try {
       setIsFinishing(true);
       stopSpeaking();
       toast.loading("Generating your comprehensive AI interview report...");
+
+      if (liveConnected) {
+        setReportLiveText("");
+        emitEvent("interview:finish", { interviewId });
+        return;
+      }
 
       await AxiosAPI.post(`/api/interviews/${interviewId}/summary`);
       toast.dismiss();
@@ -294,7 +434,9 @@ export default function InterviewSessionPage({ params }: PageProps) {
       toast.error(e?.response?.data?.message || "Error completing interview");
       router.push(`/dashboard/interviewDetails?id=${interviewId}`);
     } finally {
-      setIsFinishing(false);
+      if (!liveConnected) {
+        setIsFinishing(false);
+      }
     }
   };
 
@@ -366,6 +508,12 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                 {RoomData?.status || "Running"}
               </span>
+              {liveConnected && (
+                <span className="flex items-center gap-1 text-green-400 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-green-400" />
+                  Live
+                </span>
+              )}
               <span>• Level: {RoomData?.difficultyLevel}</span>
               <span>• Language: {RoomData?.interviewLanguage}</span>
             </div>
@@ -434,11 +582,17 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 </div>
               </div>
 
+              const isStreamingQuestion = isGeneratingQuestion && liveConnected;
               <div className="text-xs text-slate-400 z-10 text-center">
                 {isAISpeaking ? (
                   <span className="text-cyan-400 flex items-center gap-1.5 justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
                     AI is speaking the question...
+                  </span>
+                ) : isGeneratingQuestion && liveConnected ? (
+                  <span className="text-indigo-400 flex items-center gap-1.5 justify-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+                    Sara is writing the next question...
                   </span>
                 ) : isGeneratingQuestion ? (
                   <span className="text-indigo-400">AI is formulating the next question...</span>
@@ -446,6 +600,12 @@ export default function InterviewSessionPage({ params }: PageProps) {
                   <span>Listening to your answer...</span>
                 )}
               </div>
+
+              {isGeneratingQuestion && liveConnected && liveQuestionText && (
+                <div className="w-full mt-2 max-h-16 overflow-y-auto rounded-lg bg-slate-800/60 border border-slate-700 p-2 text-[11px] text-slate-300 leading-relaxed font-mono whitespace-pre-wrap text-left">
+                  {liveQuestionText}
+                </div>
+              )}
             </div>
 
             {/* Candidate Webcam Feed */}
@@ -646,6 +806,37 @@ export default function InterviewSessionPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* Live report generation overlay */}
+      {isFinishing && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-200">Generating your AI report</h3>
+                  <p className="text-xs text-slate-500">Sara is analyzing your answers live...</p>
+                </div>
+              </div>
+              {liveConnected && (
+                <span className="flex items-center gap-1.5 text-green-400 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Live streaming
+                </span>
+              )}
+            </div>
+            <div className="p-5 max-h-[50vh] overflow-y-auto bg-slate-950/80">
+              {reportLiveText ? (
+                <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">{reportLiveText}</pre>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

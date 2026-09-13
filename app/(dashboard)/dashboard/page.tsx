@@ -38,6 +38,44 @@ const formatDate = (iso?: string | null) => {
   });
 };
 
+const greeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+};
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-muted/50", className)} />;
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-64" />
+          <Skeleton className="h-4 w-80 max-w-full" />
+        </div>
+        <Skeleton className="h-11 w-44" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-[120px]" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Skeleton className="h-72" />
+        <div className="lg:col-span-2 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-16" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { data: user } = useUserInfo();
@@ -55,12 +93,7 @@ export default function DashboardPage() {
   const averageScore = dashboard?.averageScore;
 
   if (dashboardLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3 text-muted-foreground">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm">Loading your dashboard...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (dashboardError) {
@@ -120,7 +153,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Welcome back, {user?.firstName || "Candidate"} 👋
+            {greeting()}, {user?.firstName || "Candidate"} 👋
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Track your progress, review reports, and sharpen your interview skills with AI.
@@ -235,41 +268,59 @@ export default function DashboardPage() {
           )}
 
           <div className="space-y-3">
-            {(interviews || []).slice(0, 6).map((interview) => (
-              <button
-                key={interview.id}
-                onClick={() => router.push(`/dashboard/interviewDetails?id=${interview.id}`)}
-                className="w-full flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/40 hover:border-border px-4 py-3.5 text-left transition-colors cursor-pointer"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className={cn(
-                        "text-[10px] px-2 py-0.5 rounded-full border font-semibold",
-                        statusStyles[interview.status] || statusStyles.Pending,
-                      )}
-                    >
-                      {interview.status}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {interview.difficultyLevel}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {interview.interviewLanguage}
-                    </span>
+            {(interviews || []).slice(0, 6).map((interview) => {
+              const inProgress = interview.status === "Running" || interview.status === "Paused";
+              return (
+                <button
+                  key={interview.id}
+                  onClick={() =>
+                    router.push(
+                      inProgress
+                        ? `/interview/${interview.id}`
+                        : `/dashboard/interviewDetails?id=${interview.id}`,
+                    )
+                  }
+                  className="w-full flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/40 hover:border-border px-4 py-3.5 text-left transition-colors cursor-pointer"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={cn(
+                          "text-[10px] px-2 py-0.5 rounded-full border font-semibold",
+                          statusStyles[interview.status] || statusStyles.Pending,
+                        )}
+                      >
+                        {interview.status}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {interview.difficultyLevel}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {interview.interviewLanguage}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium mt-1.5 truncate">
+                      {interview.skills?.map((s) => s.name).join(", ") || "General Technical Evaluation"}
+                    </p>
                   </div>
-                  <p className="text-sm font-medium mt-1.5 truncate">
-                    {interview.skills?.map((s) => s.name).join(", ") || "General Technical Evaluation"}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-xs font-semibold">{interview.totalQuestions} Qs</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {formatDate(interview.createdAt)}
-                  </p>
-                </div>
-              </button>
-            ))}
+                  <div className="shrink-0 text-right">
+                    {inProgress ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Resume
+                      </span>
+                    ) : (
+                      <>
+                        <p className="text-xs font-semibold">{interview.totalQuestions} Qs</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {formatDate(interview.createdAt)}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

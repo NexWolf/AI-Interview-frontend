@@ -49,8 +49,13 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+
+  const totalSkills = skills?.length ?? 0;
+  const activeSkills = skills?.filter((s) => s.isActive).length ?? 0;
+  const inactiveSkills = totalSkills - activeSkills;
 
   const filteredSkills = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -136,7 +141,11 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Deactivate this skill? You can restore it later.")) return;
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      return;
+    }
+    setConfirmDeleteId(null);
     setBusy(true);
     try {
       await skillsService.delete(id);
@@ -185,6 +194,26 @@ export default function AdminPage() {
           <Plus className="w-4 h-4" />
           Create Skill
         </button>
+      </div>
+
+      {/* Stats summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: "Total Skills", value: totalSkills, dot: "bg-primary" },
+          { label: "Active", value: activeSkills, dot: "bg-emerald-500" },
+          { label: "Inactive", value: inactiveSkills, dot: "bg-muted" },
+        ].map(({ label, value, dot }) => (
+          <div
+            key={label}
+            className="rounded-2xl border border-border/70 bg-card/70 p-4 flex items-center justify-between"
+          >
+            <p className="text-sm font-medium text-muted-foreground">{label}</p>
+            <div className="flex items-center gap-2">
+              <span className={cn("w-2 h-2 rounded-full", dot)} />
+              <span className="text-xl font-bold">{value}</span>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Search */}
@@ -263,9 +292,15 @@ export default function AdminPage() {
                   <button
                     onClick={() => handleDelete(skill.id)}
                     disabled={busy}
-                    className="p-2 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer disabled:opacity-50"
+                    className={cn(
+                      "p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50",
+                      confirmDeleteId === skill.id
+                        ? "bg-rose-600 text-white hover:bg-rose-500"
+                        : "text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10",
+                    )}
+                    title={confirmDeleteId === skill.id ? "Click again to confirm" : "Deactivate"}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {confirmDeleteId === skill.id ? <Check className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                   </button>
                 </div>
               </div>

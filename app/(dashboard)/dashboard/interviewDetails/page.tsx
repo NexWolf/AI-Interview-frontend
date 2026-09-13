@@ -10,14 +10,45 @@ import {
   ChevronLeft,
   FileText,
   Lightbulb,
-  Loader2,
   MessageSquare,
   Mic,
+  Play,
+  Plus,
   Star,
   Target,
   TrendingUp,
   XCircle,
 } from "lucide-react";
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-muted/50", className)} />;
+}
+
+function ReportSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-4 w-40" />
+      <div className="rounded-2xl border border-border/70 bg-card/70 p-6 sm:p-8 space-y-5">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="h-4 w-72 max-w-full" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Skeleton className="h-56" />
+        <div className="lg:col-span-2 space-y-4">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
 import { useGetInterveiwRoom } from "@/features/interview/hooks/ReactQueryHooks/useGetInterviewRoom";
 import { ReportApi } from "@/features/interview/types/interviewRoom";
 import { cn } from "@/shared/lib/utils";
@@ -163,12 +194,7 @@ export default function InterviewDetails({ searchParams }: PageProps) {
   const answeredQuestions = (interview?.questions ?? []).filter((q) => q.isAnswered);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3 text-muted-foreground">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm">Loading interview report...</p>
-      </div>
-    );
+    return <ReportSkeleton />;
   }
 
   if (isError || !interview) {
@@ -217,18 +243,38 @@ export default function InterviewDetails({ searchParams }: PageProps) {
               {formatDate(interview.createdAt)}
             </p>
           </div>
-          <span
-            className={cn(
-              "text-xs px-3 py-1.5 rounded-full border font-semibold w-fit",
-              interview.status === "Completed"
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
-                : interview.status === "Running"
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={cn(
+                "text-xs px-3 py-1.5 rounded-full border font-semibold w-fit",
+                interview.status === "Completed"
                   ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
-                  : "bg-amber-500/10 text-amber-400 border-amber-500/30",
+                  : interview.status === "Running"
+                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                    : "bg-amber-500/10 text-amber-400 border-amber-500/30",
+              )}
+            >
+              {interview.status}
+            </span>
+            {(interview.status === "Running" || interview.status === "Paused") && (
+              <Link
+                href={`/interview/${interview.id}`}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors"
+              >
+                <Play className="w-3 h-3" />
+                Resume Interview
+              </Link>
             )}
-          >
-            {interview.status}
-          </span>
+            {interview.status === "Completed" && (
+              <Link
+                href="/interview/setup"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground px-3 py-1.5 rounded-full hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                New Interview
+              </Link>
+            )}
+          </div>
         </div>
 
         {interview.skills?.length > 0 && (

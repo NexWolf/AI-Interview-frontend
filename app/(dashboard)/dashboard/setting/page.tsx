@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useUserInfo } from "@/shared/hook/useUserInfo";
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
+import { cn } from "@/shared/lib/utils";
 
 export default function SettingPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function SettingPage() {
   const [isChanging, setIsChanging] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -63,7 +65,11 @@ export default function SettingPage() {
       toast.error("Type your email exactly to confirm deletion.");
       return;
     }
-    if (!window.confirm("This will permanently deactivate your account. Continue?")) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setConfirmDelete(false);
     setIsDeleting(true);
     try {
       await AxiosAPI.delete("/api/v1/users/me");
@@ -176,10 +182,15 @@ export default function SettingPage() {
           <button
             onClick={handleDeleteAccount}
             disabled={isDeleting}
-            className="inline-flex items-center justify-center gap-2 bg-rose-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-rose-500 transition-colors cursor-pointer disabled:opacity-60"
+            className={cn(
+              "inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60",
+              confirmDelete
+                ? "bg-rose-600 text-white hover:bg-rose-500"
+                : "bg-rose-600/10 text-rose-500 border border-rose-500/30 hover:bg-rose-600 hover:text-white",
+            )}
           >
             {isDeleting && <Loader2 className="w-4 h-4 animate-spin" />}
-            Delete My Account
+            {confirmDelete ? "Click again to confirm" : "Delete My Account"}
           </button>
         </div>
       </div>
