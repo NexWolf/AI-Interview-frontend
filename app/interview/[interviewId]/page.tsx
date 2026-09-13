@@ -28,7 +28,6 @@ import CameraPreview from "@/features/interview/components/setup-component/Camer
 import { useIntegrityMonitor } from "@/shared/hook/useIntegrityMonitor";
 import {
   useInterviewSocket,
-  QuestionStreamPayload,
   QuestionNewPayload,
   SummaryDonePayload,
   SocketErrorPayload,
@@ -89,7 +88,6 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
   // Live socket integration
   const { connected: liveConnected, emitEvent, onEvent } = useInterviewSocket();
-  const [liveQuestionText, setLiveQuestionText] = useState<string>("");
   const [reportLiveText, setReportLiveText] = useState<string>("");
   const languageRef = useRef<string>("English");
   useEffect(() => {
@@ -98,47 +96,116 @@ export default function InterviewSessionPage({ params }: PageProps) {
     }
   }, [RoomData?.interviewLanguage]);
 
-  // Speak question aloud using audio URL or Web Speech API synthesis
-  const speakQuestion = useCallback((text: string, audioUrl?: string | null, language: string = "English") => {
-    if (audioUrl) {
-      try {
-        if (audioPlayerRef.current) {
-          audioPlayerRef.current.pause();
-        }
-        const audio = new Audio(audioUrl);
-        audioPlayerRef.current = audio;
-        setIsAISpeaking(true);
-        audio.onended = () => setIsAISpeaking(false);
-        audio.onerror = () => {
-          setIsAISpeaking(false);
-          fallbackTTS(text, language);
-        };
-        audio.play().catch(() => {
-          fallbackTTS(text, language);
-        });
-        return;
-      } catch {
-        fallbackTTS(text, language);
-        return;
-      }
-    }
-    fallbackTTS(text, language);
+  // ----------------------------------------------------------------------
+  // LIVE CONVERSATION STATE MACHINE
+  // ----------------------------------------------------------------------
+  // The interview runs like a real back-and-forth with no button spam:
+  // Sara generates a question -> reads it out loud -> the mic auto-opens ->
+  // you speak -> the answer auto-submits the moment you stop -> Sara moves on.
+  type Phase =
+    | "idle"
+    | "generating"
+    | "speaking"
+    | "listening"
+    | "processing"
+    | "closing";
+  const [phase, setPhase] = useState<Phase>("idle");
+  const phaseRef = useRef<Phase>("idle");
+
+  const transition = useCallback((next: Phase) => {
+    phaseRef.current = next;
+    setPhase(next);
+    setIsGeneratingQuestion(next === "generating");
+    setIsSubmittingAnswer(next === "processing");
+    setIsFinishing(next === "closing");
+    setIsAISpeaking(next === "speaking");
+    setIsListening(next === "listening");
   }, []);
 
-  const fallbackTTS = (text: string, language: string) => {
+  // Keep latest text/values available inside socket & speech callbacks
+  const answerTextRef = useRef<string>("");
+  const setAnswer = useCallback((text: string) => {
+    answerTextRef.current = text;
+    setAnswerText(text);
+  }, []);
+  const currentQuestionRef = useRef<QuestionItem | null>(null);
+  useEffect(() => {
+    currentQuestionRef.current = currentQuestion;
+  }, [currentQuestion]);
+
+  // Runs when Sara finishes reading a question (or the audio is unavailable).
+  // When the flow is live we wire this to auto-open the mic for the user.
+  const speakDoneRef = useRef<(() => void) | null>(null);
+
+  // Speak question aloud using backend audio; falls back to Web Speech API.
+  const speakQuestion = useCallback(
+    (text: string, audioUrl?: string | null, language: string = "English") => {
+      const finish = () => {
+        setIsAISpeaking(false);
+        const cb = speakDoneRef.current;
+        speakDoneRef.current = null;
+        cb?.();
+      };
+
+      if (audioUrl) {
+        try {
+          if (audioPlayerRef.current) {
+            audioPlayerRef.current.pause();
+          }
+          const audio = new Audio(audioUrl);
+          audioPlayerRef.current = audio;
+          setIsAISpeaking(true);
+          audio.onended = finish;
+          audio.onerror = () => {
+            setIsAISpeaking(false);
+            speakDoneRef.current = null;
+            fallbackTTS(text, language, finish);
+          };
+          audio.play().catch(() => {
+            setIsAISpeaking(false);
+            speakDoneRef.current = null;
+            fallbackTTS(text, language, finish);
+          });
+          return;
+        } catch {
+          fallbackTTS(text, language, finish);
+          return;
+        }
+      }
+      fallbackTTS(text, language, finish);
+    },
+    [],
+  );
+
+  const fallbackTTS = (text: string, language: string, onDone?: () => void) => {
+    const complete = () => {
+      setIsAISpeaking(false);
+      speakDoneRef.current = null;
+      onDone?.();
+    };
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = language === "Arabic" ? "ar-SA" : "en-US";
       utterance.rate = 1.0;
+      if (language === "Arabic") {
+        // Pick the browser's Arabic voice if one exists so Arabic text is
+        // never read back with an English voice.
+        const voices = window.speechSynthesis.getVoices();
+        const arabic = voices.find((v) => v.lang.toLowerCase().startsWith("ar"));
+        if (arabic) utterance.voice = arabic;
+      }
       utterance.onstart = () => setIsAISpeaking(true);
-      utterance.onend = () => setIsAISpeaking(false);
-      utterance.onerror = () => setIsAISpeaking(false);
+      utterance.onend = complete;
+      utterance.onerror = complete;
       window.speechSynthesis.speak(utterance);
+      return;
     }
+    complete();
   };
 
   const stopSpeaking = () => {
+    speakDoneRef.current = null;
     if (audioPlayerRef.current) {
       audioPlayerRef.current.pause();
     }
@@ -148,52 +215,192 @@ export default function InterviewSessionPage({ params }: PageProps) {
     setIsAISpeaking(false);
   };
 
+  // ----------------------------------------------------------------------
+  // LIVE FLOW HELPERS
+  // ----------------------------------------------------------------------
+
+  // base64 audio -> playable object URL (uses the real mimeType Gemini returns)
+  const makeAudioUrl = (b64: string, mime: string) => {
+    try {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return URL.createObjectURL(new Blob([bytes], { type: mime }));
+    } catch {
+      return null;
+    }
+  };
+
+  // Model a freshly generated question from the socket/HTTP payload
+  const toQuestionItem = (qd: any): QuestionItem => {
+    const audio = qd.questionAudio
+      ? makeAudioUrl(qd.questionAudio.audioBase64, qd.questionAudio.mimeType)
+      : null;
+    return {
+      id: String(qd.questionId),
+      question: qd.question,
+      questionOrder: qd.questionOrder,
+      keyTopics: qd.keyTopics || [],
+      questionAudio: audio,
+      isAnswered: false,
+    };
+  };
+
+  // Ask a question: speak it, then open the mic so the user can answer
+  const startListening = useCallback(() => {
+    if (!recognitionRef.current) {
+      toast.info("Microphone transcription is not supported in this browser. You can type your answer directly.");
+      return;
+    }
+    transition("listening");
+    try {
+      recognitionRef.current.start();
+    } catch {
+      // recognition already active
+    }
+  }, [transition]);
+
+  const onAskQuestion = useCallback(
+    (q: QuestionItem, shouldSpeak: boolean, autoListen: boolean) => {
+      setCurrentQuestion(q);
+      setQuestionList((prev) =>
+        prev.some((x) => x.id === q.id) ? prev : [...prev, q],
+      );
+      setAnswer("");
+      draftBaseRef.current = "";
+      transition("speaking");
+      if (shouldSpeak) {
+        const audio = q.questionAudio || null;
+        if (autoListen) {
+          speakDoneRef.current = () => startListening();
+        } else {
+          speakDoneRef.current = null;
+        }
+        speakQuestion(q.question, audio, languageRef.current || "English");
+      } else {
+        // No stored audio (e.g. resuming a paused interview) - reuse Web Speech
+        speakDoneRef.current = autoListen ? () => startListening() : null;
+        speakQuestion(q.question, null, languageRef.current || "English");
+      }
+    },
+    [setAnswer, transition, speakQuestion, startListening],
+  );
+  const onAskQuestionRef = useRef(onAskQuestion);
+  onAskQuestionRef.current = onAskQuestion;
+
+  // Ask the backend for the next question (socket first, HTTP fallback)
+  const requestNextQuestion = useCallback(() => {
+    if (phaseRef.current === "generating" || phaseRef.current === "closing") return;
+    transition("generating");
+    stopSpeaking();
+
+    if (liveConnected) {
+      emitEvent("question:generate", { interviewId, speakQuestion: true });
+      return;
+    }
+
+    AxiosAPI.post(`/api/interviews/${interviewId}/questions/generate`, {
+      speakQuestion: true,
+    })
+      .then((res) => {
+        onAskQuestionRef.current(toQuestionItem(res.data.data), true, true);
+      })
+      .catch((e: any) => {
+        console.error("Generate question error:", e);
+        transition("idle");
+        toast.error(e?.response?.data?.message || "Failed to generate next question");
+      });
+  }, [interviewId, liveConnected, emitEvent, transition]);
+  const requestNextQuestionRef = useRef(requestNextQuestion);
+  requestNextQuestionRef.current = requestNextQuestion;
+
+  // Save the user's answer (socket first, HTTP fallback), then move on
+  const submitAnswerWithText = useCallback(
+    (text: string) => {
+      const q = currentQuestionRef.current;
+      if (!q) return;
+      const proceed = () => {
+        setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
+        requestNextQuestionRef.current();
+      };
+      const payload = { interviewId, questionId: q.id, answerText: text };
+
+      if (liveConnected) {
+        emitEvent("answer:submit", payload, ({ ok, message }) => {
+          if (!ok) {
+            transition("idle");
+            toast.error(message || "Failed to save answer");
+            return;
+          }
+          proceed();
+        });
+        return;
+      }
+
+      AxiosAPI.post(
+        `/api/interviews/${interviewId}/questions/${q.id}/answer`,
+        { answerText: text },
+      )
+        .then(proceed)
+        .catch((e: any) => {
+          console.error("Save answer error:", e);
+          transition("idle");
+          toast.error(e?.response?.data?.message || "Failed to save answer");
+        });
+    },
+    [interviewId, liveConnected, emitEvent, transition],
+  );
+  const submitAnswerRef = useRef(submitAnswerWithText);
+  submitAnswerRef.current = submitAnswerWithText;
+
+  // Fired by the speech recognition engine when the user stops talking
+  const handleRecognitionEnd = () => {
+    setIsListening(false);
+    if (phaseRef.current !== "listening") return;
+    const text = answerTextRef.current.trim();
+    if (text) {
+      transition("processing");
+      stopSpeaking();
+      submitAnswerRef.current(text);
+    } else {
+      // No speech detected - keep the session alive and try again
+      try {
+        recognitionRef.current?.start();
+      } catch {}
+    }
+  };
+  const handleRecognitionEndRef = useRef(handleRecognitionEnd);
+  handleRecognitionEndRef.current = handleRecognitionEnd;
+
+  // Re-read the current question (mic re-opens automatically after it)
+  const replayQuestion = useCallback(() => {
+    const q = currentQuestionRef.current;
+    if (!q) return;
+    speakDoneRef.current = q.isAnswered ? null : () => startListening();
+    transition("speaking");
+    speakQuestion(q.question, q.questionAudio, languageRef.current || "English");
+  }, [speakQuestion, startListening, transition]);
+
   // Subscribe to live interview events + join the room for this interview
   useEffect(() => {
     if (!interviewId) return;
     emitEvent("interview:join", { interviewId });
 
     const offs = [
-      onEvent<QuestionStreamPayload>("question:stream", ({ text }) => {
-        setLiveQuestionText((prev) => prev + text);
-      }),
       onEvent<QuestionNewPayload>("question:new", ({ question }) => {
-        const audioDataUrl = question.questionAudio
-          ? `data:${question.questionAudio.mimeType};base64,${question.questionAudio.audioBase64}`
-          : null;
-        const newQuestion: QuestionItem = {
-          id: String(question.questionId),
-          question: question.question,
-          questionOrder: question.questionOrder,
-          keyTopics: question.keyTopics || [],
-          questionAudio: audioDataUrl,
-          isAnswered: false,
-        };
-        setCurrentQuestion(newQuestion);
-        setQuestionList((prev) => {
-          if (prev.some((q) => q.id === newQuestion.id)) return prev;
-          return [...prev, newQuestion];
-        });
-        setLiveQuestionText("");
-        setAnswerText("");
-        setIsGeneratingQuestion(false);
-        speakQuestion(
-          newQuestion.question,
-          audioDataUrl,
-          languageRef.current || "English",
-        );
+        onAskQuestionRef.current(toQuestionItem(question), true, true);
       }),
       onEvent<SocketErrorPayload>("question:error", ({ message }) => {
-        setIsGeneratingQuestion(false);
+        if (phaseRef.current === "generating") transition("idle");
         toast.error(message || "Failed to generate next question");
       }),
       onEvent<SocketErrorPayload>("answer:error", ({ message }) => {
-        setIsSubmittingAnswer(false);
+        if (phaseRef.current === "processing") transition("idle");
         toast.error(message || "Failed to save answer");
       }),
       onEvent<SocketErrorPayload>("summary:error", ({ message }) => {
-        setIsFinishing(false);
         toast.dismiss();
+        transition("idle");
         toast.error(message || "Error generating report");
       }),
       onEvent<{ text: string }>("summary:stream", ({ text }) => {
@@ -201,7 +408,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
       }),
       onEvent<SummaryDonePayload>("summary:done", () => {
         setReportLiveText("");
-        setIsFinishing(false);
+        transition("idle");
         toast.dismiss();
         toast.success("Interview completed! Loading your evaluation report...");
         setTimeout(() => {
@@ -213,231 +420,152 @@ export default function InterviewSessionPage({ params }: PageProps) {
     return () => {
       offs.forEach((off) => off());
     };
-  }, [interviewId, emitEvent, onEvent, speakQuestion, router]);
+  }, [interviewId, emitEvent, onEvent, transition, router]);
 
-  // Generate a new question from backend (live socket first, HTTP fallback)
-  const handleGenerateQuestion = useCallback(async () => {
-    setIsGeneratingQuestion(true);
-    setLiveQuestionText("");
-
-    if (liveConnected) {
-      // Live path: streams "question:stream" chunks, finalized by "question:new"
-      emitEvent("question:generate", { interviewId, speakQuestion: true });
-      return;
-    }
-
-    try {
-      const res = await AxiosAPI.post(`/api/interviews/${interviewId}/questions/generate`, {
-        speakQuestion: true,
-      });
-
-      const questionData = res.data.data;
-      const audioDataUrl = questionData.questionAudio
-        ? `data:${questionData.questionAudio.mimeType};base64,${questionData.questionAudio.audioBase64}`
-        : null;
-      const newQuestion: QuestionItem = {
-        id: String(questionData.questionId),
-        question: questionData.question,
-        questionOrder: questionData.questionOrder,
-        keyTopics: questionData.keyTopics || [],
-        questionAudio: audioDataUrl,
-        isAnswered: false,
-      };
-
-      setCurrentQuestion(newQuestion);
-      setQuestionList((prev) => [...prev, newQuestion]);
-      setAnswerText("");
-
-      speakQuestion(
-        newQuestion.question,
-        audioDataUrl,
-        languageRef.current || "English",
-      );
-    } catch (e: any) {
-      console.error("Generate question error:", e);
-      toast.error(e?.response?.data?.message || "Failed to generate next question");
-    } finally {
-      setIsGeneratingQuestion(false);
-    }
-  }, [interviewId, liveConnected, emitEvent, speakQuestion]);
-
-  // Initial load: determine question or trigger generation
+  // Initial load: resume an in-progress interview or kick off question #1
+  const bootedRef = useRef(false);
   useEffect(() => {
-    if (!RoomData) return;
+    if (!RoomData || bootedRef.current) return;
 
     // If the interview was already completed, jump straight to the report
     if (RoomData.status === "Completed") {
       router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
       return;
     }
+    bootedRef.current = true;
 
-    if (RoomData.questions && RoomData.questions.length > 0) {
-      const formatted: QuestionItem[] = RoomData.questions.map((q: any) => ({
-        id: String(q.id),
-        question: q.questionText,
-        questionOrder: q.questionOrder,
-        isAnswered: q.isAnswered,
-      }));
-      setQuestionList(formatted);
-      const active = formatted.find((q) => !q.isAnswered) || formatted[formatted.length - 1];
-      setCurrentQuestion(active);
-    } else if (!currentQuestion && !isGeneratingQuestion) {
-      handleGenerateQuestion();
+    const qs: any[] = RoomData.questions ?? [];
+    const formatted: QuestionItem[] = qs.map((q: any) => ({
+      id: String(q.id),
+      question: q.questionText,
+      questionOrder: q.questionOrder,
+      isAnswered: q.isAnswered,
+    }));
+    setQuestionList(formatted);
+
+    const pending = formatted.find((q) => !q.isAnswered);
+    if (pending) {
+      // Resume: Sara re-reads the unanswered question, then the mic opens
+      setAnswer("");
+      onAskQuestionRef.current(pending, false, true);
+    } else {
+      // Fresh interview (or all questions answered) -> start the next one
+      requestNextQuestionRef.current();
     }
-  }, [RoomData, currentQuestion, isGeneratingQuestion, handleGenerateQuestion, interviewId, router]);
+  }, [RoomData, interviewId, router, setAnswer]);
 
-  // Handle Speech Recognition for Candidate voice answer
+  // Handle speech recognition: live transcription with auto-submit when the
+  // candidate stops talking (the engine fires onend after a pause in speech).
   useEffect(() => {
-    if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = RoomData?.interviewLanguage === "Arabic" ? "ar-SA" : "en-US";
+    if (typeof window === "undefined") return;
+    const supported =
+      "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
+    if (!supported) return;
 
-      recognition.onresult = (event: any) => {
-        // Rebuild the whole transcript from event.results every time instead of
-        // appending. Interim results get re-expanded in place, so appending
-        // caused words to repeat (e.g. "normal JavaScript normal JavaScript...").
-        let fullTranscript = "";
-        for (let i = 0; i < event.results.length; i++) {
-          fullTranscript += event.results[i][0].transcript;
-        }
-        const base = draftBaseRef.current.trim();
-        setAnswerText(base ? `${base} ${fullTranscript}`.trim() : fullTranscript.trim());
-      };
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang =
+      RoomData?.interviewLanguage === "Arabic" ? "ar-SA" : "en-US";
 
-      recognition.onerror = (err: any) => {
-        console.warn("Speech recognition error:", err);
-        setIsListening(false);
-      };
+    recognition.onresult = (event: any) => {
+      // Rebuild the whole transcript from event.results every time instead of
+      // appending. Interim results get re-expanded in place, so appending
+      // caused words to repeat (e.g. "normal JavaScript normal JavaScript...").
+      let fullTranscript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        fullTranscript += event.results[i][0].transcript;
+      }
+      const base = draftBaseRef.current.trim();
+      setAnswer(base ? `${base} ${fullTranscript}`.trim() : fullTranscript.trim());
+    };
 
-      recognition.onend = () => {
-        setIsListening(false);
-      };
+    recognition.onerror = (err: any) => {
+      console.warn("Speech recognition error:", err);
+      setIsListening(false);
+    };
 
-      recognitionRef.current = recognition;
-    }
-  }, [RoomData?.interviewLanguage]);
+    recognition.onend = () => handleRecognitionEndRef.current();
 
+    recognitionRef.current = recognition;
+
+    return () => {
+      try {
+        recognition.stop();
+      } catch {}
+    };
+  }, [setAnswer, RoomData?.interviewLanguage]);
+
+  // Manual mic toggle (also used to stop & submit a voice answer)
   const toggleListening = () => {
     if (!recognitionRef.current) {
       toast.info("Microphone transcription is not supported in this browser. You can type your answer directly.");
       return;
     }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+    if (phaseRef.current === "listening") {
+      stopSpeaking();
+      recognitionRef.current.stop(); // "onend" auto-submits, like a real call
     } else {
       stopSpeaking();
-      try {
-        recognitionRef.current.start();
-        setIsListening(true);
-        toast.success("Listening... speak your answer clearly");
-      } catch (err) {
-        console.error("Speech recognition start failed:", err);
-      }
+      startListening();
     }
   };
 
-  // Submit Answer
-  const handleSubmitAnswer = async () => {
-    if (!currentQuestion) return;
-    if (!answerText.trim()) {
+  // Submit the typed answer (fallback - voice answers submit automatically)
+  const handleSubmitAnswer = () => {
+    const text = answerTextRef.current.trim();
+    if (!text) {
       toast.error("Please provide or speak an answer before submitting.");
       return;
     }
-
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    }
-
-    const saveAnswer = async () => {
-      if (liveConnected) {
-        emitEvent(
-          "answer:submit",
-          {
-            interviewId,
-            questionId: currentQuestion.id,
-            answerText: answerText.trim(),
-          },
-          ({ ok, message }) => {
-            if (!ok) {
-              setIsSubmittingAnswer(false);
-              toast.error(message || "Failed to save answer");
-              return;
-            }
-            toast.success("Answer recorded successfully!");
-            setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
-            setIsSubmittingAnswer(false);
-            void handleGenerateQuestion();
-          },
-        );
-        return;
-      }
-
-      await AxiosAPI.post(
-        `/api/interviews/${interviewId}/questions/${currentQuestion.id}/answer`,
-        { answerText: answerText.trim() },
-      );
-      toast.success("Answer recorded successfully!");
-      setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
-      setIsSubmittingAnswer(false);
-      await handleGenerateQuestion();
-    };
-
     try {
-      setIsSubmittingAnswer(true);
-      await saveAnswer();
-    } catch (e: any) {
-      console.error("Save answer error:", e);
-      setIsSubmittingAnswer(false);
-      toast.error(e?.response?.data?.message || "Failed to save answer");
-    }
+      recognitionRef.current?.stop();
+    } catch {}
+    stopSpeaking();
+    transition("processing");
+    submitAnswerWithText(text);
   };
 
   // Skip question
-  const handleSkipQuestion = async () => {
+  const handleSkipQuestion = () => {
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
+    stopSpeaking();
     toast.info("Question skipped");
-    setIsGeneratingQuestion(true);
-    setLiveQuestionText("");
-    if (liveConnected) {
-      emitEvent("question:generate", { interviewId, speakQuestion: true });
-    } else {
-      await handleGenerateQuestion();
-    }
+    requestNextQuestionRef.current();
   };
 
   // Finish Interview & Generate Summary
-  const handleFinishInterview = async () => {
-    if (isFinishing) return;
+  const handleFinishInterview = () => {
+    if (phaseRef.current === "closing") return;
+    transition("closing");
+    stopSpeaking();
     try {
-      setIsFinishing(true);
-      stopSpeaking();
-      toast.loading("Generating your comprehensive AI interview report...");
+      recognitionRef.current?.stop();
+    } catch {}
+    toast.loading("Generating your comprehensive AI interview report...");
 
-      if (liveConnected) {
-        setReportLiveText("");
-        emitEvent("interview:finish", { interviewId });
-        return;
-      }
-
-      await AxiosAPI.post(`/api/interviews/${interviewId}/summary`);
-      toast.dismiss();
-      toast.success("Interview completed! Loading your evaluation report...");
-      router.push(`/dashboard/interviewDetails?id=${interviewId}`);
-    } catch (e: any) {
-      console.error("Finish interview error:", e);
-      toast.dismiss();
-      toast.error(e?.response?.data?.message || "Error completing interview");
-      router.push(`/dashboard/interviewDetails?id=${interviewId}`);
-    } finally {
-      if (!liveConnected) {
-        setIsFinishing(false);
-      }
+    if (liveConnected) {
+      setReportLiveText("");
+      emitEvent("interview:finish", { interviewId });
+      return;
     }
+
+    AxiosAPI.post(`/api/interviews/${interviewId}/summary`)
+      .then(() => {
+        toast.dismiss();
+        toast.success("Interview completed! Loading your evaluation report...");
+        router.push(`/dashboard/interviewDetails?id=${interviewId}`);
+      })
+      .catch((e: any) => {
+        console.error("Finish interview error:", e);
+        toast.dismiss();
+        toast.error(e?.response?.data?.message || "Error completing interview");
+        router.push(`/dashboard/interviewDetails?id=${interviewId}`);
+      });
   };
 
   // Integrity & Anti-cheating monitoring
@@ -561,7 +689,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 <button
                   onClick={() => {
                     if (isAISpeaking) stopSpeaking();
-                    else if (currentQuestion) speakQuestion(currentQuestion.question, currentQuestion.questionAudio, RoomData?.interviewLanguage);
+                    else if (currentQuestion) replayQuestion();
                   }}
                   className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition"
                   title={isAISpeaking ? "Mute AI" : "Read Question"}
@@ -582,30 +710,33 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 </div>
               </div>
 
-              const isStreamingQuestion = isGeneratingQuestion && liveConnected;
               <div className="text-xs text-slate-400 z-10 text-center">
                 {isAISpeaking ? (
                   <span className="text-cyan-400 flex items-center gap-1.5 justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    AI is speaking the question...
+                    Sara is speaking...
                   </span>
-                ) : isGeneratingQuestion && liveConnected ? (
+                ) : isGeneratingQuestion ? (
                   <span className="text-indigo-400 flex items-center gap-1.5 justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
                     Sara is writing the next question...
                   </span>
-                ) : isGeneratingQuestion ? (
-                  <span className="text-indigo-400">AI is formulating the next question...</span>
+                ) : isListening ? (
+                  <span className="text-red-400 flex items-center gap-1.5 justify-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                    Your turn - speak now. It submits when you stop.
+                  </span>
+                ) : isSubmittingAnswer ? (
+                  <span className="text-emerald-400 flex items-center gap-1.5 justify-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Analyzing your answer...
+                  </span>
                 ) : (
-                  <span>Listening to your answer...</span>
+                  <span className="text-slate-500 flex items-center gap-1.5 justify-center">
+                    Reviewing your answers...
+                  </span>
                 )}
               </div>
-
-              {isGeneratingQuestion && liveConnected && liveQuestionText && (
-                <div className="w-full mt-2 max-h-16 overflow-y-auto rounded-lg bg-slate-800/60 border border-slate-700 p-2 text-[11px] text-slate-300 leading-relaxed font-mono whitespace-pre-wrap text-left">
-                  {liveQuestionText}
-                </div>
-              )}
             </div>
 
             {/* Candidate Webcam Feed */}
@@ -633,9 +764,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
               </div>
 
               <button
-                onClick={() => {
-                  if (currentQuestion) speakQuestion(currentQuestion.question, currentQuestion.questionAudio, RoomData?.interviewLanguage);
-                }}
+                onClick={replayQuestion}
                 className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 cursor-pointer"
               >
                 <Volume2 className="w-3.5 h-3.5" />
@@ -651,7 +780,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 </div>
               ) : (
                 <p className="text-base sm:text-lg font-medium text-slate-100 leading-relaxed">
-                  {currentQuestion?.question || "Press 'Generate Next Question' to begin."}
+                  {currentQuestion?.question || "Waiting for Sara to start the conversation..."}
                 </p>
               )}
             </div>
@@ -665,7 +794,13 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 {isListening && (
                   <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] flex items-center gap-1 animate-pulse">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                    Recording Voice...
+                    Listening - auto-submits when you stop speaking
+                  </span>
+                )}
+                {isSubmittingAnswer && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] flex items-center gap-1 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Answer submitted - Sara is thinking...
                   </span>
                 )}
               </label>
@@ -681,14 +816,14 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 }`}
               >
                 {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-                <span>{isListening ? "Stop Recording" : "Speak Answer"}</span>
+                <span>{isListening ? "Stop & submit" : "Start speaking"}</span>
               </button>
             </div>
 
             {/* Answer Textarea */}
             <textarea
               value={answerText}
-              onChange={(e) => setAnswerText(e.target.value)}
+              onChange={(e) => setAnswer(e.target.value)}
               placeholder="Speak using the microphone or type your detailed response here..."
               rows={5}
               className="w-full p-4 rounded-xl border border-slate-800 bg-slate-950/70 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none placeholder:text-slate-600"
@@ -720,7 +855,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
                     </>
                   ) : (
                     <>
-                      <span>Submit Answer</span>
+                      <span>Submit typed answer</span>
                       <Send className="w-3.5 h-3.5" />
                     </>
                   )}
