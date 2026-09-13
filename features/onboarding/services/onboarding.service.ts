@@ -9,33 +9,50 @@ export const onboardingService = {
   }
 };
 
-function toFormData(data: OnboardingForm): FormData  {
+function toFormData(data: OnboardingForm): FormData {
   const formData = new FormData();
+  const avatar: File | null = data.bioData.avatar;
 
-  if (data.basicData.phoneNumber) formData.append("phoneNumber", data.basicData.phoneNumber);
-  if (data.bioData.bio) formData.append("bio", data.bioData.bio);
-  if (data.bioData.avatar instanceof File) {
-    formData.append("avatarUrl", data.bioData.avatar);
+  if (data.basicData?.phoneNumber) {
+    formData.append("phoneNumber", data.basicData.phoneNumber);
   }
-  if (data.bioData.socialLink) formData.append("socialLinks", data.bioData.socialLink);
+  if (data.bioData?.bio) {
+    formData.append("bio", data.bioData.bio);
+  }
+  if (avatar) {
+    formData.append("avatar", avatar);
+  }
 
-  // الأنواع المعقدة (arrays/objects) لازم تتحول لـ JSON string
-  data.skills.forEach((skill) => {
-    formData.append("skills[]" , skill)
-  })
-  data.education.forEach((education, index) => {
-  formData.append(`education[${index}][institution]`, education.institution);
-  formData.append(`education[${index}][degree]`, education.degree ?? '');
-  formData.append(`education[${index}][fieldOfStudy]`, education.fieldOfStudy);
-  formData.append(`education[${index}][startDate]`, education.startDate);
-  if (education.endDate) formData.append(`education[${index}][endDate]`, education.endDate);
-  formData.append(`education[${index}][isCurrent]`, String(education.isCurrent));
-  if (education.description) formData.append(`education[${index}][description]`, education.description);
-});
+  // Filter valid URLs for social links
+  const socialLinks = (data.bioData?.socialLinks || [])
+    .map((s) => s.value?.trim())
+    .filter((url) => Boolean(url && (url.startsWith("http://") || url.startsWith("https://"))));
+  if (socialLinks.length > 0) {
+    formData.append("socialLinks", JSON.stringify(socialLinks));
+  }
 
-  formData.forEach((value , key) => {
-    console.log(key, ":", value )
-  })
+  // Skills payload
+  const skillsPayload = (data.skills || []).map((skillId) => ({
+    skillId: Number(skillId),
+    proficiencyLevel: "Intermediate",
+  }));
+  if (skillsPayload.length > 0) {
+    formData.append("skills", JSON.stringify(skillsPayload));
+  }
+
+  // Educations payload
+  const educationPayload = (data.educations || []).map((edu) => ({
+    institution: edu.institution,
+    degree: edu.degree || null,
+    fieldOfStudy: edu.fieldOfStudy || null,
+    startDate: edu.startDate,
+    endDate: edu.isCurrent ? null : edu.endDate || null,
+    isCurrent: Boolean(edu.isCurrent),
+    description: edu.description || null,
+  }));
+  if (educationPayload.length > 0) {
+    formData.append("education", JSON.stringify(educationPayload));
+  }
 
   return formData;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { useMediaStream } from "@/shared/components/provider/MediaStermProvider";
 import { Check, Mic } from "lucide-react";
 import { Average } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
@@ -8,8 +9,9 @@ type PropsMic = {
 };
 
 const MicorphoneTest = ({ language }: PropsMic) => {
-  const [microphoneReady, setMicrophoneReady] = useState<boolean>(false);
-  const [microphoneError, setMicrophoneError] = useState<boolean>(false);
+  // const [microphoneReady, setMicrophoneReady] = useState<boolean>(false);
+  // const [microphoneError, setMicrophoneError] = useState<boolean>(false);
+  const {stream , audioStatus} = useMediaStream();
   const [spokenText, setSpokenText] = useState<string>("");
   const [isListening, setIsListening] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(0);
@@ -21,51 +23,56 @@ const MicorphoneTest = ({ language }: PropsMic) => {
   const expectedText = "I am ready now";
   const newLanguage = language === "ar" ? "ar-SA" : "en-US";
 
+
+
   /* TEST THE MICROPHONE AUDIO IS WORK OR NOT */
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let audioTrack: MediaStreamTrack | null = null;
+  // useEffect(() => {
+  //   let stream: MediaStream | null = null;
+  //   let audioTrack: MediaStreamTrack | null = null;
 
-    const handleEnded = () => {
-      setMicrophoneReady(false);
-      setMicrophoneError(true);
-    };
+  //   const handleEnded = () => {
+  //     setMicrophoneReady(false);
+  //     setMicrophoneError(true);
+  //   };
 
-    const startMicrophone = async () => {
-      try {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
+  //   const startMicrophone = async () => {
+  //     try {
+  //       streamRef.current = await navigator.mediaDevices.getUserMedia({
+  //         audio: true,
+  //       });
 
-        stream = streamRef.current;
+  //       stream = streamRef.current;
 
-        audioTrack = stream.getAudioTracks()[0];
+  //       audioTrack = stream.getAudioTracks()[0];
 
-        if (!audioTrack) {
-          setMicrophoneError(true);
-          return;
-        }
+  //       if (!audioTrack) {
+  //         setMicrophoneError(true);
+  //         return;
+  //       }
 
-        setMicrophoneReady(true);
+  //       setMicrophoneReady(true);
 
-        audioTrack.addEventListener("ended", () => {
-          setMicrophoneError(true);
-          setMicrophoneReady(false);
-        });
-      } catch (e) {
-        console.error("Audio Error", e);
-        setMicrophoneReady(false);
-        setMicrophoneError(true);
-      }
-    };
+  //       audioTrack.addEventListener("ended", () => {
+  //         setMicrophoneError(true);
+  //         setMicrophoneReady(false);
+  //       });
+  //     } catch (e) {
+  //       console.error("Audio Error", e);
+  //       setMicrophoneReady(false);
+  //       setMicrophoneError(true);
+  //     }
+  //   };
 
-    startMicrophone();
+  //   startMicrophone();
 
-    return () => {
-      stream?.getTracks().forEach((track) => track.stop());
-      audioTrack?.removeEventListener("ended", handleEnded);
-    };
-  }, []);
+  //   return () => {
+  //     stream?.getTracks().forEach((track) => track.stop());
+  //     audioTrack?.removeEventListener("ended", handleEnded);
+  //   };
+  // }, []);
+
+  const microphoneReady = audioStatus === "ready";
+  const microphoneError = audioStatus === "error";
 
   /* TEST THE USER SOUND IS CAN COVERT IT TO THE TEXT IN THE RIGHT TEXT OR NOT  */
 
@@ -125,15 +132,15 @@ const MicorphoneTest = ({ language }: PropsMic) => {
     updateVolume();
   };
 
+
+
   const stopAudioVisualizer = () => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-
     audioContextRef.current?.close();
     audioContextRef.current = null;
-
     setVolume(0);
   };
 

@@ -1,19 +1,21 @@
 "use client";
 
 import { Input } from "@/shared/components/ui/Input";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { ArrayPath,  FieldValues, Path, PathValue, useFieldArray, useFormContext } from "react-hook-form";
 import { GraduationCap, Plus, Trash2, ArrowLeft, Calendar } from "lucide-react";
 
-type PropsEducation = {
+type PropsEducation<T extends FieldValues> = {
   onBack?: () => void;
+  onEdit ?: () => void;
+  name : ArrayPath<T>
 };
 
-const EducationStep = ({ onBack }: PropsEducation) => {
-  const { register, control, watch } = useFormContext();
+const EducationStep = <T extends FieldValues>({ onBack , name}: PropsEducation<T >) => {
+  const { register, control, watch } = useFormContext<T>();
 
   const { append, remove, fields } = useFieldArray({
     control,
-    name: "education",
+    name: name ,
   });
 
   return (
@@ -21,7 +23,7 @@ const EducationStep = ({ onBack }: PropsEducation) => {
       {/* 1. قائمة المؤهلات التعليمية الديناميكية */}
       <div className="space-y-5">
         {fields.map((field, index) => {
-          const isCurrent = watch(`education.${index}.isCurrent`);
+          const isCurrent = watch(`${name}.${index}.isCurrent` as Path<T>);
 
           return (
             <div
@@ -53,12 +55,12 @@ const EducationStep = ({ onBack }: PropsEducation) => {
                 <Input
                   label="University / Institution"
                   placeholder="Ex: Stanford University"
-                  {...register(`education.${index}.institution`)}
+                  {...register(`${name}.${index}.institution` as Path<T>)}
                 />
                 <Input
                   label="Degree"
                   placeholder="Ex: Bachelor's, Master's"
-                  {...register(`education.${index}.degree`)}
+                  {...register(`${name}.${index}.degree` as Path<T>)}
                 />
               </div>
 
@@ -66,7 +68,7 @@ const EducationStep = ({ onBack }: PropsEducation) => {
               <Input
                 label="Field of Study"
                 placeholder="Ex: Computer Science & Software Engineering"
-                {...register(`education.${index}.fieldOfStudy`)}
+                {...register(`${name}.${index}.fieldOfStudy` as Path<T>)}
               />
 
               {/* خيار "حالياً أدرس هنا" كـ Checkbox احترافي */}
@@ -78,7 +80,7 @@ const EducationStep = ({ onBack }: PropsEducation) => {
                   <input
                     id={`isCurrent-${index}`}
                     type="checkbox"
-                    {...register(`education.${index}.isCurrent`)}
+                    {...register(`${name}.${index}.isCurrent` as Path<T>)}
                     className="h-4 w-4 rounded-md border-border/80 text-primary accent-primary focus:ring-primary/20 cursor-pointer"
                   />
                   <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">
@@ -93,7 +95,7 @@ const EducationStep = ({ onBack }: PropsEducation) => {
                   <Input
                     label="Start Date"
                     type="month"
-                    {...register(`education.${index}.startDate`)}
+                    {...register(`${name}.${index}.startDate` as Path<T>)}
                   />
                 </div>
 
@@ -102,7 +104,7 @@ const EducationStep = ({ onBack }: PropsEducation) => {
                     <Input
                       label="End Date"
                       type="month"
-                      {...register(`education.${index}.endDate`)}
+                      {...register(`${name}.${index}.endDate` as Path<T>)}
                     />
                   </div>
                 ) : (
@@ -119,7 +121,7 @@ const EducationStep = ({ onBack }: PropsEducation) => {
               <Input
                 label="Description (Optional)"
                 placeholder="Activities, societies, thesis topic or academic honors..."
-                {...register(`education.${index}.description`)}
+                {...register(`${name}.${index}.description` as Path<T>)}
               />
             </div>
           );
@@ -139,7 +141,7 @@ const EducationStep = ({ onBack }: PropsEducation) => {
               endDate: "",
               isCurrent: false,
               description: "",
-            })
+            } as unknown as PathValue<T, ArrayPath<T>>[number])
           }
           className="group flex items-center justify-center gap-2 w-full py-3.5 border-2 border-dashed border-border/70 dark:border-border/40 hover:border-primary/60 rounded-2xl bg-card/40 dark:bg-card/20 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all duration-200 cursor-pointer"
         >

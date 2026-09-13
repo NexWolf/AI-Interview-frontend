@@ -1,22 +1,27 @@
 "use client"
-import { Controller, get, useFormContext } from "react-hook-form";
+import { Controller, FieldPath, FieldValues, get, useFormContext } from "react-hook-form";
 import PhoneInput from "react-phone-number-input";
 
+type PhoneProps<T extends FieldValues> = {
+  name :FieldPath<T>
+}
 
-const PhoneNumber = () => {
+const PhoneNumber = <T extends FieldValues>({
+  name 
+} : PhoneProps<T>) => {
   const {
     control,
     formState: { errors },
-  } = useFormContext();
+  } = useFormContext<T>();
 
-  const phoneError = get(errors, "basicData.phoneNumber")
+  const phoneError = get(errors, name)
   return (
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium mb-1">Phone Number</label>
 
         <Controller
-          name="basicData.phoneNumber"
+          name= {name}
           control={control}
           rules={{ required: "Phone number is required" }}
           render={({ field: { onChange, value } }) => (

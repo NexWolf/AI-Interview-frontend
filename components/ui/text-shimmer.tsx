@@ -10,6 +10,7 @@ interface TextShimmerProps {
   className?: string;
   duration?: number;
   spread?: number;
+  style?: React.CSSProperties; 
 }
 
 export function TextShimmer({
@@ -18,12 +19,15 @@ export function TextShimmer({
   className,
   duration = 2,
   spread = 2,
+  style,
 }: TextShimmerProps) {
   const dynamicSpread = useMemo(() => {
     return children.length * spread;
   }, [children, spread]);
 
-  const MotionComponent = motion(Component as any);
+
+    const MotionComponent = useMemo(() => motion(Component as any), [Component]);
+
 
   return (
     <MotionComponent
@@ -52,8 +56,11 @@ export function TextShimmer({
           "--spread": `${dynamicSpread}px`,
           backgroundImage:
             "var(--bg), linear-gradient(var(--base-color), var(--base-color))",
+            ...style
         } as React.CSSProperties
+      
       }
+      
     >
       {children}
     </MotionComponent>

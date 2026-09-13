@@ -24,10 +24,10 @@ const steps: { key: stepKey; fields: FieldPath<OnboardingForm>[] }[] = [
   },
   {
     key: "bioData",
-    fields: ["bioData.avatar", "bioData.bio", "bioData.socialLink"],
+    fields: ["bioData.avatar", "bioData.bio", "bioData.socialLinks"],
   },
   { key: "skills", fields: ["skills"] },
-  { key: "education", fields: ["education"] },
+  { key: "education", fields: ["educations"] },
 ];
 
 const OnBoardingComponent = () => {
@@ -56,9 +56,9 @@ const OnBoardingComponent = () => {
       bioData: {
         bio: "",
         avatar: null,
-        socialLink: [],
+        socialLinks: [{value : ""}],
       },
-      education: [
+      educations: [
         {
           institution: "",
           degree: "",
@@ -142,11 +142,15 @@ const OnBoardingComponent = () => {
   };
 
   const onSubmit = async (data: OnboardingForm) => {
-
-
+    try {
       await mutateAsync(data);
       await dbStore.clear();
-      router.push("/profile");
+      document.cookie = "onboardingDone=true; path=/; max-age=2592000";
+      router.refresh();
+      router.push("/dashboard");
+    } catch (e) {
+      console.error("Onboarding submission failed:", e);
+    }
   };
 
   if (!isDbLoaded) {

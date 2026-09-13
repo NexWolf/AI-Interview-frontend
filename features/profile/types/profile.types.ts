@@ -1,3 +1,6 @@
+import { DifficultyLevelType } from "@/shared/types/allSkills";
+import { ProficiencyLevel } from "@/shared/types/userSkills";
+
 export interface SkillApi {
     id: number,
     name: string;            // اسم المهارة (مثل: TypeScript)
@@ -54,7 +57,43 @@ export interface EducationApi {
   updatedAt : string,
 }
 
+export interface socialLinksApi  {
+  value : string
+}
+
+export interface SkillsApiData {
+  skillId : string,
+  name : string,
+  proficiencyLevel : ProficiencyLevel | null,
+  isSelfAssessed : boolean,
+  assessedByAi : boolean,
+  aiAssessmentScore : number | string | null,
+  lastAssessedAt : string | null,
+}
+
 export interface ProfileApi {
+  id : string,
+  email : string,
+  firstName : string,
+  lastName : string,
+  userName : string,
+  phoneNumber : string | null,
+  bio : string | null,
+  avatarUrl : string | null,
+  avatarPublicId : string | null,
+  socialLinks : string[],
+  onboardingDone : boolean,
+  skills : SkillsApiData[],
+  isVerified : boolean,
+  lang : string | null,
+  role : "USER" | "ADMIN",
+  authProvider : "LOCAL" | "GOOGLE" | "FACEBOOK" | "GITHUB",
+  createdAt : string,
+  updatedAt : string,
+  educations : EducationApi[],
+}
+
+export interface defaultProfile {
   id : string,
   email : string,
   firstName : string,
@@ -64,7 +103,7 @@ export interface ProfileApi {
   bio : string,
   avatarUrl : string,
   avatarPublicId : string,
-  socialLinks : string,
+  socialLinks : socialLinksApi[],
   onboardingDone : boolean,
   skills : string[],
   isVerified : boolean,
@@ -73,7 +112,7 @@ export interface ProfileApi {
   authProvider : "LOCAL" | "GOOGLE" | "FACEBOOK" | "GITHUB",
   createdAt : string,
   updatedAt : string,
-  educations : EducationApi[]
+  education : EducationApi[]
 }
 /******************************** */
 
@@ -92,3 +131,16 @@ export interface ProfileBioType {
   avatarPublicId : string,
   socialLinks : string,
 }
+
+
+/******************************* */
+/* PROFIEL UPDATE */
+export interface ProfileHeaderUpdate {
+  firstName : string,
+  lastName : string,
+  userName : string,
+  bio : string,
+  phoneNumber : string,
+  socialLinks : string[]
+}
+/******************************* */

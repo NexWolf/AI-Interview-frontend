@@ -10,6 +10,7 @@ export const ActionIcons = ({onAdd , onEdit} : ActionProps) => {
         <div className="flex items-center gap-2">
           {onAdd && (
             <button
+            onClick={onAdd}
               type="button"
               className="bg-gray-500 hover:bg-green-500 hover:scale-105 transform duration-300 w-7 h-7 rounded-full text-white flex items-center justify-center cursor-pointer"
             >
@@ -19,6 +20,7 @@ export const ActionIcons = ({onAdd , onEdit} : ActionProps) => {
 
           {onEdit && (
             <button
+            onClick={onEdit}
               type="button"
               className="bg-gray-500 hover:bg-blue-500 hover:scale-105 transform duration-300 w-7 h-7 rounded-full text-white flex items-center justify-center cursor-pointer"
             >

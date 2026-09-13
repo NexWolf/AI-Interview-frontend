@@ -1,177 +1,313 @@
 "use client";
+
 import ActionIcons from "@/shared/components/ui/ActionIcons";
-import { mockProfileData } from "./ProfilePreview";
 import Image from "next/image";
-import { useEffect, useState } from "react"; 
-import FormTag from "@/shared/components/form/FormTag";
-import BasicStep from "@/features/onboarding/components/BasicStep";
+import { useEffect, useMemo, useState } from "react";
+import FormDialog from "@/shared/components/form/FormDialog";
+import { useForm } from "react-hook-form";
+import { Input } from "@/shared/components/ui/Input";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Pencil } from "lucide-react";
+  ProfileFormValues,
+  ProfileHeaderData,
+} from "../types/profileHeader.types";
+import FileUploadInput from "@/features/onboarding/components/FileUploadInput";
+import SocialLinks from "@/features/onboarding/components/SocialLinks";
+import PhoneNumber from "@/features/onboarding/components/PhoneNumber";
+import {
+  Sparkles,
+  CheckCircle2,
+  Mail,
+  Phone,
+  Globe,
+  ExternalLink,
+} from "lucide-react";
+import "react-phone-number-input/style.css";
 import { ProfileApi } from "../types/profile.types";
 
 type PropsPropfile = {
-  onEdit ?: () => void;
-  onStart ?: () => void;
-  editable ?: boolean; 
-  data : ProfileApi | null | undefined
+  onSave: (data: ProfileHeaderData) => void;
+  onStart?: () => void;
+  editable?: boolean;
+  data: ProfileApi;
+  onEditImage?: (data: string) => void;
 };
 
-const handleEditHeader = () => {
-  console.log("submited");
-}
+export const ProfileHeader = ({
+  onSave,
+  onEditImage,
+  onStart,
+  data,
+  editable,
+}: PropsPropfile) => {
+  const [openForm, setOpenForm] = useState<boolean>(false);
+  const [openImageForm, setOpenImageForm] = useState<boolean>(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-export const ProfileHeader = ({ onEdit, onStart , data, editable}: PropsPropfile) => {
-  const [openForm , setOpenForm] = useState<boolean>(true);
+  const parseSocialLinks = (links: string[] | null): { value: string }[] => {
+    if (!links || !Array.isArray(links)) return [];
+    return links.map((link) => ({ value: link }));
+  };
+
+  const initialFormValues: ProfileFormValues = useMemo(() => {
+    
+    return {
+      email: data?.email ?? "",
+      isVerified: data?.isVerified,
+      avatarUrl: data?.avatarUrl,
+      firstName: data?.firstName ?? "",
+      lastName: data?.lastName ?? "",
+      userName: data?.userName ?? "",
+      phoneNumber: data?.phoneNumber ?? "",
+      bio: data?.bio ?? "",
+      socialLinks: parseSocialLinks(data?.socialLinks),
+      avatarUpload : null,
+    };
+  }, [data]);
+
+  const handleFormSubmit = (formData: ProfileFormValues) => {
+    const payload: ProfileHeaderData = {
+      ...formData,
+      socialLinks: formData.socialLinks
+        .map((item) => item.value.trim())
+        .filter((url) => url.length > 0), // يمنع إرسال النصوص الفارغة
+    };
+
+    onSave(payload); // هذه الدالة التي تستدعي الـ PATCH API
+    console.log(payload);
+  };
+
+  const methods = useForm<ProfileFormValues>({
+    defaultValues: initialFormValues,
+  });
 
   useEffect(() => {
-    console.log(openForm);
-  }, [openForm]);
+    console.log(data);
+  }, [data]);
+
+  const {
+    register,
+    reset,
+    watch,
+    formState: { errors },
+  } = methods;
+
+  const watchSocialLinks = watch("avatarUpload");
+  const watchProfileImage = watch("avatarUrl");
+
+  useEffect(() => {
+    console.log("THIS IS AVATAR UPLOAD FROM ULOAD INPUT",watchSocialLinks);
+  }, [watch, watchSocialLinks]);
+
+  useEffect(() => {
+    if (initialFormValues) reset(initialFormValues);
+    console.log(initialFormValues);
+  }, [initialFormValues, reset]);
 
   return (
-    <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-xs">
-
-    {openForm && (
-      <Dialog open={openForm} onOpenChange={setOpenForm}>
-      {/* 1. زر فتح الـ Popup */}
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-secondary-foreground bg-secondary hover:bg-secondary/80 border border-border/60 rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
-        >
-          <Pencil className="w-4 h-4 text-muted-foreground" />
-          <span>Edit Bio</span>
-        </button>
-      </DialogTrigger>
-
-      {/* 2. محتوى الـ Popup */}
-      <DialogContent className="sm:max-w-lg rounded-2xl border-border/60 bg-card p-6 shadow-lg">
-        <DialogHeader className="space-y-1.5 text-left">
-          <DialogTitle className="text-xl font-bold text-foreground">
-            Edit Bio Data
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            Update your bio and personal information below.
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* 3. النموذج المدمج داخلياً */}
-        <div className="pt-2">
-          <FormTag
-            onSubmit={handleEditHeader}
-            
+    <div className="relative overflow-hidden rounded-3xl border border-border/70 dark:border-border/40 bg-card/80 dark:bg-card/40 backdrop-blur-2xl shadow-xl dark:shadow-2xl dark:shadow-primary/5 transition-all">
+      {/* OPEN IMAGE UPDATE FORM */}
+      {/* {openImageForm && (
+        <div>
+          <FormDialog
+            title="Edit Bio Data"
+            description="Update your bio and personal information below."
+            onOpen={openImageForm}
+            onClose={() => {
+              setOpenImageForm(false);
+              reset(initialFormValues);
+            }}
+            onSubmit={handleFormSubmit}
+            methods={methods}
+            form_button_title="Edit"
           >
-            <BasicStep  />
-          </FormTag>
+            <div>
+              {imageUrl ? (
+                <div></div>
+              ) : (
+                <div>
+                  <FileUploadInput name="avatarUrl" label="" />
+                </div>
+              )}
+            </div>
+          </FormDialog>
         </div>
-      </DialogContent>
-    </Dialog>
-    )}
+      )} */}
 
+      {/* OPEN PROFILE UPDATE FORM */}
+      {openForm && (
+        <FormDialog
+          title="Edit Bio Data"
+          description="Update your bio and personal information below."
+          onOpen={openForm}
+          onClose={() => {
+            setOpenForm(false);
+            reset(initialFormValues);
+          }}
+          onSubmit={handleFormSubmit}
+          methods={methods}
+          form_button_title="Edit"
+        >
+          <div className="space-y-4 py-1">
+            <FileUploadInput name="avatarUpload" label="" multiple={false}/>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              
+              <div className="space-y-1">
+                <Input
+                  {...register("firstName", {
+                    required: "First name is required",
+                  })}
+                  label="First Name"
+                  placeholder="Ex: Ahmed"
+                />
+                {errors.firstName && (
+                  <p className="text-destructive text-xs font-medium px-1">
+                    {String(errors.firstName.message)}
+                  </p>
+                )}
+              </div>
 
-    {/* Cover Banner */}
-    <div className="h-32 md:h-44 bg-linear-to-br from-primary/30 via-primary/10 to-background" />
+              <div className="space-y-1">
+                <Input
+                  {...register("lastName", {
+                    required: "Last name is required",
+                  })}
+                  label="Last Name"
+                  placeholder="Ex: Jheer"
+                />
+                {errors.lastName && (
+                  <p className="text-destructive text-xs font-medium px-1">
+                    {String(errors.lastName.message)}
+                  </p>
+                )}
+              </div>
+            </div>
 
-    <div className="p-6 pt-0 relative">
-      {/* Avatar & Actions Row */}
-      <div className="flex justify-between items-end -mt-16 md:-mt-20 mb-4">
-        <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-card bg-muted overflow-hidden shadow-md flex items-center justify-center text-muted-foreground font-bold text-2xl">
-          {mockProfileData.bioData.avatar ? (
-            <Image
-              src={mockProfileData.bioData.avatar}
-              alt={mockProfileData.basicData.userName}
-              fill
-              sizes="(max-width: 768px) 112px, 144px"
-              priority
-              className="object-cover"
-            />
-          ) : (
-            <span>
-              {mockProfileData.basicData.firstName[0]}
-              {mockProfileData.basicData.lastName[0]}
-            </span>
-          )}
-        </div>
+            <SocialLinks name="socialLinks" />
+            <div className="space-y-1 pt-1">
+              <PhoneNumber name="phoneNumber" />
+            </div>
+          </div>
+        </FormDialog>
+      )}
 
-
-        {/* Action Buttons Row */}
-        <div className="flex items-center gap-3">
-          {editable && (
-            <button
-              type="button"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 shadow-xs"
-            >
-              <span>🎯</span>
-              <span>Start Interview</span>
-            </button>
-          )}
-
-          {editable && (
-           <ActionIcons onEdit={() => setOpenForm(true)}/>
-          )}
-        </div>
+      {/* Cover Banner */}
+      <div className="relative h-36 sm:h-48 md:h-52 w-full overflow-hidden bg-gradient-to-r from-primary/25 via-primary/10 to-accent/30 dark:from-primary/20 dark:via-primary/5 dark:to-card">
+        <div className="absolute -top-12 -left-12 h-44 w-44 rounded-full bg-primary/20 blur-2xl" />
+        <div className="absolute -bottom-8 right-10 h-36 w-36 rounded-full bg-primary/15 blur-2xl" />
       </div>
 
-      {/* User Details */}
-      <div className="space-y-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-foreground">
-              {mockProfileData.basicData.firstName}{" "}
-              {mockProfileData.basicData.lastName}
-            </h1>
-            {mockProfileData.isVerified && (
-              <span className="text-primary text-sm bg-primary/10 px-2 py-0.5 rounded-full font-medium">
-                ✓ Verified
+      <div className="p-6 sm:p-8 pt-0 relative z-10">
+        {/* Avatar & Actions Row */}
+        <div className="flex flex-col sm:flex-row justify-between sm:items-end -mt-16 sm:-mt-20 mb-5 gap-4">
+          <div className="relative h-28 w-28 sm:h-36 sm:w-36 shrink-0 rounded-full border-4 border-card dark:border-card/90 bg-muted  shadow-xl ring-2 ring-primary/10 flex items-center justify-center text-primary-foreground font-bold text-2xl sm:text-3xl bg-gradient-to-tr from-primary to-primary/70">
+            <span className="absolute top-0 right-2 ">
+              {/* <ActionIcons onEdit={() => setOpenImageForm(true)} /> */}
+            </span>
+            {data?.avatarUrl ? (
+              <Image
+                src={data?.avatarUrl as string ?? ""}
+                alt={data?.userName ?? "UserImage"}
+                fill
+                sizes="(max-width: 640px) 112px, 144px"
+                priority
+                className="object-cover"
+              />
+            ) : (
+              <span>
+                {data?.firstName[0]}
+                {data?.lastName[0]}
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
-            @{mockProfileData.basicData.userName}
-          </p>
-        </div>
 
-        {/* Bio */}
-        {mockProfileData.bioData.bio && (
-          <p className="text-sm text-foreground/90 leading-relaxed max-w-2xl">
-            {mockProfileData.bioData.bio}
-          </p>
-        )}
+          {/* Action Buttons Row */}
+          <div className="flex items-center gap-3 self-end sm:self-auto">
+            {editable && (
+              <button
+                onClick={() => onStart?.()}
+                type="button"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg dark:shadow-none transition-all duration-200 active:scale-[0.98] cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-primary-foreground" />
+                <span>Start Interview</span>
+              </button>
+            )}
 
-        {/* Contact & Social Links Metadata */}
-        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1 border-t border-border/40">
-          <div className="flex items-center gap-1">
-            <span>📧</span>
-            <span>{mockProfileData.basicData.email}</span>
+            {editable && <ActionIcons onEdit={() => setOpenForm(true)} />}
           </div>
-          {mockProfileData.basicData.phoneNumber && (
-            <div className="flex items-center gap-1">
-              <span>📞</span>
-              <span>{mockProfileData.basicData.phoneNumber}</span>
-            </div>
-          )}
-          {mockProfileData.bioData.socialLink && (
-            <a
-              href={mockProfileData.bioData.socialLink}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 text-primary hover:underline"
-            >
-              <span>🔗</span>
-              <span>Portfolio / Link</span>
-            </a>
-          )}
         </div>
+
+        {/* User Details */}
+        <div className="space-y-3.5">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                {data?.firstName} {data?.lastName}
+              </h1>
+
+              {/* أيقونة التوثيق CheckCircle2 */}
+              {data?.isVerified && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Verified</span>
+                </span>
+              )}
+            </div>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+              @{data?.userName}
+            </p>
+          </div>
+
+          {/* Bio */}
+          {data?.bio && (
+            <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed max-w-3xl">
+              {data.bio}
+            </p>
+          )}
+
+          {/* Contact Row مع أيقونات Mail و Phone */}
+          <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-muted-foreground pt-4 border-t border-border/50 dark:border-border/30">
+            {data?.email && (
+              <div className="flex items-center gap-2 hover:text-foreground transition-colors">
+                <Mail className="w-4 h-4 text-primary shrink-0" />
+                <span className="font-medium">{data.email}</span>
+              </div>
+            )}
+            {data?.phoneNumber && (
+              <div className="flex items-center gap-2 hover:text-foreground transition-colors">
+                <Phone className="w-4 h-4 text-primary shrink-0" />
+                <span className="font-medium">{data.phoneNumber}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {data?.socialLinks && data.socialLinks.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {data.socialLinks.map((url, idx) => {
+              const cleanDomain = url
+                .replace(/^https?:\/\/(www\.)?/, "")
+                .replace(/\/$/, "");
+              return (
+                <a
+                  key={idx}
+                  href={url.startsWith("http") ? url : `https://${url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/60 dark:border-border/40 bg-secondary/30 dark:bg-secondary/15 hover:bg-secondary/70 hover:border-primary/40 text-xs font-medium text-foreground transition-all duration-150 active:scale-95"
+                >
+                  <Globe className="w-3.5 h-3.5 text-primary transition-transform group-hover:scale-110" />
+                  <span className="truncate max-w-[200px]">{cleanDomain}</span>
+                  <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors opacity-70" />
+                </a>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
-  </div>
-  )
+  );
 };
 
 export default ProfileHeader;

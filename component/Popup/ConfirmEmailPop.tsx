@@ -1,7 +1,7 @@
 "use client";
-import { AxiosAPI } from "@/lib/AxiosAPI";
 import { API_URL } from "@/constants/routes";
 import { useTimerLeft } from "@/hook/ui/useTimerLeft";
+import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 import { useState } from "react";
 
 type props = {

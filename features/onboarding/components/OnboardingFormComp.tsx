@@ -6,6 +6,8 @@ import { FormTag } from "@/shared/components/form/FormTag";
 import BasicStep from "./BasicStep";
 import { OnboardingForm } from "../types/onboarding.types";
 import { UseFormReturn } from "react-hook-form";
+import { useAllSkills } from "@/shared/hook/useAllSkills";
+import { useEffect, useState } from "react";
 
 type FormProps = {
   step: number;
@@ -16,7 +18,7 @@ type FormProps = {
   totalSteps: number;
   OnSubmit: (data: OnboardingForm) => void;
   error: Error | null;
-  methods : UseFormReturn<OnboardingForm>
+  methods: UseFormReturn<OnboardingForm>;
 };
 
 const STEP_TITLES: Record<number, { title: string; subtitle: string }> = {
@@ -26,7 +28,8 @@ const STEP_TITLES: Record<number, { title: string; subtitle: string }> = {
   },
   2: {
     title: "Bio & Avatar",
-    subtitle: "Tell the community who you are and customize your profile photo.",
+    subtitle:
+      "Tell the community who you are and customize your profile photo.",
   },
   3: {
     title: "Skills & Specialization",
@@ -49,13 +52,16 @@ export const OnboardingFormComp = ({
   error,
   methods,
 }: FormProps) => {
-   const progressPercentage = Math.round((step / totalSteps) * 100);
+  const progressPercentage = Math.round((step / totalSteps) * 100);
+
+
+
+
   return (
     <div className="w-full max-w-2xl mx-auto py-2 sm:py-6">
       <FormTag onSubmit={OnSubmit} methods={methods}>
         {/* الحاوية الرئيسية الزجاجية المتناسقة مع الـ Sidebar والألوان */}
         <div className="relative overflow-hidden rounded-3xl border border-border/70 dark:border-border/40 bg-card/80 dark:bg-card/40 p-6 sm:p-10 backdrop-blur-2xl shadow-xl dark:shadow-2xl dark:shadow-primary/5 transition-all">
-          
           {/* إضاءة خلفية ناعمة تتناغم مع الوضعين الفاتح والداكن */}
           <div
             className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/10 dark:bg-primary/15 blur-3xl"
@@ -97,12 +103,18 @@ export const OnboardingFormComp = ({
             {step === 3 && (
               <SkillsStep onNext={() => onNext(3)} onBack={() => onBack(3)} />
             )}
-            {step === 4 && <EducationStep onBack={() => onBack(4)} />}
+            {step === 4 && (
+              <EducationStep name="educations" onBack={() => onBack(4)} />
+            )}
             {/* صندوق الخطأ مع تصميم متوافق مع درجات --destructive */}
             {isError && (
               <div className="flex items-center gap-2.5 p-4 rounded-xl border border-destructive/30 bg-destructive/10 dark:bg-destructive/20 text-destructive text-sm mt-4 animate-in fade-in">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>Something went wrong: {error?.message}</span>
+                <span>
+                  {(error as any)?.response?.data?.message ||
+                    error?.message ||
+                    "Something went wrong. Please try again."}
+                </span>
               </div>
             )}
             {/* ================= 3. زر الحفظ النهائي ================= */}

@@ -1,13 +1,13 @@
 "use client";
 import { Check, Mic } from "lucide-react";
-import { Average } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 
 type PropsMic = {
-  language: "ar" | "en";
+  language: "Arabic" | "English";
+  onReady : (value : boolean) => void
 };
 
-const MicorphoneTest = ({ language }: PropsMic) => {
+const MicorphoneTest = ({ language , onReady }: PropsMic) => {
   const [microphoneReady, setMicrophoneReady] = useState<boolean>(false);
   const [microphoneError, setMicrophoneError] = useState<boolean>(false);
   const [spokenText, setSpokenText] = useState<string>("");
@@ -18,8 +18,14 @@ const MicorphoneTest = ({ language }: PropsMic) => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const expectedText = "I am ready now";
-  const newLanguage = language === "ar" ? "ar-SA" : "en-US";
+
+
+
+
+  // تتغير الجملة حسب اللغة المختارة لضمان عمل التعرف الصوتي بدقة
+  const expectedText =
+    language === "Arabic" ? "أنا مستعد الآن" : "I am ready now";
+  const newLanguage = language === "Arabic" ? "ar-SA" : "en-US";
 
   /* TEST THE MICROPHONE AUDIO IS WORK OR NOT */
   useEffect(() => {
@@ -68,17 +74,23 @@ const MicorphoneTest = ({ language }: PropsMic) => {
   }, []);
 
   /* TEST THE USER SOUND IS CAN COVERT IT TO THE TEXT IN THE RIGHT TEXT OR NOT  */
-
   const startVoiceTest = () => {
     const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Speech Recognition is not supported in this browser.");
+      return;
+    }
 
     const recognition = new SpeechRecognition();
 
     recognition.lang = newLanguage;
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.onresult = (event) => {
+
+    recognition.onresult = (event: any) => {
       const result = event.results[0][0].transcript;
       setSpokenText(result);
     };
@@ -96,11 +108,9 @@ const MicorphoneTest = ({ language }: PropsMic) => {
   const startAudioVisualizer = () => {
     if (!streamRef.current) return;
 
-    /** هنا يقوم ال context بمعالجة الصوت */
     const audioContext = new AudioContext();
     audioContextRef.current = audioContext;
 
-    /* عشان يقدر context يعالج الصوت لازم نوفرلو شئ يقدر يتعامل معو */
     const source = audioContext.createMediaStreamSource(streamRef.current);
 
     const analyzer = audioContext.createAnalyser();
@@ -115,10 +125,10 @@ const MicorphoneTest = ({ language }: PropsMic) => {
 
       const sum = dataArray.reduce(
         (accumulator, value) => accumulator + value,
-        0,
+        0
       );
-      const avarage = sum / dataArray.length;
-      setVolume(avarage);
+      const average = sum / dataArray.length;
+      setVolume(average);
       animationFrameRef.current = requestAnimationFrame(updateVolume);
     };
 
@@ -137,87 +147,93 @@ const MicorphoneTest = ({ language }: PropsMic) => {
     setVolume(0);
   };
 
+  useEffect(() =>{
+    onReady(microphoneReady)
+  },[microphoneReady])
+
   return (
-    <div className="w-full md:w-1/2 p-5 rounded-xl border border-[#1F2937] bg-[#0D121F] transition-all flex flex-col justify-between h-full">
-  {/* Header */}
-  <div className="flex items-center justify-between pb-3 border-b border-[#1F2937]">
-    <div className="flex items-center gap-2.5">
-      <Mic className="h-5 w-5 text-[#6366F1]" />
-      <h2 className="font-semibold text-white text-base">Microphone Check</h2>
-    </div>
-
-    {microphoneReady && (
-      <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-400">
-        <Check className="h-3.5 w-3.5 stroke-[3]" />
-        Working
-      </div>
-    )}
-
-    {microphoneError && (
-      <div className="flex items-center gap-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-medium text-rose-400">
-        Microphone unavailable
-      </div>
-    )}
-  </div>
-
-  {/* Content Container */}
-  <div className="mt-4 rounded-lg bg-[#0B0F19] border border-[#1F2937] p-5 flex-1 flex flex-col justify-between gap-4">
-    <div className="flex flex-col gap-3">
-      <div>
-        <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
-          Please read the following sentence:
-        </p>
-        <p className="mt-2 text-base font-medium text-white leading-relaxed">
-          {expectedText}
-        </p>
-      </div>
-
-      {spokenText && (
-        <div className="p-3 rounded-lg bg-[#0D121F] border border-[#1F2937]">
-          <p className="text-xs font-medium text-gray-400">
-            YOU SAID:{" "}
-            <span className="text-white font-normal">{spokenText}</span>
-          </p>
+    <div className="w-full md:w-1/2 p-5 sm:p-6 rounded-2xl border border-border bg-card/60 shadow-sm transition-all flex flex-col justify-between h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3.5 border-b border-border">
+        <div className="flex items-center gap-2.5">
+          <Mic className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold text-foreground text-base">
+            Microphone Check
+          </h2>
         </div>
-      )}
-    </div>
 
-    {/* Dynamic Outer Wave Visualizer */}
-    <div className="flex flex-col items-center justify-center gap-3 py-4">
-      <div className="relative flex items-center justify-center w-16 h-16">
-        {/* Outer Expanding Wave (الحلقة الخارجية المتحركة) */}
-        <div
-          style={{
-            transform: `scale(${1 + Math.min(volume / 30, 1.2)})`,
-            opacity: isListening ? Math.min(0.2 + volume / 50, 0.8) : 0,
-          }}
-          className="absolute inset-0 rounded-full bg-[#6366F1] transition-all duration-75 ease-out"
-        />
+        {microphoneReady && (
+          <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            <Check className="h-3.5 w-3.5 stroke-[3]" />
+            Working
+          </div>
+        )}
 
-        {/* Core Microphone Button (المركز الثابت) */}
-        <div className="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-[#6366F1] text-white shadow-lg shadow-[#6366F1]/30">
-          <Mic className="w-5 h-5" />
-        </div>
+        {microphoneError && (
+          <div className="flex items-center gap-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-medium text-rose-600 dark:text-rose-400">
+            Microphone unavailable
+          </div>
+        )}
       </div>
 
-      <span className="text-xs text-gray-400">
-        {isListening ? "Listening to your voice..." : "Voice Level Indicator"}
-      </span>
-    </div>
+      {/* Content Container */}
+      <div className="mt-4 rounded-xl bg-muted/30 border border-border p-5 flex-1 flex flex-col justify-between gap-4">
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+              Please read the following sentence:
+            </p>
+            <p className="mt-2 text-base font-semibold text-foreground leading-relaxed p-3 rounded-xl bg-card border border-border">
+              &quot;{expectedText}&quot;
+            </p>
+          </div>
 
-    {/* Action Button */}
-    {!isListening && (
-      <button
-        className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-[#6366F1] hover:bg-[#4F46E5] active:scale-[0.99] transition-all cursor-pointer disabled:bg-[#1F2937] disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:bg-[#1F2937]"
-        type="button"
-        disabled={!microphoneReady}
-        onClick={startVoiceTest}
-      >
-        Start Voice Test
-      </button>
-    )}
-  </div>
-</div>
+          {spokenText && (
+            <div className="p-3 rounded-xl bg-card border border-border shadow-sm">
+              <p className="text-xs font-semibold text-muted-foreground">
+                YOU SAID:{" "}
+                <span className="text-foreground font-medium">{spokenText}</span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Dynamic Outer Wave Visualizer */}
+        <div className="flex flex-col items-center justify-center gap-3 py-4">
+          <div className="relative flex items-center justify-center w-16 h-16">
+            {/* Outer Expanding Wave */}
+            <div
+              style={{
+                transform: `scale(${1 + Math.min(volume / 30, 1.2)})`,
+                opacity: isListening ? Math.min(0.2 + volume / 50, 0.8) : 0,
+              }}
+              className="absolute inset-0 rounded-full bg-primary transition-all duration-75 ease-out"
+            />
+
+            {/* Core Microphone Button */}
+            <div className="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+              <Mic className="w-5 h-5" />
+            </div>
+          </div>
+
+          <span className="text-xs text-muted-foreground">
+            {isListening ? "Listening to your voice..." : "Voice Level Indicator"}
+          </span>
+        </div>
+
+        {/* Action Button */}
+        {!isListening && (
+          <button
+            className="w-full py-3 px-4 rounded-xl text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary/90 active:scale-[0.99] transition-all cursor-pointer shadow-md shadow-primary/20 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
+            type="button"
+            disabled={!microphoneReady}
+            onClick={startVoiceTest}
+          >
+            Start Voice Test
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 

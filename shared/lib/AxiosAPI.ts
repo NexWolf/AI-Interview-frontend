@@ -16,7 +16,6 @@ async function fetchAccesssToken(): Promise<string | null> {
 AxiosAPI.interceptors.request.use(async (config) => {
     if (!cachedAccessToken) {
         cachedAccessToken = await fetchAccesssToken();
-
     }
 
     if (cachedAccessToken) {

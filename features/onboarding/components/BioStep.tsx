@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { get, useFormContext } from "react-hook-form";
 import Image from "next/image";
-import { Input } from "@/shared/components/ui/Input";
 import { dbStore } from "@/shared/lib/dbStore";
 import { FileUploadInput } from "./FileUploadInput";
 import { ArrowLeft, ArrowRight, X, Sparkles } from "lucide-react";
+import SocialLinks from "./SocialLinks";
 
 type PropsBio = {
   onNext?: () => void;
@@ -112,16 +112,9 @@ export const BioStep = ({ onNext, onBack }: PropsBio) => {
 
         {/* حقل الروابط الاجتماعية (Social Links) */}
         <div className="space-y-1">
-          <Input
-            {...register("bioData.socialLink")}
-            label="Social Profile or Portfolio"
-            placeholder="https://linkedin.com/in/username"
+          <SocialLinks 
+            name="bioData.socialLinks"
           />
-          {socialLinkError && (
-            <p className="text-destructive text-xs font-medium px-1">
-              {String(socialLinkError.message)}
-            </p>
-          )}
         </div>
 
         {/* حقل النبذة الشخصية (Bio Textarea) */}

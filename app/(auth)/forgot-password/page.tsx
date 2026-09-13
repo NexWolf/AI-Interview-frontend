@@ -34,7 +34,7 @@ export default function ForgotPassword() {
     formData.append("email", email);
     try {
       const response = await AxiosAPI.post(
-        `${API_URL}/api/v1/auth/forgot-password`,
+        `/api/v1/auth/forgot-password`,
         { email: email },
       );
       toast.success(response?.data?.message || "Reset link sent successfully!");

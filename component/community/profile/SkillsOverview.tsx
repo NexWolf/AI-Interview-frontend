@@ -11,7 +11,7 @@ export interface SkillsDataType {
 }
 
 interface SkillOverviewProps {
-  skills: SkillsDataType[];
+  skills: string[];
   onEdit?: () => void;
   onViewAll?: () => void;
 }
@@ -31,13 +31,10 @@ export const SkillOverview = ({ skills, onEdit, onViewAll }: SkillOverviewProps)
         </button>
       </div>
 
-      {/* Skills List */}
-      <div className="flex flex-col gap-3.5">
+      {/* <div className="flex flex-col gap-3.5">
         {skills.map((skill) => (
           <div key={skill.id} className="flex items-center gap-3">
-            {/* Icon & Name */}
             <div className="flex w-24 shrink-0 items-center gap-2 sm:w-28">
-              {/* ملاحظة: يمكنك استبدال Image بـ SVG أو مكتبة أيقونات بناءً على الـ icon_key */}
               <div className="flex h-5 w-5 items-center justify-center rounded-sm bg-slate-800/50">
                 <span className="text-[10px] font-bold text-slate-300">
                   {skill.name.charAt(0)}
@@ -48,7 +45,6 @@ export const SkillOverview = ({ skills, onEdit, onViewAll }: SkillOverviewProps)
               </span>
             </div>
 
-            {/* Progress Bar */}
             <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800/80 shadow-inner">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-[#8B6B4D] via-[#C6A87D] to-[#E3D3B4] shadow-[0_0_8px_rgba(198,168,125,0.3)] transition-all duration-500"
@@ -56,18 +52,16 @@ export const SkillOverview = ({ skills, onEdit, onViewAll }: SkillOverviewProps)
               />
             </div>
 
-            {/* Percentage */}
             <div className="w-8 text-right text-xs font-semibold text-slate-300">
               {skill.rate}%
             </div>
 
-            {/* Status Badge */}
             <div className="flex w-14 shrink-0 items-center justify-center rounded bg-slate-800/40 border border-slate-700/40 py-1 text-[10px] font-medium capitalize text-slate-300">
               {skill.status}
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
 
       {/* Footer Link */}
       <button

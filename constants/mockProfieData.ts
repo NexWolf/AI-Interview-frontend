@@ -1,6 +1,5 @@
-import { profileDataType } from "@/types/community/profile";
 
-export const profileData: profileDataType = {
+export const profileData = {
     id: 0,
     bio: {
         id: 0,

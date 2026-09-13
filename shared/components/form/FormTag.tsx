@@ -5,6 +5,8 @@ import {
   useForm,
   UseFormReturn,
 } from "react-hook-form";
+import { Button } from "../ui/Button";
+import LoadingIcon from "@/component/shared/LoadingIcon";
 
 type FormProps<T extends FieldValues> = {
   children: React.ReactNode;
@@ -13,6 +15,10 @@ type FormProps<T extends FieldValues> = {
   onSubmit: (data: T) => void;
   FORM_DATA?: T;
   methods?: UseFormReturn<T>;
+  button_title ?: string,
+  loading ?: boolean,
+  loading_title ?: string,
+  disabeld ?: boolean,
 };
 
 export const FormTag = <T extends FieldValues>({
@@ -22,6 +28,10 @@ export const FormTag = <T extends FieldValues>({
   FORM_DATA,
   onSubmit,
   methods: externalMethods,
+  loading ,
+  button_title,
+  loading_title,
+  disabeld
 }: FormProps<T>) => {
   const internalMethods = useForm<T>({
     defaultValues: FORM_DATA as any,
@@ -38,6 +48,22 @@ export const FormTag = <T extends FieldValues>({
         </div>
 
         <div>{children}</div>
+        {button_title ? (
+          <div className="w-full flex justify-end my-3">
+          <Button type="submit" disabled={loading || disabeld}>
+            {loading ? (
+               <div>
+                <LoadingIcon/>
+                <span>{loading_title}</span>
+              </div>
+              
+            ) : (
+             <span>{button_title}</span>
+            )}
+            
+          </Button>
+        </div>
+        ) : (null)}
       </form>
     </FormProvider>
   );

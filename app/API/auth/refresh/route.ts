@@ -30,14 +30,9 @@ export async function POST() {
         }
 
         let newAccessToken: string | null = null;
-        
-        // تجهيز الـ Response النهائي
-        const response = NextResponse.json({
-            success: true,
-            accessToken: newAccessToken
-        });
 
         const setCookies = backendResponse.headers.getSetCookie();
+        const nextCookies: Array<{ name: string; value: string; maxAge: number }> = [];
 
         for (const cookie of setCookies) {
             const [cookiePair] = cookie.split(";");
@@ -47,28 +42,30 @@ export async function POST() {
 
             if (name === "accessToken") {
                 newAccessToken = value;
-                response.cookies.set({
-                    name: "accessToken",
-                    value,
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === "production",
-                    sameSite: "lax",
-                    path: "/",
-                    maxAge: 60 * 15,
-                });
+                nextCookies.push({ name, value, maxAge: 60 * 15 });
             }
 
             if (name === "refreshToken") {
-                response.cookies.set({
-                    name: "refreshToken",
-                    value,
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === "production",
-                    sameSite: "lax",
-                    path: "/",
-                    maxAge: 60 * 60 * 24 * 7,
-                });
+                nextCookies.push({ name, value, maxAge: 60 * 60 * 24 * 7 });
             }
+        }
+
+        // تجهيز الـ Response النهائي
+        const response = NextResponse.json({
+            success: true,
+            accessToken: newAccessToken
+        });
+
+        for (const { name, value, maxAge } of nextCookies) {
+            response.cookies.set({
+                name,
+                value,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+                path: "/",
+                maxAge,
+            });
         }
 
         return response;

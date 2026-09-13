@@ -1,42 +1,42 @@
 import ActionIcons from "@/shared/components/ui/ActionIcons";
-import { SkillApi } from "../types/profile.types";
+import { SkillApi, SkillsApiData } from "../types/profile.types";
 
 type PropsSkills = {
-  skillsData: SkillApi[] | [];
+  skillsData: SkillsApiData[];
   onEdit?: () => void;
   onAdd?: () => void;
   editable ?: boolean;
 };
 
-// دالة مساعدة لتحديد تنسيق ولون مستوى المهارة
-const getLevelBadge = (level?: SkillApi["level"]) => {
-  switch (level) {
-    case "Expert":
-      return {
-        label: "Expert",
-        className:
-          "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-      };
-    case "Intermediate":
-      return {
-        label: "Intermediate",
-        className:
-          "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-      };
-    case "Beginner":
-      return {
-        label: "Beginner",
-        className:
-          "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      };
-    case "Not Assessed":
-    default:
-      return {
-        label: "Not Assessed",
-        className: "bg-muted text-muted-foreground border-border/60",
-      };
-  }
-};
+// // دالة مساعدة لتحديد تنسيق ولون مستوى المهارة
+// const getLevelBadge = (level?: SkillApi["level"]) => {
+//   switch (level) {
+//     case "Expert":
+//       return {
+//         label: "Expert",
+//         className:
+//           "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+//       };
+//     case "Intermediate":
+//       return {
+//         label: "Intermediate",
+//         className:
+//           "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+//       };
+//     case "Beginner":
+//       return {
+//         label: "Beginner",
+//         className:
+//           "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+//       };
+//     case "Not Assessed":
+//     default:
+//       return {
+//         label: "Not Assessed",
+//         className: "bg-muted text-muted-foreground border-border/60",
+//       };
+//   }
+// };
 
 export const ProfileSkills = ({ skillsData, onEdit, onAdd , editable}: PropsSkills) => {
   return (
@@ -61,21 +61,20 @@ export const ProfileSkills = ({ skillsData, onEdit, onAdd , editable}: PropsSkil
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {skillsData.map((skill , index) => {
+          {skillsData.map((skill) => {
             // const badge = getLevelBadge(skill.level);
             return (
               <div
-                // key={skill.id}
-                key={index}
+                key={skill.skillId}
                 className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 hover:border-border transition-colors"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   {/* الدائرة الموحدة بالحرف الأول */}
                   <div className="w-7 h-7 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center text-xs font-bold uppercase shrink-0">
-                    {/* {skill.name[0]} */}
+                    {skill.name[0]}
                   </div>
                   <span className="text-sm font-medium text-foreground truncate">
-                    {skill}
+                    {skill.name}
                   </span>
                 </div>
 

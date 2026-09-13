@@ -45,7 +45,7 @@ export default function ResetPassword({ searchParams }: PageProps) {
 
     try {
       const response = await AxiosAPI.post(
-        `${API_URL}/api/v1/auth/reset-password`,
+        `/api/v1/auth/reset-password`,
         {
           token,
           password: data.password,

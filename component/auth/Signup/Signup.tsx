@@ -1,18 +1,17 @@
 "use client";
-import { AxiosAPI } from "@/lib/AxiosAPI";
 import AuthSignForm from "@/component/form/AuthSignForm";
-import ConfirmEmailPop from "@/component/Popup/ConfirmEmailPop";
 import { Input } from "@/component/ui/Input";
 import { API_URL } from "@/constants/routes";
 import { SignupType } from "@/types/auth";
 import { signupInput, SignupSchema } from "@/lib/validation/authSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef,  useState } from "react";
 import { useForm } from "react-hook-form";
 import { FiAlertCircle } from "react-icons/fi";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import axios from "axios";
+import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 
 type props = {
   show?: boolean;

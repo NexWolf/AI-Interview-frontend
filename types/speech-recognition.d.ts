@@ -7,7 +7,7 @@ interface SpeechRecognition {
     interimResults : boolean,
     onresult : ((event : SpeechRecognitionEvent) => void) | null,
     onerror : ((event : SpeechRecognitionErrorEvent) => void) | null,
-    onend : (()=> void) | nullو
+    onend : (()=> void) | null;
     onstart : (() => void) | null;
 }
 

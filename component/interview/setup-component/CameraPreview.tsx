@@ -3,7 +3,11 @@
 import { Check, Video , VideoOff} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-const CameraPreview = () => {
+type CameraProps = {
+  isRoomInterview ?: boolean;
+}
+
+const CameraPreview = ({isRoomInterview} : CameraProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraReady, setCameraReady] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<boolean>(false);
@@ -57,7 +61,8 @@ const CameraPreview = () => {
   return (
    <div className="w-full md:w-1/2 p-5 rounded-xl border border-[#1F2937] bg-[#0D121F] transition-all flex flex-col justify-between h-full">
   {/* Header */}
-  <div className="flex items-center justify-between pb-3 border-b border-[#1F2937]">
+  {!isRoomInterview && (
+    <div className="flex items-center justify-between pb-3 border-b border-[#1F2937]">
     <div className="flex items-center gap-2.5">
       <Video className="h-5 w-5 text-[#6366F1]" />
       <h2 className="font-semibold text-white text-base">Camera Check</h2>
@@ -76,9 +81,10 @@ const CameraPreview = () => {
       </div>
     )}
   </div>
+  )}
 
   {/* Camera Preview Container */}
-  <div className="mt-4 rounded-lg bg-[#0B0F19] border border-[#1F2937] p-4 flex-1 flex flex-col justify-between gap-4">
+  <div className={`${!isRoomInterview ? "mt-4 rounded-lg bg-[#0B0F19] border border-[#1F2937] p-4 flex-1 flex flex-col justify-between gap-4" : "w-50 absolute top-30 right-10"}`}>
     <div className="relative w-full flex-1 min-h-[220px] rounded-lg overflow-hidden bg-[#030712] border border-[#1F2937] flex items-center justify-center">
       {/* Dynamic Video Feed */}
       <video
@@ -109,7 +115,8 @@ const CameraPreview = () => {
     </div>
 
     {/* Bottom Status / Footer matching microphone style structure */}
-    <div className="p-3 rounded-lg bg-[#0D121F] border border-[#1F2937] text-center">
+    {!isRoomInterview && (
+      <div className="p-3 rounded-lg bg-[#0D121F] border border-[#1F2937] text-center">
       <p className="text-xs text-gray-400">
         Status:{" "}
         <span className="text-white font-medium">
@@ -121,6 +128,7 @@ const CameraPreview = () => {
         </span>
       </p>
     </div>
+    ) }
   </div>
 </div>
   );

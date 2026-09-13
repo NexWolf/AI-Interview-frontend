@@ -10,17 +10,30 @@ export interface SkillApi {
     level?: 'Beginner' | 'Intermediate' | 'Expert'; // المستوى (اختياري)
 };
 
-export type RoleStatus = "ADMIN" | "USER"
+export type RoleStatus = "ADMIN" | "USER" | "SUPER_ADMIN"
 
 export interface EducationApi {
-    institution: string;     // اسم الجامعة
-    degree: string;          // الدرجة العلمية
-    fieldOfStudy: string;    // التخصص
-    startDate: string;       // ISO Date or "YYYY-MM"
-    endDate?: string;        // ISO Date or "YYYY-MM" (Optional if isCurrent)
-    isCurrent: boolean;      // يدرس حالياً
-    description?: string;    // الوصف (اختياري)
+    id?: string,
+    institution: string,     // اسم الجامعة
+    degree: string | null,          // الدرجة العلمية
+    fieldOfStudy: string | null,    // التخصص
+    startDate: string,       // ISO Date or "YYYY-MM"
+    endDate?: string | null,        // ISO Date or "YYYY-MM" (Optional if isCurrent)
+    isCurrent: boolean,      // يدرس حالياً
+    description?: string | null,    // الوصف (اختياري)
+    createdAt?: string,
+    updatedAt?: string,
 };
+
+export interface UserSkillApi {
+    skillId: string,
+    name: string,
+    proficiencyLevel: "Beginner" | "Intermediate" | "Advanced" | "Expert" | null,
+    isSelfAssessed: boolean,
+    assessedByAi: boolean,
+    aiAssessmentScore: number | string | null,
+    lastAssessedAt: string | null,
+}
 
 export interface UserInfoApi {
     id: string,
@@ -28,11 +41,14 @@ export interface UserInfoApi {
     firstName: string,
     lastName: string,
     userName: string,
-    avatar: File | null,
-    phoneNumber?: string | null,
+    phoneNumber: string | null,
+    avatarUrl: string | null,
+    avatarPublicId: string | null,
     bio: string | null,
-    education: EducationApi[],
-    skills: string[],
+    socialLinks: string[],
+    onboardingDone: boolean,
+    educations: EducationApi[],
+    skills: UserSkillApi[],
     isVerified: boolean,
     lang: string | null,
     role: RoleStatus,

@@ -1,6 +1,5 @@
 "use client";
 import AuthSignForm from "@/features/auth/components/AuthSignForm";
-import { signinInput } from "@/features/auth/schema/signup.schema";
 import { forwardRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { SigninType } from "@/features/auth/types/auth";
@@ -11,7 +10,7 @@ import { FiAlertCircle } from "react-icons/fi";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import axios from "axios";
-import { SigninSchema } from "../schema/signin.schema";
+import { signinInput, SigninSchema } from "../schema/signin.schema";
 
 type props = {
   show?: boolean;
@@ -35,12 +34,14 @@ export const Signin = forwardRef<HTMLDivElement, props>(
 
     const onRegister = async (data: SigninType) => {
       let isSuccess = false;
+      let isOnboardingDone = false;
       try {
         setLoading(true);
 
         const response = await axios.post("/api/auth/login", data);
         toast.success(response?.data?.message || "Login successfully");
         isSuccess = true;
+        isOnboardingDone = Boolean(response?.data?.data?.user?.onboardingDone);
 
         resetForm();
       } catch (error: unknown) {
@@ -55,7 +56,11 @@ export const Signin = forwardRef<HTMLDivElement, props>(
 
       if (isSuccess) {
         router.refresh();
-        router.push("/onboarding");
+        if (isOnboardingDone) {
+          router.push("/dashboard");
+        } else {
+          router.push("/onboarding");
+        }
       }
     };
 

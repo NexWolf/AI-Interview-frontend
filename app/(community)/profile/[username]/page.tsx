@@ -1,12 +1,10 @@
-"use client"
+"use client";
 import ProfilePreview from "@/features/profile/components/ProfilePreview";
 import { useParams } from "next/navigation";
 
-export default function UserProfilePage () {
-    const {userName} = useParams<{userName : string}>();
+export default function UserProfilePage() {
+  const params = useParams<{ username: string }>();
+  const username = params?.username;
 
-    /* FETCH USER DATA BY USERNAME ELEMENT */
-
-
-    return <ProfilePreview userData={null} />
+  return <ProfilePreview editable={false} username={username} />;
 }

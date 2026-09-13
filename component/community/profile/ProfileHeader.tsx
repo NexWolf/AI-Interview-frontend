@@ -1,11 +1,11 @@
 // components/profile/ProfileHeader.tsx
 import Image from "next/image";
 import { Plus, Pencil, MapPin, Calendar, Link2 } from "lucide-react";
-import { BioDataType, profileDataType } from "@/types/community/profile";
 import ActionButton from "@/component/community/shared/ActionButton";
+import { BioData, ProfileApi, ProfileBioType } from "@/features/profile/types/profile.types";
 
 interface ProfileHeaderProps {
-  data: BioDataType;
+  data: ProfileApi;
   onAdd?: () => void;
   onEdit?: () => void;
 }
@@ -31,8 +31,8 @@ export const ProfileHeader = ({ data, onAdd, onEdit }: ProfileHeaderProps) => {
         {/* Avatar Image */}
         <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-2 border-slate-700/50 shadow-inner">
           <Image
-            src={data?.personal_photo ?? ""}
-            alt={data.lastName}
+            src={data?.avatarUrl as string ?? ""}
+            alt={"user_profile_image"}
             fill
             className="object-cover"
             priority
@@ -45,44 +45,44 @@ export const ProfileHeader = ({ data, onAdd, onEdit }: ProfileHeaderProps) => {
           <h1 className="text-2xl font-bold tracking-tight text-slate-100">
             {data.firstName} {data.lastName}
           </h1>
-          <p className="text-sm font-medium text-slate-400 mt-0.5">
+          {/* <p className="text-sm font-medium text-slate-400 mt-0.5">
             {data.headline}
-          </p>
+          </p> */}
 
           {/* About Section Sub-text */}
           <div className="text-xs max-w-xl">
             <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-              {data.about ||
+              {data.bio ||
                 "Passionate about building clean, scalable and user-focused web experiences."}
             </p>
           </div>
 
           {/* Metadata Row (Location, Joined Date, Website) */}
           <div className="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-y-2 gap-x-4 text-xs text-slate-400">
-            <div className="flex items-center gap-1.5">
+            {/* <div className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-slate-400" />
               <span>{data.location}</span>
-            </div>
+            </div> */}
 
             <span className="hidden sm:inline text-slate-700">|</span>
 
             <div className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-slate-400" />
-              <span>Joined {data.join_at}</span>
+              <span>Joined {data.createdAt}</span>
             </div>
 
-            {data.website_url && (
+            {data.socialLinks && (
               <>
                 <span className="hidden sm:inline text-slate-700">|</span>
                 <div className="flex items-center gap-1.5">
                   <Link2 className="h-3.5 w-3.5 text-slate-400" />
                   <a
-                    href={`https://${data.website_url}`}
+                    href={`https://${data.socialLinks}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:underline hover:text-slate-200 transition-colors"
                   >
-                    {data.website_url}
+                    {data.socialLinks}
                   </a>
                 </div>
               </>

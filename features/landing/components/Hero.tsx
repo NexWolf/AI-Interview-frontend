@@ -98,12 +98,7 @@ export function Hero() {
               sm:text-5xl
               lg:text-6xl
             "
-            style={
-              {
-                "--base-color": "#ffffff",
-                "--base-gradient-color": "#A36AF6",
-              } as React.CSSProperties
-            }
+            
           >
             Intelligent Insights for Agile Enterprises
           </TextShimmer>

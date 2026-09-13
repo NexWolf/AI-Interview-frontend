@@ -8,11 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Input } from "@/component/ui/Input";
 import { FiAlertCircle } from "react-icons/fi";
-import { AxiosAPI } from "@/lib/AxiosAPI";
-import { API_URL } from "@/constants/routes";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { createSession } from "@/actions/auth";
 import axios from "axios";
 
 type props = {

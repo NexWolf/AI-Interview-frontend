@@ -49,7 +49,7 @@ export const Signup = forwardRef<HTMLDivElement, props>(
       setLoading(true);
       try {
         const response = await AxiosAPI.post(
-          `${API_URL}/api/v1/auth/register`,
+          `/api/v1/auth/register`,
           FormData,
         );
         if (response.data.success) {
@@ -78,12 +78,12 @@ export const Signup = forwardRef<HTMLDivElement, props>(
       <div
         className={`absolute  inset-0 transition-all duration-500  ${show ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
       >
-        {/* {showConfirmPop && (
-            <ConfirmEmailPop
-              email={userEmail}
-              closePopup={() => setShowConfirmPop(false)}
-            />
-        )} */}
+        {showConfirmPop && (
+          <ConfirmEmailPop
+            email={userEmail}
+            closePopup={() => setShowConfirmPop(false)}
+          />
+        )}
 
         <div ref={ref} className="h-full">
           <AuthSignForm

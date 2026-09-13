@@ -1,11 +1,11 @@
 "use client";
-import { BioDataType, profileDataType } from "@/types/community/profile";
 import ProfileHeader from "./ProfileHeader";
 import { SkillOverview } from "./SkillsOverview";
 import AboutCard from "./AboutCard";
+import { BioData, ProfileApi, ProfileData } from "@/features/profile/types/profile.types";
 
 type ProfileProps = {
-  ProfileData: profileDataType;
+  ProfileData: ProfileApi;
 };
 
 const handleBioAdd = () => {
@@ -20,12 +20,20 @@ const ProfileComponent = ({ ProfileData }: ProfileProps) => {
   return (
     <div className="p-5 flex flex-col gap-2">
       <ProfileHeader
-        data={ProfileData.bio as BioDataType}
+        data={ProfileData as ProfileApi}
         onAdd={handleBioAdd}
         onEdit={handleBioEdit}
       />
 
-      <SkillOverview skills={ProfileData.skills} />
+      <SkillOverview
+        skills={
+          Array.isArray(ProfileData.skills)
+            ? ProfileData.skills.map((s: any) =>
+                typeof s === "string" ? s : s.name || s.skillId || "",
+              )
+            : []
+        }
+      />
       <div>
         <AboutCard />
       </div>

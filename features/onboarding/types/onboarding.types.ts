@@ -14,10 +14,14 @@ export interface BasicApi {
     phoneNumber?: string | null,
 }
 
+export interface SocialLinks {
+    value  : string,
+}
+
 export interface BioApi {
     avatar: File | null,
     bio: string | null,
-    socialLink: string[], //ADD AS {LINKEDIN , GITHUB , PORTFOLIO , ANOTHER}
+    socialLinks: SocialLinks[], //ADD AS {LINKEDIN , GITHUB , PORTFOLIO , ANOTHER}
 }
 
 export interface OnboardingPostApi {
@@ -40,10 +44,12 @@ export interface BasicForm {
     email : string,
 }
 
+
+
 export interface OnboardingForm {
         basicData  : BasicForm,
         bioData : BioApi
-        education: EducationApi[],
+        educations: EducationApi[],
         skills: string[],
 }
 

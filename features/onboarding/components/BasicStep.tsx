@@ -112,14 +112,15 @@ const BasicStep = ({ onNext, editMode = false }: PropsBasics) => {
         </div>
 
         {/* حقل البريد الإلكتروني (Email) */}
-        <div className="space-y-1">
+        {!editMode && (
+          <div className="space-y-1">
           <Input
             {...register("basicData.email", {
               required: "Email is required",
             })}
             label="Your Email"
             placeholder="Ex: ahmed@gmail.com"
-            readOnly={!editMode}
+            readOnly
           />
           {emailError && (
             <p className="text-destructive text-xs font-medium px-1">
@@ -127,12 +128,15 @@ const BasicStep = ({ onNext, editMode = false }: PropsBasics) => {
             </p>
           )}
         </div>
+        )}
 
         {/* حقل رقم الهاتف */}
         <div className="space-y-1 pt-1">
-          <PhoneNumber />
+          <PhoneNumber name="basicData.phoneNumber" />
         </div>
       </div>
+
+     
 
       {/* 3. زر الانتقال للخطوة التالية (Next Button) */}
       {onNext && (

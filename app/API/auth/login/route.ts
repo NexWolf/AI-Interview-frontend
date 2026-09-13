@@ -17,7 +17,7 @@
           body: JSON.stringify(body),
         }
       );
-          const data = await backendResponse.json();
+          const data = await backendResponse.json().catch(() => ({}));
 
       // 2. If backend login failed
       if (!backendResponse.ok) {
@@ -25,6 +25,9 @@
           status: backendResponse.status,
         });
       }
+
+      const isOnboardingDone = Boolean(data?.data?.user?.onboardingDone);
+      console.log( "THIS IS THE ONBOARDING DONE VALUE :",isOnboardingDone);
 
       // 3. Create Next.js response
       const response = NextResponse.json(data);
@@ -65,6 +68,16 @@
           });
         }
       }
+
+      response.cookies.set({
+          name : "onboardingDone",
+          value : String(isOnboardingDone),
+          httpOnly: true,
+          secure : process.env.NODE_ENV === "production",
+          sameSite : "lax",
+          path : "/",
+          maxAge : 60 * 60 * 24 * 24
+        })
 
       return response;
     } catch (error) {

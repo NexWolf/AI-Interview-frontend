@@ -1,37 +1,26 @@
 "use client";
 
 import { Controller, get, useFormContext } from "react-hook-form";
-import { 
-  X, 
-  ChevronDown, 
-  Plus, 
-  Sparkles, 
-  ArrowLeft, 
-  ArrowRight, 
-  Award 
+import {
+  X,
+  ChevronDown,
+  Plus,
+  Sparkles,
+  ArrowLeft,
+  ArrowRight,
+  Award,
 } from "lucide-react";
+import { useAllSkills } from "@/shared/hook/useAllSkills";
+import { useEffect, useState } from "react";
+import { AllSkills } from "@/shared/types/allSkills";
 
 type PropsSkills = {
   onNext?: () => void;
   onBack?: () => void;
 };
 
-export const PREDEFINED_SKILLS = [
-  "React",
-  "Next.js",
-  "TypeScript",
-  "JavaScript",
-  "Tailwind CSS",
-  "Node.js",
-  "Express",
-  "PostgreSQL",
-  "Java",
-  "HTML/CSS",
-  "Git",
-  "REST APIs",
-];
-
 const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
+
   const {
     watch,
     control,
@@ -39,31 +28,69 @@ const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
     formState: { errors },
   } = useFormContext();
 
+  const { data: allSkillsData } = useAllSkills();
+
   const selectedSkills: string[] = watch("skills") || [];
 
   const addSkill = (skillToAdd: string) => {
-    if (!selectedSkills.includes(skillToAdd)) {
+    if (!skillToAdd || selectedSkills.includes(skillToAdd)) return;
       setValue("skills", [...selectedSkills, skillToAdd], {
         shouldValidate: true,
         shouldDirty: true,
       });
-    }
   };
 
   const removeSkills = (skillToRemove: string) => {
+    if(!skillToRemove)return;
+
     const updated = selectedSkills.filter((skill) => skill !== skillToRemove);
-    setValue("skills", updated, { 
-      shouldValidate: true, 
-      shouldDirty: true 
+    setValue("skills", updated, {
+      shouldValidate: true,
+      shouldDirty: true,
     });
+
+   
   };
 
   const skillsErrors = get(errors, "skills");
 
   // المهارات المقترحة التي لم يتم اختيارها بعد
-  const availableSuggestions = PREDEFINED_SKILLS.filter(
-    (s) => !selectedSkills.includes(s)
+  const availableSuggestions = allSkillsData?.filter(
+    (s) => !selectedSkills.includes(s.id),
   );
+
+  if (!allSkillsData) {
+    return (
+      <div className="w-full max-w-2xl space-y-6 animate-pulse">
+        {/* Container Box Top */}
+        <div className="h-16 w-full rounded-2xl bg-gray-100 dark:bg-gray-800/50 border border-gray-200/60 dark:border-gray-700/50" />
+
+        {/* Select Box Section */}
+        <div className="space-y-2">
+          <div className="h-4 w-44 rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-12 w-full rounded-full bg-gray-100 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700" />
+        </div>
+
+        {/* Popular Suggestions Section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700" />
+            <div className="h-4 w-64 rounded bg-gray-200 dark:bg-gray-700" />
+          </div>
+
+          {/* Suggestion Pills */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-9 w-20 rounded-full bg-gray-100 dark:bg-gray-800/50 border border-gray-200/60 dark:border-gray-700/50"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -86,26 +113,33 @@ const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
         </div>
 
         <div className="flex flex-wrap gap-2 p-3.5 rounded-2xl border border-border/60 dark:border-border/40 bg-secondary/20 dark:bg-secondary/10 min-h-[58px] items-center backdrop-blur-xs">
-          {selectedSkills.length > 0 ? (
-            selectedSkills.map((skill, index) => (
-              <div
-                key={index}
+          {selectedSkills?.length > 0 ? (
+            selectedSkills.map((skill, index) => 
+             {
+
+              const skillObject = allSkillsData.find((obj) => obj.id === skill )
+               return (
+                <div
+                key={skillObject?.id}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 text-primary px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all animate-in zoom-in-95"
               >
-                <span>{skill}</span>
+                <span>{skillObject?.name}</span>
                 <button
                   type="button"
                   onClick={() => removeSkills(skill)}
-                  aria-label={`Remove ${skill}`}
+                  aria-label={`Remove ${skillObject?.id}`}
                   className="rounded-md p-0.5 text-primary/70 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ))
+              )
+             }
+            )
           ) : (
             <p className="text-xs text-muted-foreground px-1 select-none">
-              No skills selected yet. Choose from the list below or click the quick suggestions.
+              No skills selected yet. Choose from the list below or click the
+              quick suggestions.
             </p>
           )}
         </div>
@@ -129,7 +163,6 @@ const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
           render={({ field }) => (
             <div className="relative w-full">
               <select
-                value=""
                 onChange={(e) => {
                   const selectedValue = e.target.value;
                   if (selectedValue && !field.value.includes(selectedValue)) {
@@ -141,16 +174,16 @@ const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
                 <option value="" disabled hidden>
                   Choose a skill to add...
                 </option>
-                {PREDEFINED_SKILLS.map((option) => {
-                  const isAlreadySelected = selectedSkills.includes(option);
+                {allSkillsData.map((option) => {
+                  const isAlreadySelected = selectedSkills.includes(option.id);
                   return (
                     <option
-                      key={option}
-                      value={option}
+                      key={option.id}
+                      value={option.id}
                       disabled={isAlreadySelected}
                       className="py-2 bg-background text-foreground"
                     >
-                      {option} {isAlreadySelected ? "(Added)" : ""}
+                      {option.name} {isAlreadySelected ? "(Added)" : ""}
                     </option>
                   );
                 })}
@@ -166,7 +199,7 @@ const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
       </div>
 
       {/* 3. اقتراحات سريعة بنقرة واحدة (Quick Suggestions) */}
-      {availableSuggestions.length > 0 && (
+      {availableSuggestions && availableSuggestions?.length > 0 && (
         <div className="space-y-2.5 pt-1">
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -174,15 +207,15 @@ const SkillsStep = ({ onNext, onBack }: PropsSkills) => {
           </label>
 
           <div className="flex flex-wrap gap-1.5">
-            {availableSuggestions.map((skill) => (
+            {availableSuggestions?.map((skill) => (
               <button
-                key={skill}
+                key={skill.id}
                 type="button"
-                onClick={() => addSkill(skill)}
+                onClick={() => addSkill(skill.id)}
                 className="group inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-border/60 dark:border-border/40 bg-card/60 dark:bg-card/20 hover:border-primary/40 hover:bg-primary/10 text-xs font-medium text-foreground hover:text-primary transition-all duration-150 active:scale-95 cursor-pointer"
               >
                 <Plus className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                <span>{skill}</span>
+                <span>{skill.name}</span>
               </button>
             ))}
           </div>
