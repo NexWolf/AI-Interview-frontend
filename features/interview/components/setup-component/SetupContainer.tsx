@@ -25,7 +25,6 @@ const setupDefaultData: setupInterview = {
 
 export const SetupContainer = () => {
   const { data: userData } = useUserInfo();
-  const { data: allSkills } = useAllSkills();
   const { mutate: startInterview, isPending } = useStartInterview();
   const router = useRouter();
 

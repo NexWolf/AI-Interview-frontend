@@ -7,10 +7,14 @@ type UseTimeProps = {
 
 export const useInterviewTimer = ({endTimeIso , onExpire} : UseTimeProps) => {
     const [secondsLeft , setSecondsLeft] = useState<number>(0);
-    const hasExpiredRef  = useRef(false); 
+    const hasExpiredRef  = useRef(false);
+    const onExpireRef = useRef(onExpire);
+    onExpireRef.current = onExpire;
 
     useEffect(() => {
         if(!endTimeIso)return;
+
+        hasExpiredRef.current = false;
 
         const calculateRemainingSeconds = () => {
             const targetTime = new Date(endTimeIso).getTime();
@@ -24,7 +28,7 @@ export const useInterviewTimer = ({endTimeIso , onExpire} : UseTimeProps) => {
 
         if(initialSeconds <= 0 && !hasExpiredRef.current) {
             hasExpiredRef.current  = true;
-            onExpire();
+            onExpireRef.current();
             return;
         }
 
@@ -36,13 +40,13 @@ export const useInterviewTimer = ({endTimeIso , onExpire} : UseTimeProps) => {
                 clearInterval(intervalId);
                 if(!hasExpiredRef.current) {
                     hasExpiredRef.current = true;
-                    onExpire();
+                    onExpireRef.current();
                 }
             }
         },1000)
 
         return () => clearInterval(intervalId);
-    },[endTimeIso , onExpire])
+    },[endTimeIso])
 
     const formateTime = (totalSeconds : number) => {
         const minutes = Math.floor(totalSeconds / 60);
