@@ -1,4 +1,5 @@
 "use client";
+import { useMediaStream } from "@/shared/components/provider/MediaStermProvider";
 import { Check, Mic } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -8,8 +9,6 @@ type PropsMic = {
 };
 
 const MicorphoneTest = ({ language , onReady }: PropsMic) => {
-  const [microphoneReady, setMicrophoneReady] = useState<boolean>(false);
-  const [microphoneError, setMicrophoneError] = useState<boolean>(false);
   const [spokenText, setSpokenText] = useState<string>("");
   const [isListening, setIsListening] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(0);
@@ -19,59 +18,22 @@ const MicorphoneTest = ({ language , onReady }: PropsMic) => {
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const { stream, audioStatus } = useMediaStream();
 
+  // Reuse the provider's microphone stream instead of requesting a second
+  // getUserMedia stream (which double-fires under StrictMode and prompts the
+  // user a second time). The stream is owned by MediaStreamProvider.
+  useEffect(() => {
+    streamRef.current = stream;
+  }, [stream]);
 
+  const microphoneReady = audioStatus === "ready";
+  const microphoneError = audioStatus === "error";
 
   // تتغير الجملة حسب اللغة المختارة لضمان عمل التعرف الصوتي بدقة
   const expectedText =
     language === "Arabic" ? "أنا مستعد الآن" : "I am ready now";
   const newLanguage = language === "Arabic" ? "ar-SA" : "en-US";
-
-  /* TEST THE MICROPHONE AUDIO IS WORK OR NOT */
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let audioTrack: MediaStreamTrack | null = null;
-
-    const handleEnded = () => {
-      setMicrophoneReady(false);
-      setMicrophoneError(true);
-    };
-
-    const startMicrophone = async () => {
-      try {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-
-        stream = streamRef.current;
-
-        audioTrack = stream.getAudioTracks()[0];
-
-        if (!audioTrack) {
-          setMicrophoneError(true);
-          return;
-        }
-
-        setMicrophoneReady(true);
-
-        audioTrack.addEventListener("ended", () => {
-          setMicrophoneError(true);
-          setMicrophoneReady(false);
-        });
-      } catch (e) {
-        console.error("Audio Error", e);
-        setMicrophoneReady(false);
-        setMicrophoneError(true);
-      }
-    };
-
-    startMicrophone();
-
-    return () => {
-      stream?.getTracks().forEach((track) => track.stop());
-      audioTrack?.removeEventListener("ended", handleEnded);
-    };
-  }, []);
 
   /* TEST THE USER SOUND IS CAN COVERT IT TO THE TEXT IN THE RIGHT TEXT OR NOT  */
   const startVoiceTest = () => {

@@ -7,7 +7,7 @@ import { useAudioRecorder } from "@/features/interview/hooks/useAudioRecorder";
 
 const SessionContainer = () => {
     
-    const {status, currentQuestion, currentQuestionIndex, startInterview, handleAIEnded } = useInterview();
+    const {status, currentQuestion, startInterview, handleAIEnded } = useInterview();
     const {isListening, startListening} = useAudioRecorder();
 
     useEffect(() => {

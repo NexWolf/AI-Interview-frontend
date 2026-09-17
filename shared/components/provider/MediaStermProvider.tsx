@@ -17,16 +17,33 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     let currentStream: MediaStream | null = null;
+    let cancelled = false;
+
+    const handleVideoEnded = () => setVedioStatus("error");
+    const handleVideoMute = () => setVedioStatus("muted");
+    const handleVideoUnmute = () => setVedioStatus("ready");
+    const handleAudioEnded = () => setAudioStatus("error");
+    const handleAudioMute = () => setAudioStatus("muted");
+    const handleAudioUnmute = () => setAudioStatus("ready");
 
     const start = async () => {
       try {
-        currentStream = await navigator.mediaDevices.getUserMedia({
+        const acquiredStream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
         });
 
-        setStream(currentStream)
-        streamRef.current = currentStream;
+        // StrictMode double-invokes effects (setup -> cleanup -> setup).
+        // If this call finished after its cleanup already ran, stop the
+        // freshly acquired stream so only one live stream survives.
+        if (cancelled) {
+          acquiredStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        currentStream = acquiredStream;
+        streamRef.current = acquiredStream;
+        setStream(currentStream);
 
         const videoTrack = currentStream.getVideoTracks()[0];
         const audioTrack = currentStream.getAudioTracks()[0];
@@ -34,15 +51,15 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
         setVedioStatus(videoTrack ? "ready" : "error");
         setAudioStatus(audioTrack ? "ready" : "error");
 
-        videoTrack?.addEventListener("ended" , () => setVedioStatus("error"));
-        videoTrack?.addEventListener("mute" , ()=> setVedioStatus("muted"))
-        videoTrack?.addEventListener("unmute", () => setVedioStatus("ready"))
+        videoTrack?.addEventListener("ended", handleVideoEnded);
+        videoTrack?.addEventListener("mute", handleVideoMute);
+        videoTrack?.addEventListener("unmute", handleVideoUnmute);
 
-        audioTrack?.addEventListener("ended", () => setAudioStatus("error"))
-        audioTrack?.addEventListener("mute", () => setAudioStatus("muted"))
-        audioTrack?.addEventListener("unmute", () => setAudioStatus("ready"))
-        
+        audioTrack?.addEventListener("ended", handleAudioEnded);
+        audioTrack?.addEventListener("mute", handleAudioMute);
+        audioTrack?.addEventListener("unmute", handleAudioUnmute);
       } catch (e) {
+        if (cancelled) return;
         console.log("Media Error", e);
         setVedioStatus("error");
         setAudioStatus("error");
@@ -52,12 +69,25 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
     start();
 
     return () => {
-        currentStream?.getTracks().forEach((track)=> track.stop);
+      cancelled = true;
+      const videoTrack = currentStream?.getVideoTracks()[0];
+      const audioTrack = currentStream?.getAudioTracks()[0];
+
+      videoTrack?.removeEventListener("ended", handleVideoEnded);
+      videoTrack?.removeEventListener("mute", handleVideoMute);
+      videoTrack?.removeEventListener("unmute", handleVideoUnmute);
+
+      audioTrack?.removeEventListener("ended", handleAudioEnded);
+      audioTrack?.removeEventListener("mute", handleAudioMute);
+      audioTrack?.removeEventListener("unmute", handleAudioUnmute);
+
+      currentStream?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     };
   }, []);
 
   return (
-    <MediaStreamContext.Provider value={{stream , videoStatus , audioStatus}}>
+    <MediaStreamContext.Provider value={{ stream, videoStatus, audioStatus }}>
         {children}
     </MediaStreamContext.Provider>
   )
