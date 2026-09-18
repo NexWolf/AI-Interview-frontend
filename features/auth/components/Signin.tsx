@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import axios from "axios";
 import { signinInput, SigninSchema } from "../schema/signin.schema";
+import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 
 type props = {
   show?: boolean;
@@ -38,7 +39,7 @@ export const Signin = forwardRef<HTMLDivElement, props>(
       try {
         setLoading(true);
 
-        const response = await axios.post("/api/auth/login", data);
+        const response = await AxiosAPI.post("/api/v1/auth/login", data);
         toast.success(response?.data?.message || "Login successfully");
         isSuccess = true;
         isOnboardingDone = Boolean(response?.data?.data?.user?.onboardingDone);

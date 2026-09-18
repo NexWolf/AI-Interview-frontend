@@ -3,6 +3,7 @@ import axios from 'axios';
 
 export const AxiosAPI = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
 });
 
 // Injectable client-side navigation — set by a React component that owns the
