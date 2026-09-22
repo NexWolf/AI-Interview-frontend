@@ -2,14 +2,31 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { ArrowUpRight } from "lucide-react";
 
-import { SplineScene } from "@/components/ui/spline";
 import { Button } from "@/components/ui/button";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { Spotlight } from "@/components/ui/spotlight";
+import { useLanguage } from "@/shared/context/LanguageContext";
+
+const SplineScene = dynamic(
+  () => import("@/components/ui/spline").then((mod) => mod.SplineScene),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="relative z-10 flex h-full w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#6136BF] border-t-transparent shadow-[0_0_20px_rgba(97,54,191,0.5)]" />
+          <span className="text-xs font-medium tracking-wider text-white/40 uppercase">Loading 3D Experience</span>
+        </div>
+      </div>
+    ),
+  }
+);
 
 export function Hero() {
+  const { t, direction } = useLanguage();
   return (
     <section className="relative h-[100svh] overflow-hidden bg-black">
 
@@ -28,7 +45,7 @@ export function Hero() {
           inset-0
           z-0
           opacity-[0.18]
-          [background-image:linear-gradient(rgba(163,106,246,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(163,106,246,0.18)_1px,transparent_1px)]
+          [background-image:linear-gradient(rgba(159,132,217,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(159,132,217,0.18)_1px,transparent_1px)]
           [background-size:70px_70px]
           [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_80%)]
         "
@@ -48,8 +65,8 @@ export function Hero() {
           w-[500px]
           -translate-y-1/2
           rounded-full
-          bg-[#7D5BA6]/10
-          blur-[120px]
+          bg-[#6136BF]/15
+          blur-[130px]
         "
       />
 
@@ -100,7 +117,7 @@ export function Hero() {
             "
             
           >
-            Intelligent Insights for Agile Enterprises
+            {t("hero.title")}
           </TextShimmer>
 
           {/* Description */}
@@ -110,15 +127,13 @@ export function Hero() {
               max-w-lg
               text-sm
               leading-6
-              text-white/45
+              text-white/60
               sm:text-base
               sm:leading-7
               lg:text-lg
             "
           >
-            Lorem ipsum dolor sit amet consectetur. Integer tellus eu
-            scelerisque nunc. Integer ac convallis tempus nibh ac tristique
-            penatibus nulla a.
+            {t("hero.desc")}
           </p>
 
           {/* =========================================
@@ -130,18 +145,18 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              variant="default"
+              className="rounded-full border border-[#6136BF] bg-[#6136BF] px-8 text-white shadow-xl shadow-[#6136BF]/30 transition-all duration-300 hover:bg-[#724EBF] hover:shadow-[#724EBF]/40"
             >
-              <Link href="/signup">
-                Start Now
-                <ArrowUpRight />
+              <Link href="/auth" className="flex items-center gap-2">
+                <span>{t("hero.cta")}</span>
+                <ArrowUpRight className={direction === "rtl" ? "rotate-[-90deg] transition-transform" : "transition-transform"} />
               </Link>
             </Button>
 
             {/* Companies */}
             <div className="flex items-center gap-3">
 
-              <div className="flex -space-x-2">
+              <div className="flex -space-x-2 rtl:space-x-reverse">
 
                 <div
                   className="
@@ -205,8 +220,8 @@ export function Hero() {
 
               </div>
 
-              <span className="text-xs font-medium text-white/55">
-                1000+ Satisfied Companies
+              <span className="text-xs font-medium text-white/70">
+                {t("hero.stats")}
               </span>
 
             </div>
@@ -241,8 +256,8 @@ export function Hero() {
               -translate-x-1/2
               -translate-y-1/2
               rounded-full
-              bg-[#8B5CF6]/10
-              blur-[100px]
+              bg-[#6136BF]/20
+              blur-[110px]
               sm:h-[360px]
               sm:w-[360px]
               lg:h-[400px]

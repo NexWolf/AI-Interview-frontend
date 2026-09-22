@@ -6,53 +6,70 @@ import { Check, Zap } from "lucide-react";
 
 import { BorderBeamPanel } from "@/components/ui/border-beam-panel";
 import { Button } from "@/components/ui/button";
+import { useLanguage, TranslationKey } from "@/shared/context/LanguageContext";
 
 type BillingCycle = "monthly" | "yearly";
 
-const plans = [
+interface PlanItem {
+  id: string;
+  nameKey: TranslationKey;
+  monthly: number;
+  yearly: number;
+  descKey: TranslationKey;
+  featureKeys: TranslationKey[];
+  featured: boolean;
+}
+
+const plans: PlanItem[] = [
   {
-    name: "Starter",
+    id: "starter",
+    nameKey: "pricing.starterName",
     monthly: 19,
     yearly: 190,
-    description: "Perfect for individuals and small projects.",
-    features: [
-      "5 Projects",
-      "Basic Analytics",
-      "24/7 Support",
-      "10GB Storage",
+    descKey: "pricing.starterDesc",
+    featureKeys: [
+      "pricing.starterF1",
+      "pricing.starterF2",
+      "pricing.starterF3",
+      "pricing.starterF4",
     ],
     featured: false,
   },
   {
-    name: "Pro",
+    id: "pro",
+    nameKey: "pricing.proName",
     monthly: 49,
     yearly: 490,
-    description: "For growing teams and businesses.",
-    features: [
-      "Unlimited Projects",
-      "Advanced Analytics",
-      "Priority Support",
-      "100GB Storage",
-      "Team Collaboration",
+    descKey: "pricing.proDesc",
+    featureKeys: [
+      "pricing.proF1",
+      "pricing.proF2",
+      "pricing.proF3",
+      "pricing.proF4",
+      "pricing.proF5",
+      "pricing.proF6",
     ],
     featured: true,
   },
   {
-    name: "Enterprise",
+    id: "enterprise",
+    nameKey: "pricing.entName",
     monthly: 99,
     yearly: 990,
-    description: "For large organizations with custom needs.",
-    features: [
-      "Everything in Pro",
-      "Dedicated Account Manager",
-      "Custom Integrations",
-      "SLA & Security Audits",
+    descKey: "pricing.entDesc",
+    featureKeys: [
+      "pricing.entF1",
+      "pricing.entF2",
+      "pricing.entF3",
+      "pricing.entF4",
+      "pricing.entF5",
     ],
     featured: false,
   },
 ];
 
 export default function Pricing() {
+  const { t } = useLanguage();
   const [billingCycle, setBillingCycle] =
     useState<BillingCycle>("monthly");
 
@@ -129,7 +146,7 @@ export default function Pricing() {
           h-[500px]
           w-[500px]
           rounded-full
-          bg-[#8B5CF6]/10
+          bg-[#6136BF]/15
           blur-[130px]
         "
       />
@@ -154,8 +171,8 @@ export default function Pricing() {
               gap-2
               rounded-full
               border
-              border-[#7D5BA6]/30
-              bg-[#7D5BA6]/10
+              border-[#6136BF]/30
+              bg-[#6136BF]/15
               px-4
               py-2
               text-sm
@@ -163,9 +180,9 @@ export default function Pricing() {
               text-white/80
             "
           >
-            <Zap className="h-4 w-4 text-[#A36AF6]" />
+            <Zap className="h-4 w-4 text-[#9F84D9]" />
 
-            Flexible & Transparent Pricing
+            {t("pricing.badge")}
           </motion.div>
 
           <motion.h2
@@ -186,9 +203,9 @@ export default function Pricing() {
               lg:text-5xl
             "
           >
-            Find the Perfect{" "}
-            <span className="text-[#A36AF6]">
-              Plan
+            {t("pricing.title1")}{" "}
+            <span className="text-[#9F84D9]">
+              {t("pricing.title2")}
             </span>
           </motion.h2>
 
@@ -202,16 +219,15 @@ export default function Pricing() {
             }}
             className="
               mx-auto
-              mt-5
-              max-w-2xl
+              mt-4
+              max-w-xl
               text-sm
               leading-7
-              text-white/40
+              text-white/45
               sm:text-base
             "
           >
-            Choose the plan that fits your needs and get
-            everything you need to make smarter decisions.
+            {t("pricing.subtitle")}
           </motion.p>
         </div>
 
@@ -219,74 +235,82 @@ export default function Pricing() {
             BILLING TOGGLE
         ========================================= */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{
-            duration: 0.6,
-            delay: 0.3,
-          }}
+          transition={{ duration: 0.6, delay: 0.3 }}
           className="
             mt-10
             flex
-            flex-wrap
             items-center
             justify-center
             gap-3
           "
         >
-          <button
-            type="button"
-            onClick={() => setBillingCycle("monthly")}
-            className={`
+          <div
+            className="
+              flex
+              items-center
               rounded-full
-              px-4
-              py-2
-              text-sm
-              transition-all
-              ${
-                billingCycle === "monthly"
-                  ? "bg-[#312442] text-white"
-                  : "text-white/40 hover:text-white"
-              }
-            `}
+              border
+              border-white/10
+              bg-[#141019]
+              p-1
+            "
           >
-            Monthly
-          </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle("monthly")}
+              className={`
+                rounded-full
+                px-4
+                py-2
+                text-sm
+                transition-all
+                ${
+                  billingCycle === "monthly"
+                    ? "bg-[#6136BF] text-white"
+                    : "text-white/40 hover:text-white"
+                }
+              `}
+            >
+              {t("pricing.monthly")}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setBillingCycle("yearly")}
-            className={`
-              rounded-full
-              px-4
-              py-2
-              text-sm
-              transition-all
-              ${
-                billingCycle === "yearly"
-                  ? "bg-[#312442] text-white"
-                  : "text-white/40 hover:text-white"
-              }
-            `}
-          >
-            Yearly
-          </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle("yearly")}
+              className={`
+                rounded-full
+                px-4
+                py-2
+                text-sm
+                transition-all
+                ${
+                  billingCycle === "yearly"
+                    ? "bg-[#6136BF] text-white"
+                    : "text-white/40 hover:text-white"
+                }
+              `}
+            >
+              {t("pricing.yearly")}
+            </button>
+          </div>
 
           <span
             className="
               rounded-full
               border
-              border-[#8B5CF6]/30
-              bg-[#8B5CF6]/10
+              border-[#6136BF]/30
+              bg-[#6136BF]/15
               px-3
               py-1
               text-xs
               font-semibold
-              text-[#A36AF6]
+              text-[#9F84D9]
             "
           >
-            Save 20%
+            {t("pricing.save")}
           </span>
         </motion.div>
 
@@ -303,7 +327,7 @@ export default function Pricing() {
 
             return (
               <motion.div
-                key={plan.name}
+                key={plan.id}
                 initial={{
                   opacity: 0,
                   y: 35,
@@ -329,8 +353,8 @@ export default function Pricing() {
                   beams={2}
                   colors={
                     plan.featured
-                      ? ["#8B5CF6", "#FFFFFF"]
-                      : ["#7D5BA6", "#A36AF6"]
+                      ? ["#6136BF", "#FFFFFF"]
+                      : ["#724EBF", "#9F84D9"]
                   }
                   thickness={plan.featured ? 2 : 1.5}
                   radius={20}
@@ -356,28 +380,28 @@ export default function Pricing() {
                           w-fit
                           rounded-full
                           border
-                          border-[#8B5CF6]/30
-                          bg-[#8B5CF6]/10
+                          border-[#6136BF]/40
+                          bg-[#6136BF]/20
                           px-3
                           py-1
                           text-[11px]
                           font-semibold
                           uppercase
                           tracking-[0.15em]
-                          text-[#A36AF6]
+                          text-[#9F84D9]
                         "
                       >
-                        Most Popular
+                        {t("pricing.popular")}
                       </div>
                     )}
 
                     {/* Plan name */}
                     <h3 className="text-2xl font-semibold text-white">
-                      {plan.name}
+                      {t(plan.nameKey)}
                     </h3>
 
                     <p className="mt-2 text-sm leading-6 text-white/40">
-                      {plan.description}
+                      {t(plan.descKey)}
                     </p>
 
                     {/* Price */}
@@ -386,7 +410,7 @@ export default function Pricing() {
                       <span className="text-5xl font-bold tracking-tight text-white">
                         <AnimatePresence mode="wait">
                           <motion.span
-                            key={`${plan.name}-${billingCycle}`}
+                            key={`${plan.id}-${billingCycle}`}
                             initial={{
                               opacity: 0,
                               y: 8,
@@ -409,15 +433,15 @@ export default function Pricing() {
                       </span>
 
                       <span className="ml-2 text-sm text-white/35">
-                        /{billingCycle === "monthly" ? "mo" : "yr"}
+                        {billingCycle === "monthly" ? t("pricing.perMo") : t("pricing.perYr")}
                       </span>
                     </div>
 
                     {/* Features */}
                     <ul className="mt-8 space-y-4">
-                      {plan.features.map((feature) => (
+                      {plan.featureKeys.map((fKey) => (
                         <li
-                          key={feature}
+                          key={fKey}
                           className="
                             flex
                             items-center
@@ -426,9 +450,9 @@ export default function Pricing() {
                             text-white/75
                           "
                         >
-                          <Check className="h-4 w-4 shrink-0 text-[#A36AF6]" />
+                          <Check className="h-4 w-4 shrink-0 text-[#9F84D9]" />
 
-                          <span>{feature}</span>
+                          <span>{t(fKey)}</span>
                         </li>
                       ))}
                     </ul>
@@ -438,15 +462,14 @@ export default function Pricing() {
                       <Button
                         asChild
                         size="lg"
-                        variant={
+                        className={`w-full rounded-full transition-all duration-300 ${
                           plan.featured
-                            ? "default"
-                            : "outline"
-                        }
-                        className="w-full"
+                            ? "border border-[#6136BF] bg-[#6136BF] text-white shadow-xl shadow-[#6136BF]/25 hover:bg-[#724EBF] hover:shadow-[#724EBF]/35"
+                            : "border border-[#6136BF]/40 bg-white/[0.04] text-white hover:bg-[#6136BF]/20 hover:border-[#6136BF]"
+                        }`}
                       >
-                        <a href="/signup">
-                          Choose Plan
+                        <a href="/auth">
+                          {t("pricing.choose")}
                         </a>
                       </Button>
                     </div>

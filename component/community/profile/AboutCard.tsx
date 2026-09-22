@@ -22,7 +22,7 @@ export default function AboutCard({ bio, onEdit }: AboutCardProps) {
 
       {/* Content */}
       <p className="text-sm leading-relaxed text-slate-400 font-normal">
-        {bio || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. First do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
+        {bio || "Passionate software engineer continuously practicing technical skills, system design, and algorithms to excel in modern tech interviews."}
       </p>
     </div>
   );

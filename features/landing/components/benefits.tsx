@@ -2,23 +2,30 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useLanguage, TranslationKey } from "@/shared/context/LanguageContext";
 
-const stats = [
+interface StatItem {
+  value: string;
+  labelKey: TranslationKey;
+}
+
+const stats: StatItem[] = [
   {
     value: "92%",
-    label: "Interview Confidence",
+    labelKey: "benefits.confidence",
   },
   {
     value: "87%",
-    label: "Response Quality",
+    labelKey: "benefits.quality",
   },
   {
     value: "94%",
-    label: "Overall Performance",
+    labelKey: "benefits.performance",
   },
 ];
 
 export function Benefits() {
+  const { t } = useLanguage();
   return (
     <section
       id="benefits"
@@ -57,7 +64,7 @@ export function Benefits() {
           w-[500px]
           -translate-y-1/2
           rounded-full
-          bg-[#8B5CF6]/10
+          bg-[#6136BF]/15
           blur-[140px]
         "
       />
@@ -71,10 +78,10 @@ export function Benefits() {
               font-medium
               uppercase
               tracking-[0.25em]
-              text-[#A36AF6]
+              text-[#9F84D9]
             "
           >
-            Benefits
+            {t("benefits.badge")}
           </span>
 
           <h2
@@ -88,9 +95,9 @@ export function Benefits() {
               lg:text-5xl
             "
           >
-            Turn Every Interview Into
-            <span className="block text-[#A36AF6]">
-              Actionable Insights
+            {t("benefits.title1")}
+            <span className="block text-[#9F84D9]">
+              {t("benefits.title2")}
             </span>
           </h2>
 
@@ -104,8 +111,7 @@ export function Benefits() {
               sm:text-base
             "
           >
-            Understand performance, identify strengths, and discover the
-            areas that matter most with intelligent interview analytics.
+            {t("benefits.subtitle")}
           </p>
         </div>
 
@@ -133,7 +139,7 @@ export function Benefits() {
               h-[280px]
               w-[280px]
               rounded-full
-              bg-[#8B5CF6]/10
+              bg-[#6136BF]/20
               blur-[100px]
             "
           />
@@ -164,16 +170,16 @@ export function Benefits() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-white/35">
-                  AI Interview Performance
+                  {t("benefits.aiPerformance")}
                 </p>
 
                 <h3 className="mt-1 text-lg font-semibold text-white">
-                  Candidate Insights
+                  {t("benefits.candidateInsights")}
                 </h3>
               </div>
 
-              <span className="rounded-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 px-3 py-1 text-xs text-[#A36AF6]">
-                Live
+              <span className="rounded-full border border-[#9F84D9]/30 bg-[#6136BF]/15 px-3 py-1 text-xs text-[#9F84D9]">
+                {t("benefits.live")}
               </span>
             </div>
 
@@ -198,7 +204,7 @@ export function Benefits() {
                     cy="60"
                     r="50"
                     fill="none"
-                    stroke="#8B5CF6"
+                    stroke="#724EBF"
                     strokeWidth="8"
                     strokeLinecap="round"
                     initial={{ pathLength: 0 }}
@@ -224,16 +230,15 @@ export function Benefits() {
 
               <div className="flex-1">
                 <p className="text-xs text-white/35">
-                  Overall score
+                  {t("benefits.overallScore")}
                 </p>
 
                 <p className="mt-2 text-2xl font-semibold text-white">
-                  Excellent
+                  {t("benefits.excellent")}
                 </p>
 
                 <p className="mt-2 text-xs leading-5 text-white/35">
-                  Strong performance across communication and technical
-                  responses.
+                  {t("benefits.scoreComment")}
                 </p>
               </div>
             </div>
@@ -242,7 +247,7 @@ export function Benefits() {
             <div className="mt-7 grid grid-cols-3 gap-3">
               {stats.map((stat, index) => (
                 <motion.div
-                  key={stat.label}
+                  key={stat.labelKey}
                   initial={{ opacity: 0, y: 15 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -259,12 +264,12 @@ export function Benefits() {
                     p-4
                   "
                 >
-                  <div className="text-lg font-semibold text-[#A36AF6]">
+                  <div className="text-lg font-semibold text-[#9F84D9]">
                     {stat.value}
                   </div>
 
                   <div className="mt-1 text-[11px] leading-4 text-white/35">
-                    {stat.label}
+                    {t(stat.labelKey)}
                   </div>
                 </motion.div>
               ))}
@@ -274,10 +279,10 @@ export function Benefits() {
             <div className="mt-7 rounded-2xl border border-white/[0.07] bg-black/20 p-4">
               <div className="mb-4 flex items-center justify-between">
                 <span className="text-xs text-white/35">
-                  Performance Analytics
+                  {t("benefits.analytics")}
                 </span>
 
-                <span className="text-xs text-[#A36AF6]">
+                <span className="text-xs text-[#9F84D9]">
                   +18.4%
                 </span>
               </div>
@@ -299,8 +304,8 @@ export function Benefits() {
                         flex-1
                         rounded-t-md
                         bg-gradient-to-t
-                        from-[#312442]
-                        to-[#A36AF6]
+                        from-[#6136BF]
+                        to-[#9F84D9]
                         opacity-80
                       "
                     />
@@ -363,7 +368,7 @@ export function Benefits() {
               backdrop-blur-md
             "
           >
-            AI-powered insights
+            {t("benefits.aiInsights")}
           </motion.div>
         </div>
       </div>
