@@ -1,199 +1,120 @@
 "use client";
-import { AxiosAPI } from "@/shared/lib/AxiosAPI";
-import AuthSignForm from "@/features/auth/components/AuthSignForm";
-import ConfirmEmailPop from "@/features/auth/components/ConfirmEmailPop";
-import { Input } from "@/shared/components/ui/Input";
-import { API_URL } from "@/constants/routes";
-import { SignupType } from "@/features/auth/types/auth";
-import {
-  signupInput,
-  SignupSchema,
-} from "@/features/auth/schema/signup.schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { forwardRef, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { FiAlertCircle } from "react-icons/fi";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import axios from "axios";
 
-type props = {
-  show?: boolean;
-  onConfirm: () => void;
-};
+import { ChangeEvent, FormEvent, ReactNode, useState } from "react";
+import { User, Mail, Lock, ShieldCheck } from "lucide-react";
 
-export const Signup = forwardRef<HTMLDivElement, props>(
-  ({ show, onConfirm }, ref) => {
-    const [loading, setLoading] = useState<boolean>(false);
-    const [showConfirmPop, setShowConfirmPop] = useState<boolean>(false);
-    const [userEmail, setUserEmail] = useState<string>("");
+function AuthField({
+  icon,
+  type,
+  placeholder,
+  value,
+  onChange,
+  autoComplete,
+}: {
+  icon: ReactNode;
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
+}) {
+  return (
+    <div className="group relative flex items-center rounded-full border-0 bg-muted px-4 py-3 transition focus-within:ring-2 focus-within:ring-[var(--primary)]">
+      <style>{`.auth-gray-input::placeholder { color: rgb(118, 118, 118); opacity: 1; }`}</style>
+      <span className="flex shrink-0 items-center text-[rgb(118,118,118)] transition-colors group-hover:text-[var(--primary)]">{icon}</span>
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        className="auth-gray-input ml-3 w-full bg-transparent text-sm leading-none outline-none"
+        style={{ color: "rgb(118, 118, 118)" }}
+      />
+    </div>
+  );
+}
 
-    const {
-      register: registerData,
-      handleSubmit: handleSubmitData,
-      formState: { errors },
-      reset: resetForm,
-    } = useForm<signupInput>({
-      resolver: zodResolver(SignupSchema),
-    });
+export default function Signup() {
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-    const onSignup = async (data: SignupType) => {
-      const FormData = {
-        firstName: data.firstname,
-        lastName: data.lastname,
-        email: data.email,
-        password: data.password,
-        confirmPassword: data.confirmPassword,
-        userName: data.username,
-      };
-      setLoading(true);
-      try {
-        const response = await AxiosAPI.post(
-          `${API_URL}/api/v1/auth/register`,
-          FormData,
-        );
-        if (response.data.success) {
-          const { message, data } = response.data;
-          toast.success(message || "welcome");
-          resetForm();
-          if (!data.user.isVerified) {
-            setUserEmail(data.user.email);
-            setShowConfirmPop(true);
-          }
-        }
-      } catch (e: unknown) {
-        if (axios.isAxiosError(e)) {
-          toast.error(
-            e?.response?.data?.message || "Failed signup please try later!",
-          );
-        } else {
-          toast.error("Failed signup, please try later!");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+  const passwordsMismatch =
+    form.confirmPassword.length > 0 && form.password !== form.confirmPassword;
 
-    return (
-      <div
-        className={`absolute  inset-0 transition-all duration-500  ${show ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
-      >
-        {/* {showConfirmPop && (
-            <ConfirmEmailPop
-              email={userEmail}
-              closePopup={() => setShowConfirmPop(false)}
-            />
-        )} */}
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (passwordsMismatch) return;
+    console.log("signup", form);
+  };
 
-        <div ref={ref} className="h-full">
-          <AuthSignForm
-            title="Sign Up Account"
-            onSubmit={handleSubmitData(onSignup)}
-            onConfirm={onConfirm}
-            haveAccountTitle="Dont have an account?sign in"
-          >
-            <div className="flex justify-between items-center w-full gap-2 ">
-              <div className=" w-1/2 ">
-                <Input
-                  label="First Name"
-                  {...registerData("firstname")}
-                  placeholder="eg. Ahmed"
-                />
+  return (
+    <div className="w-full text-center">
+      <h1 className="mb-1 font-display text-3xl font-bold text-foreground">Sign up</h1>
+      <p className="mb-5 text-sm" style={{ color: "rgb(118, 118, 118)" }}>
+        Create your account and start practicing.
+      </p>
 
-                {errors.firstname && (
-                  <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
-                    <FiAlertCircle className="text-sm shrink-0" />
-                    <span>{errors.firstname.message}</span>
-                  </p>
-                )}
-              </div>
-
-              <div className="w-1/2 ">
-                <Input
-                  label="Last Name"
-                  {...registerData("lastname")}
-                  placeholder="eg. Jheer"
-                />
-
-                {errors.lastname && (
-                  <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
-                    <FiAlertCircle className="text-sm shrink-0" />{" "}
-                    <span> {errors.lastname.message}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <Input
-              label="User name"
-              {...registerData("username")}
-              placeholder="eg. Ahmed-jheer"
-            />
-            {errors.username && (
-              <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
-                <FiAlertCircle className="text-sm shrink-0" />{" "}
-                {errors.username.message}
-              </p>
-            )}
-
-            <Input
-              label="Email"
-              {...registerData("email")}
-              placeholder="eg. Ahmed@gmail.com"
-            />
-            {errors.email && (
-              <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
-                <FiAlertCircle className="text-sm shrink-0" />{" "}
-                <span>{errors.email.message}</span>
-              </p>
-            )}
-
-            <Input
-              label="Password"
-              type="password"
-              {...registerData("password")}
-              placeholder="Enter your password"
-            />
-            {errors.password && (
-              <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
-                <FiAlertCircle className="text-sm shrink-0" />{" "}
-                <span>{errors.password.message}</span>
-              </p>
-            )}
-
-            <Input
-              label="Confirm password"
-              type="password"
-              {...registerData("confirmPassword")}
-              placeholder="Enter confirm password"
-            />
-            {errors.confirmPassword && (
-              <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
-                <FiAlertCircle className="text-sm shrink-0" />{" "}
-                <span>{errors.confirmPassword.message}</span>
-              </p>
-            )}
-
-            <div className="w-full space-y-1 mt-5">
-              <button
-                disabled={loading}
-                className="w-full bg-button border border-button-border py-2 rounded-md text-button-foreground  hover:scale-105 cursor-pointer flex items-center justify-center gap-1 "
-              >
-                {loading ? (
-                  <div className="flex gap-2">
-                    <Loader2 className="animate-spin h-5 w-5 text-gray-800" />
-                    <span>Loading...</span>
-                  </div>
-                ) : (
-                  <span>Sign Up</span>
-                )}
-              </button>
-            </div>
-          </AuthSignForm>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <AuthField
+            icon={<User className="h-4 w-4" />}
+            type="text"
+            placeholder="First name"
+            value={form.firstName}
+            onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+          />
+          <AuthField
+            icon={<User className="h-4 w-4" />}
+            type="text"
+            placeholder="Last name"
+            value={form.lastName}
+            onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+          />
         </div>
-      </div>
-    );
-  },
-);
-
-Signup.displayName = "Signup";
+        <AuthField
+          icon={<Mail className="h-4 w-4" />}
+          type="email"
+          placeholder="Email"
+          autoComplete="email"
+          value={form.email}
+          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+        />
+        <AuthField
+          icon={<Lock className="h-4 w-4" />}
+          type="password"
+          placeholder="Password"
+          autoComplete="new-password"
+          value={form.password}
+          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+        />
+        <AuthField
+          icon={<ShieldCheck className="h-4 w-4" />}
+          type="password"
+          placeholder="Confirm password"
+          autoComplete="new-password"
+          value={form.confirmPassword}
+          onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+        />
+        {passwordsMismatch && (
+          <p className="text-xs text-destructive">Passwords do not match.</p>
+        )}
+        <button
+          type="submit"
+          className="w-full rounded-full py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+          style={{
+            background:
+              "linear-gradient(135deg, oklch(58% 0.19 290) 0%, oklch(46% 0.22 298) 100%)",
+          }}
+        >
+          Sign Up
+        </button>
+      </form>
+    </div>
+  );
+}

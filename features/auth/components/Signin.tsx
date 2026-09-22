@@ -1,133 +1,119 @@
 "use client";
-import AuthSignForm from "@/features/auth/components/AuthSignForm";
-import { signinInput } from "@/features/auth/schema/signup.schema";
-import { forwardRef, useState } from "react";
-import { useForm } from "react-hook-form";
-import { SigninType } from "@/features/auth/types/auth";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { Input } from "@/shared/components/ui/Input";
-import { FiAlertCircle } from "react-icons/fi";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import axios from "axios";
-import { SigninSchema } from "../schema/signin.schema";
 
-type props = {
-  show?: boolean;
-  onConfirm: () => void;
-};
+import { ChangeEvent, FormEvent, ReactNode, useState } from "react";
+import Link from "next/link";
+import { Mail, Lock } from "lucide-react";
 
-export const Signin = forwardRef<HTMLDivElement, props>(
-  ({ show, onConfirm }, ref) => {
-    const [loading, setLoading] = useState<boolean>(false);
-    const router = useRouter();
+function AuthField({
+  icon,
+  type,
+  placeholder,
+  value,
+  onChange,
+  autoComplete,
+}: {
+  icon: ReactNode;
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
+}) {
+  return (
+    <div className="group relative flex items-center rounded-full border-0 bg-muted px-4 py-3 transition focus-within:ring-2 focus-within:ring-[var(--primary)]">
+      <style>{`.auth-gray-input::placeholder { color: rgb(118, 118, 118); opacity: 1; }`}</style>
+      <span className="flex shrink-0 items-center text-[rgb(118,118,118)] transition-colors group-hover:text-[var(--primary)]">{icon}</span>
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        className="auth-gray-input ml-3 w-full bg-transparent text-sm leading-none outline-none"
+        style={{ color: "rgb(118, 118, 118)" }}
+      />
+    </div>
+  );
+}
 
-    /* form hook options */
-    const {
-      register: registerData,
-      handleSubmit: handleSubmitData,
-      formState: { errors },
-      reset: resetForm,
-    } = useForm<signinInput>({
-      resolver: zodResolver(SigninSchema),
-    });
+function SocialIcon({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-[rgb(118,118,118)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+    >
+      {children}
+    </button>
+  );
+}
 
-    const onRegister = async (data: SigninType) => {
-      let isSuccess = false;
-      try {
-        setLoading(true);
+export default function Signin() {
+  const [form, setForm] = useState({ email: "", password: "" });
 
-        const response = await axios.post("/api/auth/login", data);
-        toast.success(response?.data?.message || "Login successfully");
-        isSuccess = true;
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    console.log("signin", form);
+  };
 
-        resetForm();
-      } catch (error: unknown) {
-        if (axios.isAxiosError(error)) {
-          toast.error(error?.response?.data?.message || "Login failed!");
-        } else {
-          toast.error("Something went wrong");
-        }
-      } finally {
-        setLoading(false);
-      }
+  return (
+    <div className="w-full text-center">
+      <h1 className="mb-1 font-display text-3xl font-bold text-foreground">Sign in</h1>
+      <p className="mb-7 text-sm" style={{ color: "rgb(118, 118, 118)" }}>Continue your AI interview journey.</p>
 
-      if (isSuccess) {
-        router.refresh();
-        router.push("/onboarding");
-      }
-    };
-
-    return (
-      <div
-        className={`absolute h-full inset-0 transition-all duration-500  ${show ? "translate-x-full opacity-0 pointer-events-none" : "translate-x-0 opacity-100"} `}
-      >
-        <div ref={ref} className="h-full">
-          <AuthSignForm
-            title="Sign In Account"
-            onSubmit={handleSubmitData(onRegister)}
-            onConfirm={onConfirm}
-            haveAccountTitle="Already have an account?sgin up"
-          >
-            <label>
-              <h3 className="text-white/70 text-sm">Email</h3>
-              <Input
-                {...registerData("email")}
-                placeholder="eg. Ahmed@gmail.com"
-              />
-              {errors.email && (
-                <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
-                  <FiAlertCircle className="text-sm shrink-0" />{" "}
-                  <span>{errors.email.message}</span>
-                </p>
-              )}
-            </label>
-
-            <label>
-              <h3 className="text-white/70 text-sm">Password</h3>
-              <Input
-                type="password"
-                {...registerData("password")}
-                placeholder="Enter your password"
-              />
-              {errors.password && (
-                <p className="text-xs text-red-400/90 font-medium mt-1 flex items-center gap-1 transition-all">
-                  <FiAlertCircle className="text-sm shrink-0" />{" "}
-                  <span>{errors.password?.message}</span>
-                </p>
-              )}
-            </label>
-
-            <div className="w-full space-y-1 mt-5">
-              <button
-                disabled={loading}
-                className="w-full bg-button border border-button-border py-2 rounded-md text-button-foreground  hover:scale-105 cursor-pointer flex items-center justify-center gap-1 "
-              >
-                {loading ? (
-                  <div className="flex gap-2">
-                    <Loader2 className="animate-spin h-5 w-5 text-gray-800" />
-                    <span>Loading...</span>
-                  </div>
-                ) : (
-                  <span>Sign In</span>
-                )}
-              </button>
-            </div>
-            <div className="w-full flex justify-end">
-              <button
-                type="button"
-                onClick={() => router.push("/forgot-password")}
-                className="text-sm text-foreground hover:text-green-600 transition cursor-pointer"
-              >
-                Forgot password?
-              </button>
-            </div>
-          </AuthSignForm>
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <AuthField
+          icon={<Mail className="h-4 w-4" />}
+          type="email"
+          placeholder="Email"
+          autoComplete="email"
+          value={form.email}
+          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+        />
+        <AuthField
+          icon={<Lock className="h-4 w-4" />}
+          type="password"
+          placeholder="Password"
+          autoComplete="current-password"
+          value={form.password}
+          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+        />
+        <button
+          type="submit"
+          className="w-full rounded-full py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+          style={{
+            background:
+              "linear-gradient(135deg, oklch(58% 0.19 290) 0%, oklch(46% 0.22 298) 100%)",
+          }}
+        >
+          Sign In
+        </button>
+      </form>
+      <div className="mt-6 flex items-center justify-center gap-1 text-xs">
+        <span style={{ color: "rgb(118, 118, 118)" }}>Or sign in with</span>
+        <span style={{ color: "rgb(118, 118, 118)" }}>·</span>
+        <Link
+          href="/reset-password"
+          className="font-medium text-black transition-colors hover:text-[var(--primary)] hover:underline"
+          style={{ color: "rgb(118, 118, 118)" }}
+        >
+          reset password
+        </Link>
       </div>
-    );
-  },
-);
-
-Signin.displayName = "Signin";
+      <div className="mt-4 flex justify-center gap-3">
+        <SocialIcon label="Google">
+          <span className="text-sm font-bold">G</span>
+        </SocialIcon>
+        <SocialIcon label="Facebook">
+          <span className="text-sm font-bold">f</span>
+        </SocialIcon>
+        <SocialIcon label="Twitter">
+          <span className="text-sm font-bold">t</span>
+        </SocialIcon>
+        <SocialIcon label="LinkedIn">
+          <span className="text-sm font-bold">in</span>
+        </SocialIcon>
+      </div>
+    </div>
+  );
+}

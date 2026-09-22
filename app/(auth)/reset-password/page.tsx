@@ -10,11 +10,13 @@ import {
 } from "@/features/auth/schema/confirmPassword.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { ArrowRight, KeyRound, ShieldCheck, Lock } from "lucide-react";
+import { ArrowRight, ShieldCheck, Lock, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import AuthFullCurveCard from "@/features/auth/components/AuthFullCurveCard";
 
 type PageProps = {
   searchParams: Promise<{ token?: string }>;
@@ -68,117 +70,131 @@ export default function ResetPassword({ searchParams }: PageProps) {
     }
   };
 
+  // حالة: التوكن مفقود أو غير صالح
   if (!token) {
     return (
-      <div className="relative min-h-screen w-full flex items-center justify-center bg-zinc-950 text-zinc-100 overflow-hidden px-4">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative w-full max-w-md p-8 bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl text-center space-y-4">
-          <h2 className="text-xl font-bold text-red-400">
+      <AuthFullCurveCard handshakeImage="/login.jpg" brandLabel="AI INTERVIEW">
+        <div className="space-y-4 text-center">
+          <h2 className="font-display text-xl font-bold text-white">
             Invalid or Missing Link
           </h2>
-          <p className="text-sm text-zinc-400">
-            The password reset link is invalid or has expired. Please request a
-            new link.
+          <p className="text-sm text-white/80">
+            The password reset link is invalid or has expired. Please request
+            a new link.
           </p>
           <button
             onClick={() => router.push("/forgot-password")}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg transition-all"
+            className="group relative flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(58% 0.19 290) 0%, oklch(46% 0.22 298) 100%)",
+            }}
           >
-            Request New Link
+            <span>Request New Link</span>
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </button>
+          <Link
+            href="/auth"
+            className="mx-auto flex w-fit items-center gap-1.5 text-xs font-medium text-white/80 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to sign in
+          </Link>
         </div>
-      </div>
+      </AuthFullCurveCard>
     );
   }
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center bg-zinc-950 text-zinc-100 overflow-hidden px-4">
-      {/* Background AI Glow Effects */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+    <AuthFullCurveCard handshakeImage="/login.jpg" brandLabel="AI INTERVIEW">
+      <div>
+        {/* Header Section */}
+        <div className="space-y-3 text-center">
+          <h1 className="font-display text-3xl font-bold text-white">
+            Set New Password
+          </h1>
+          <p className="text-sm leading-relaxed text-white/80">
+            Your new password must be different from previously used
+            passwords.
+          </p>
+        </div>
 
-      {/* Main Container with Glassmorphism */}
-      <div className="relative w-full max-w-md p-8 bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl space-y-6">
-        <div>
-          {/* Header Section */}
-          <div className="space-y-3 text-center mb-6">
-            <div className="inline-flex items-center justify-center p-3 bg-zinc-800/80 border border-zinc-700/50 rounded-xl mb-2 text-indigo-400">
-              <KeyRound className="w-6 h-6 animate-pulse" />
+        {/* Form Section */}
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-5 space-y-5">
+          <div className="space-y-2">
+            <label className="text-xs font-medium uppercase tracking-wider text-white/80">
+              New Password
+            </label>
+            <div className="relative">
+              <Input
+                leading={<Lock className="h-4 w-4" style={{ color: "rgb(118,118,118)" }} />}
+                {...register("password")}
+                type="password"
+                placeholder="••••••••"
+                className="w-full rounded-full border-0 bg-muted text-sm text-foreground outline-none transition placeholder:[color:rgb(118,118,118)] focus:ring-2 focus:ring-[var(--primary)]"
+              />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-              Set New Password
-            </h1>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              Your new password must be different from previously used
-              passwords.
-            </p>
+            {errors.password?.message && (
+              <InputError message={errors.password.message} />
+            )}
           </div>
 
-          {/* Form Section */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
-                New Password
-              </label>
-              <div className="relative">
-                <Input
-                  leading={<Lock className="w-4 h-4 text-zinc-400" />}
-                  {...register("password")}
-                  type="password"
-                  placeholder="••••••••"
-                  className="w-full bg-zinc-950/60 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all rounded-lg"
-                />
-              </div>
-              {errors.password?.message && (
-                <InputError message={errors.password.message} />
-              )}
+          <div className="space-y-2">
+            <label className="text-xs font-medium uppercase tracking-wider text-white/80">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <Input
+                leading={<ShieldCheck className="h-4 w-4" style={{ color: "rgb(118,118,118)" }} />}
+                {...register("confirmPassword")}
+                type="password"
+                placeholder="••••••••"
+                className="w-full rounded-full border-0 bg-muted text-sm text-foreground outline-none transition placeholder:[color:rgb(118,118,118)] focus:ring-2 focus:ring-[var(--primary)]"
+              />
             </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Input
-                  leading={<ShieldCheck className="w-4 h-4 text-zinc-400" />}
-                  {...register("confirmPassword")}
-                  type="password"
-                  placeholder="••••••••"
-                  className="w-full bg-zinc-950/60 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all rounded-lg"
-                />
-              </div>
-              {errors.confirmPassword?.message && (
-                <InputError message={errors.confirmPassword.message} />
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="group relative w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-            >
-              {isSubmitting ? (
-                <>
-                  <LoadingIcon />
-                  <span>Saving Changes...</span>
-                </>
-              ) : (
-                <>
-                  <span>Reset Password</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Footer Accent */}
-          <div className="pt-6 mt-6 text-center border-t border-zinc-800/50">
-            <p className="text-xs text-zinc-500">
-              AI-Powered Interview Platform &copy; {new Date().getFullYear()}
-            </p>
+            {errors.confirmPassword?.message && (
+              <InputError message={errors.confirmPassword.message} />
+            )}
           </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="group relative flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(58% 0.19 290) 0%, oklch(46% 0.22 298) 100%)",
+            }}
+          >
+            {isSubmitting ? (
+              <>
+                <LoadingIcon />
+                <span>Saving Changes...</span>
+              </>
+            ) : (
+              <>
+                <span>Reset Password</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <Link
+          href="/auth"
+          className="mx-auto mt-5 flex w-fit items-center gap-1.5 text-xs font-medium text-white/80 transition-colors hover:text-white"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to sign in
+        </Link>
+
+        {/* Footer Accent */}
+        <div className="mt-6 border-t border-white/20 pt-4 text-center">
+          <p className="text-xs text-white/60">
+            AI-Powered Interview Platform &copy; {new Date().getFullYear()}
+          </p>
         </div>
       </div>
-    </div>
+    </AuthFullCurveCard>
   );
 }
