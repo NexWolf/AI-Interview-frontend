@@ -648,7 +648,7 @@ function InterviewReportView({ interviewId }: { interviewId: string }) {
                         {scoreBar(toNumber(skill.evaluation.aiAssessmentScore))}
                         <p className="text-[11px] text-muted-foreground mt-1.5">
                           {skill.evaluation.aiAssessmentScore !== null &&
-                          skill.evaluation.aiAssessmentScore !== undefined
+                            skill.evaluation.aiAssessmentScore !== undefined
                             ? `${Math.round(toNumber(skill.evaluation.aiAssessmentScore))}%`
                             : "Not scored"}
                         </p>

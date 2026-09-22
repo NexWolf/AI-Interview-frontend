@@ -7,7 +7,8 @@
 @layer base {
   :root {
     /* ================= 1. خلفية الصفحة العامة (Light Brand Neutral: #F2F2F2) ================= */
-    --background: 0 0% 95%; /* #F2F2F2 */
+    --background: 0 0% 95%;
+    /* #F2F2F2 */
     --background-gradient: linear-gradient(180deg, #F2F2F2 0%, #FFFFFF 100%);
     --foreground: 259 45% 12%;
 
@@ -29,13 +30,17 @@
     --input: 0 0% 100%;
     --input-border: 259 25% 86%;
     --input-foreground: 259 45% 12%;
-    --input-focus-border: 259 56% 48%; /* #6136BF */
-    --input-focus-ring: 259 70% 83%;   /* #C7B3F2 */
+    --input-focus-border: 259 56% 48%;
+    /* #6136BF */
+    --input-focus-ring: 259 70% 83%;
+    /* #C7B3F2 */
 
     /* ================= 4. الأزرار الأساسية والثانوية (Priority 1: #6136BF, Priority 2: #724EBF) ================= */
-    --primary: 259 56% 48%; /* #6136BF */
+    --primary: 259 56% 48%;
+    /* #6136BF */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 259 48% 53%; /* #724EBF */
+    --primary-hover: 259 48% 53%;
+    /* #724EBF */
 
     --button: var(--primary);
     --button-foreground: var(--primary-foreground);
@@ -56,7 +61,8 @@
     --muted: 259 20% 94%;
     --muted-foreground: 259 18% 46%;
 
-    --accent: 259 52% 69%; /* #9F84D9 */
+    --accent: 259 52% 69%;
+    /* #9F84D9 */
     --accent-foreground: 259 56% 25%;
 
     --destructive: 0 84% 60%;
@@ -89,13 +95,17 @@
     --input: 265 26% 12%;
     --input-border: 259 24% 22%;
     --input-foreground: 0 0% 96%;
-    --input-focus-border: 259 56% 48%; /* #6136BF */
-    --input-focus-ring: 259 48% 53%;   /* #724EBF */
+    --input-focus-border: 259 56% 48%;
+    /* #6136BF */
+    --input-focus-ring: 259 48% 53%;
+    /* #724EBF */
 
     /* ================= 4. الأزرار الأساسية والثانوية (Priority 1: #6136BF, Priority 2: #724EBF) ================= */
-    --primary: 259 56% 48%; /* #6136BF */
+    --primary: 259 56% 48%;
+    /* #6136BF */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 259 48% 53%; /* #724EBF */
+    --primary-hover: 259 48% 53%;
+    /* #724EBF */
 
     --button: var(--primary);
     --button-foreground: var(--primary-foreground);
@@ -116,7 +126,8 @@
     --muted: 265 22% 13%;
     --muted-foreground: 259 15% 65%;
 
-    --accent: 259 52% 69%; /* #9F84D9 */
+    --accent: 259 52% 69%;
+    /* #9F84D9 */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;

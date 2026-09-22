@@ -7,7 +7,7 @@ export const userService = {
         const response = await AxiosAPI.get("/api/v1/users/me/");
         return response.data.data.user;
     },
-    getUserSkills : async () : Promise<UserSkillItem[]> =>   {
+    getUserSkills: async (): Promise<UserSkillItem[]> => {
         const response = await AxiosAPI.get(`/api/v1/users/me/skills`);
         return response.data.data.skills
     },

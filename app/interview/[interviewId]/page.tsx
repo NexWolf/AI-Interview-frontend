@@ -161,7 +161,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
         } else {
           sessionStorage.removeItem(`interview_draft_${q.id}`);
         }
-      } catch {}
+      } catch { }
     }
   }, []);
 
@@ -328,7 +328,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
       // No speech detected - keep the session alive and try again
       try {
         recognitionRef.current?.start();
-      } catch {}
+      } catch { }
     }
   };
   const handleRecognitionEndRef = useRef(handleRecognitionEnd);
@@ -373,7 +373,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     return () => {
       try {
         recognition.stop();
-      } catch {}
+      } catch { }
     };
   }, [setAnswer, RoomData?.interviewLanguage]);
 
@@ -433,7 +433,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
       if (typeof window !== "undefined" && q?.id) {
         try {
           existingDraft = sessionStorage.getItem(`interview_draft_${q.id}`) || "";
-        } catch {}
+        } catch { }
       }
       setAnswer(existingDraft);
       draftBaseRef.current = existingDraft;
@@ -501,7 +501,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
         if (typeof window !== "undefined" && q?.id) {
           try {
             sessionStorage.removeItem(`interview_draft_${q.id}`);
-          } catch {}
+          } catch { }
         }
         setAnswer("");
         setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
@@ -544,7 +544,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     [interviewId, liveConnected, emitEvent, transition, setAnswer],
   );
 
-  
+
   const submitAnswerRef = useRef(submitAnswerWithText);
   submitAnswerRef.current = submitAnswerWithText;
 
@@ -571,7 +571,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     setSubmissionError(null);
     try {
       recognitionRef.current?.stop();
-    } catch {}
+    } catch { }
 
     stopSpeaking();
     transition("processing");
@@ -583,7 +583,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     setSubmissionError(null);
     try {
       recognitionRef.current?.stop();
-    } catch {}
+    } catch { }
     stopSpeaking();
     toast.info("Question skipped");
     const q = currentQuestionRef.current;
@@ -591,7 +591,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
       if (typeof window !== "undefined") {
         try {
           sessionStorage.removeItem(`interview_draft_${q.id}`);
-        } catch {}
+        } catch { }
       }
       AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/skip`).catch((e) => {
         console.warn("Skip persistence failed:", e?.response?.data?.message || e?.message);
@@ -675,7 +675,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     stopSpeaking();
     try {
       recognitionRef.current?.stop();
-    } catch {}
+    } catch { }
     toast.loading("Generating your comprehensive AI interview report...");
     console.log("[FINISH] liveConnected:", liveConnected);
 
@@ -894,9 +894,8 @@ export default function InterviewSessionPage({ params }: PageProps) {
               {/* Dynamic Sound Orb */}
               <div className="relative flex items-center justify-center my-auto">
                 <div
-                  className={`w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-500 via-cyan-400 to-emerald-400 blur-md opacity-60 transition-all duration-300 ${
-                    isAISpeaking ? "animate-pulse scale-110 opacity-90" : "scale-95 opacity-30"
-                  }`}
+                  className={`w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-500 via-cyan-400 to-emerald-400 blur-md opacity-60 transition-all duration-300 ${isAISpeaking ? "animate-pulse scale-110 opacity-90" : "scale-95 opacity-30"
+                    }`}
                 />
                 <div className="w-20 h-20 rounded-full bg-slate-950 border-2 border-cyan-400 absolute flex items-center justify-center shadow-lg">
                   <Cpu className={`w-8 h-8 text-cyan-400 transition-transform duration-300 ${isAISpeaking ? "scale-110" : ""}`} />
@@ -1002,11 +1001,10 @@ export default function InterviewSessionPage({ params }: PageProps) {
               <button
                 type="button"
                 onClick={toggleListening}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition cursor-pointer ${
-                  isListening
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition cursor-pointer ${isListening
                     ? "bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20"
                     : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
-                }`}
+                  }`}
               >
                 {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
                 <span>{isListening ? "Stop & submit" : "Start speaking"}</span>
@@ -1113,13 +1111,12 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 questionList.map((q, idx) => (
                   <div
                     key={q.id || idx}
-                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 transition ${
-                      currentQuestion?.id === q.id
+                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 transition ${currentQuestion?.id === q.id
                         ? "bg-indigo-600/10 border-indigo-500/40 text-indigo-200"
                         : q.isAnswered
-                        ? "bg-slate-800/50 border-slate-800 text-slate-400"
-                        : "bg-slate-900 border-slate-800 text-slate-300"
-                    }`}
+                          ? "bg-slate-800/50 border-slate-800 text-slate-400"
+                          : "bg-slate-900 border-slate-800 text-slate-300"
+                      }`}
                   >
                     <span className="mt-0.5">
                       {q.isAnswered ? (

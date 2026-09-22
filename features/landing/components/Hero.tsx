@@ -115,7 +115,7 @@ export function Hero() {
               sm:text-5xl
               lg:text-6xl
             "
-            
+
           >
             {t("hero.title")}
           </TextShimmer>

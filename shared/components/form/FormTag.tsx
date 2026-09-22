@@ -15,10 +15,10 @@ type FormProps<T extends FieldValues> = {
   onSubmit: (data: T) => void;
   FORM_DATA?: T;
   methods?: UseFormReturn<T>;
-  button_title ?: string,
-  loading ?: boolean,
-  loading_title ?: string,
-  disabeld ?: boolean,
+  button_title?: string,
+  loading?: boolean,
+  loading_title?: string,
+  disabeld?: boolean,
 };
 
 export const FormTag = <T extends FieldValues>({
@@ -28,7 +28,7 @@ export const FormTag = <T extends FieldValues>({
   FORM_DATA,
   onSubmit,
   methods: externalMethods,
-  loading ,
+  loading,
   button_title,
   loading_title,
   disabeld
@@ -50,19 +50,19 @@ export const FormTag = <T extends FieldValues>({
         <div>{children}</div>
         {button_title ? (
           <div className="w-full flex justify-end my-3">
-          <Button type="submit" disabled={loading || disabeld}>
-            {loading ? (
-               <div>
-                <LoadingIcon/>
-                <span>{loading_title}</span>
-              </div>
-              
-            ) : (
-             <span>{button_title}</span>
-            )}
-            
-          </Button>
-        </div>
+            <Button type="submit" disabled={loading || disabeld}>
+              {loading ? (
+                <div>
+                  <LoadingIcon />
+                  <span>{loading_title}</span>
+                </div>
+
+              ) : (
+                <span>{button_title}</span>
+              )}
+
+            </Button>
+          </div>
         ) : (null)}
       </form>
     </FormProvider>

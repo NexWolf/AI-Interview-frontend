@@ -62,7 +62,7 @@ export const ProfileHeader = ({
   };
 
   const initialFormValues: ProfileFormValues = useMemo(() => {
-    
+
     return {
       email: data?.email ?? "",
       isVerified: data?.isVerified,
@@ -73,7 +73,7 @@ export const ProfileHeader = ({
       phoneNumber: data?.phoneNumber ?? "",
       bio: data?.bio ?? "",
       socialLinks: parseSocialLinks(data?.socialLinks),
-      avatarUpload : null,
+      avatarUpload: null,
     };
   }, [data]);
 
@@ -157,7 +157,7 @@ export const ProfileHeader = ({
   const watchProfileImage = watch("avatarUrl");
 
   useEffect(() => {
-    console.log("THIS IS AVATAR UPLOAD FROM ULOAD INPUT",watchSocialLinks);
+    console.log("THIS IS AVATAR UPLOAD FROM ULOAD INPUT", watchSocialLinks);
   }, [watch, watchSocialLinks]);
 
   useEffect(() => {
@@ -210,9 +210,9 @@ export const ProfileHeader = ({
           form_button_title="Edit"
         >
           <div className="space-y-4 py-1">
-            <FileUploadInput name="avatarUpload" label="" multiple={false}/>
+            <FileUploadInput name="avatarUpload" label="" multiple={false} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
+
               <div className="space-y-1">
                 <Input
                   {...register("firstName", {

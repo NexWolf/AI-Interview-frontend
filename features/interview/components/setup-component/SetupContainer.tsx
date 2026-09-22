@@ -87,7 +87,7 @@ export const SetupContainer = () => {
 
   const OnSubmit = async (data: setupInterview) => {
     document.documentElement.requestFullscreen().catch((e) => {
-      console.error("full screen request failed" , e)
+      console.error("full screen request failed", e)
     })
     if (!isReadyToStart) {
       alert("Please ensure your camera and microphone are tested, and accept all honor code guidelines before starting.");
@@ -224,10 +224,10 @@ export const SetupContainer = () => {
             </div>
 
             <div className="flex flex-col md:flex-row items-stretch gap-6 w-full mt-1">
-              <CameraPreview onReady={(value : boolean) => setIsVideoReady(value)} />
+              <CameraPreview onReady={(value: boolean) => setIsVideoReady(value)} />
               <MicorphoneTest
                 language={watch("interviewLanguage")}
-                onReady={(value : boolean) => setIsAudioReady(value)}
+                onReady={(value: boolean) => setIsAudioReady(value)}
               />
             </div>
 

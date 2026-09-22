@@ -1,6 +1,6 @@
 "use client";
 
-import {  useEffect } from "react";
+import { useEffect } from "react";
 
 import ProfileEducation from "./ProfileEducation";
 import ProfileHeader from "./ProfileHeader";
@@ -91,7 +91,7 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
     });
   };
 
-  
+
 
   const { mutate: updateSkills, isPending: isUpdatingSkills } = useUpdateSkills();
 
@@ -120,13 +120,13 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
     console.log("interview");
   };
 
-  const handleEditEducation = (formData : FormData) => {
-    updateProfiel(formData , {
-      onSuccess : () => console.log("profile Updated Successfully")
+  const handleEditEducation = (formData: FormData) => {
+    updateProfiel(formData, {
+      onSuccess: () => console.log("profile Updated Successfully")
     })
   };
 
-  if(!profileData) {
+  if (!profileData) {
     return <ProfileHeaderSkeleton />
   }
 

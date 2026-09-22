@@ -61,7 +61,7 @@ export function useInterviewSocket() {
 
   const onEvent = useCallback(
     <T = SocketEventPayload>(_event: string, _handler: (payload: T) => void) => {
-      return () => {};
+      return () => { };
     },
     [],
   );

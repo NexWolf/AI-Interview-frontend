@@ -56,7 +56,7 @@ const OnBoardingComponent = () => {
       bioData: {
         bio: "",
         avatar: null,
-        socialLinks: [{value : ""}],
+        socialLinks: [{ value: "" }],
       },
       educations: [
         {
@@ -131,7 +131,7 @@ const OnBoardingComponent = () => {
 
   useEffect(() => {
     console.log(step)
-  },[step])
+  }, [step])
 
   const handleBackStep = async (currentStep: number) => {
     if (currentStep > 1) {
@@ -145,7 +145,7 @@ const OnBoardingComponent = () => {
     try {
       await mutateAsync(data);
       await dbStore.clear();
-      await fetch("/api/auth/onboarding-done", { method: "POST" }).catch(() => {});
+      await fetch("/api/auth/onboarding-done", { method: "POST" }).catch(() => { });
       document.cookie = "onboardingDone=true; path=/; max-age=2592000";
       window.location.href = "/dashboard";
     } catch (e) {

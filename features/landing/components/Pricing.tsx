@@ -267,10 +267,9 @@ export default function Pricing() {
                 py-2
                 text-sm
                 transition-all
-                ${
-                  billingCycle === "monthly"
-                    ? "bg-[#6136BF] text-white"
-                    : "text-white/40 hover:text-white"
+                ${billingCycle === "monthly"
+                  ? "bg-[#6136BF] text-white"
+                  : "text-white/40 hover:text-white"
                 }
               `}
             >
@@ -286,10 +285,9 @@ export default function Pricing() {
                 py-2
                 text-sm
                 transition-all
-                ${
-                  billingCycle === "yearly"
-                    ? "bg-[#6136BF] text-white"
-                    : "text-white/40 hover:text-white"
+                ${billingCycle === "yearly"
+                  ? "bg-[#6136BF] text-white"
+                  : "text-white/40 hover:text-white"
                 }
               `}
             >
@@ -462,11 +460,10 @@ export default function Pricing() {
                       <Button
                         asChild
                         size="lg"
-                        className={`w-full rounded-full transition-all duration-300 ${
-                          plan.featured
+                        className={`w-full rounded-full transition-all duration-300 ${plan.featured
                             ? "border border-[#6136BF] bg-[#6136BF] text-white shadow-xl shadow-[#6136BF]/25 hover:bg-[#724EBF] hover:shadow-[#724EBF]/35"
                             : "border border-[#6136BF]/40 bg-white/[0.04] text-white hover:bg-[#6136BF]/20 hover:border-[#6136BF]"
-                        }`}
+                          }`}
                       >
                         <a href="/auth">
                           {t("pricing.choose")}
