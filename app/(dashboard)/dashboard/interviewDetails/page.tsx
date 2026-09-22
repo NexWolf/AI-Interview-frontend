@@ -1,17 +1,20 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowRight,
   Award,
   Brain,
   Briefcase,
+  Check,
   CheckCircle2,
   ChevronLeft,
   Clock,
+  Copy,
   FileText,
   Lightbulb,
   Loader2,
@@ -19,6 +22,7 @@ import {
   Mic,
   Play,
   Plus,
+  Sparkles,
   Star,
   Target,
   TrendingUp,
@@ -326,6 +330,66 @@ function MyInterviewsList() {
   );
 }
 
+function ImprovementPlanCard({ plan }: { plan: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(plan);
+      setCopied(true);
+      toast.success("Improvement plan copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-card via-card to-amber-500/5 p-6 sm:p-7 space-y-4 shadow-sm relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 shadow-inner">
+            <Sparkles className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-bold text-base sm:text-lg tracking-tight text-foreground">
+                Personalized Improvement Plan
+              </h2>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
+                AI Roadmap
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Actionable recommendations & targeted challenges tailored from your interview answers
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card/80 hover:bg-muted text-xs font-semibold text-foreground transition-all cursor-pointer w-fit self-start sm:self-auto shrink-0 shadow-sm"
+          title="Copy plan to clipboard"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Copy Plan</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90 font-normal">
+        {plan}
+      </div>
+    </div>
+  );
+}
+
 function InterviewReportView({ interviewId }: { interviewId: string }) {
   const {
     data: interview,
@@ -539,15 +603,7 @@ function InterviewReportView({ interviewId }: { interviewId: string }) {
 
           {/* Improvement plan */}
           {report.improvementPlan && (
-            <div className="rounded-2xl border border-border/70 bg-card/70 p-6 space-y-3">
-              <h2 className="font-bold text-sm flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-amber-400" />
-                Improvement Plan
-              </h2>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
-                {report.improvementPlan}
-              </p>
-            </div>
+            <ImprovementPlanCard plan={report.improvementPlan} />
           )}
 
           {/* Recommendations */}

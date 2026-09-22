@@ -8,7 +8,8 @@ export const useUpdateProfile = () => {
     return useMutation({
         mutationFn : (data : FormData)  => profileService.update(data),
         onSuccess : () => {
-            queryClient.invalidateQueries({queryKey : ["profile"]})
+            queryClient.invalidateQueries({queryKey : ["profile"]});
+            queryClient.invalidateQueries({queryKey : ["user", "me"]});
         },
         onError : (error : AxiosError<{message? : string, errors ?: any}>) => {
             const severMessage = error.response?.data?.message || "error from server";

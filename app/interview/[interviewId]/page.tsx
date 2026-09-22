@@ -472,7 +472,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     }
 
     AxiosAPI.post(`/api/interviews/${interviewId}/questions/generate`, {
-      speakQuestion: true,
+      speakQuestion: false,
     })
       .then((res) => {
         onAskQuestionRef.current(toQuestionItem(res.data.data), true, true);
@@ -665,6 +665,12 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
   const handleFinishInterview = useCallback(() => {
     if (phaseRef.current === "closing") return;
+
+    const confirmed = typeof window !== "undefined"
+      ? window.confirm("Are you sure you want to end the interview now?")
+      : true;
+    if (!confirmed) return;
+
     transition("closing");
     stopSpeaking();
     try {
@@ -685,10 +691,15 @@ export default function InterviewSessionPage({ params }: PageProps) {
         toast.success("Interview completed! Loading your evaluation report...");
         router.push(`/dashboard/interviewDetails?id=${interviewId}`);
       })
-      .catch((e: any) => {
-        console.error("Finish interview error:", e);
+      .catch(async (e: any) => {
+        console.warn("Finish interview summary error, executing direct completion fallback:", e);
+        try {
+          await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`);
+        } catch (completeErr) {
+          console.error("Direct completion error:", completeErr);
+        }
         toast.dismiss();
-        toast.error(e?.response?.data?.message || "Error completing interview");
+        toast.info("Interview session closed.");
         router.push(`/dashboard/interviewDetails?id=${interviewId}`);
       });
   }, [liveConnected, emitEvent, interviewId, transition, router]);

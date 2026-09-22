@@ -14,5 +14,14 @@ export const profileService = {
         const response = await AxiosAPI.get(`/api/v1/users/profile/${username}`);
         return response.data.data.user;
     },
+    updateSkills: async (skills: { skillId: number | string; proficiencyLevel: string }[]) => {
+        const response = await AxiosAPI.put(`/api/v1/users/me/skills`, {
+            skills: skills.map((s) => ({
+                skillId: Number(s.skillId),
+                proficiencyLevel: s.proficiencyLevel || "Intermediate",
+            })),
+        });
+        return response.data;
+    },
 }
 

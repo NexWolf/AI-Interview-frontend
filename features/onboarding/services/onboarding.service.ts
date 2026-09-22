@@ -26,7 +26,8 @@ export const onboardingService = {
 
 function toFormData(data: OnboardingForm): FormData {
   const formData = new FormData();
-  const avatar: File | null = data.bioData.avatar;
+  const rawAvatar: any = data.bioData?.avatar;
+  const avatarFile = Array.isArray(rawAvatar) ? rawAvatar[0] : rawAvatar;
 
   if (data.basicData?.phoneNumber) {
     formData.append("phoneNumber", data.basicData.phoneNumber);
@@ -34,8 +35,8 @@ function toFormData(data: OnboardingForm): FormData {
   if (data.bioData?.bio) {
     formData.append("bio", data.bioData.bio);
   }
-  if (avatar) {
-    formData.append("avatar", avatar);
+  if (avatarFile instanceof File) {
+    formData.append("avatar", avatarFile);
   }
 
   // Filter valid URLs for social links

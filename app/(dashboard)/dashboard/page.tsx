@@ -113,7 +113,7 @@ export default function DashboardPage() {
             Complete Profile Setup
           </Link>
           <Link
-            href="/profile"
+            href="/dashboard/profile"
             className="inline-flex items-center justify-center gap-2 border border-border px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-muted/50 transition-colors"
           >
             View My Profile
@@ -190,7 +190,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-1 rounded-2xl border border-border/70 bg-card/70 p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-sm">Skill Progress</h2>
-            <Link href="/dashboard/setting" className="text-xs text-primary hover:underline">
+            <Link href="/dashboard/profile" className="text-xs text-primary hover:underline">
               Manage
             </Link>
           </div>

@@ -72,7 +72,7 @@
       response.cookies.set({
           name : "onboardingDone",
           value : String(isOnboardingDone),
-          httpOnly: true,
+          httpOnly: false,
           secure : process.env.NODE_ENV === "production",
           sameSite : "lax",
           path : "/",
