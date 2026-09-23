@@ -87,7 +87,7 @@ export const SetupContainer = () => {
 
   const OnSubmit = async (data: setupInterview) => {
     document.documentElement.requestFullscreen().catch((e) => {
-      console.error("full screen request failed" , e)
+      console.error("full screen request failed", e)
     })
     if (!isReadyToStart) {
       alert("Please ensure your camera and microphone are tested, and accept all honor code guidelines before starting.");
@@ -224,10 +224,10 @@ export const SetupContainer = () => {
             </div>
 
             <div className="flex flex-col md:flex-row items-stretch gap-6 w-full mt-1">
-              <CameraPreview onReady={(value : boolean) => setIsVideoReady(value)} />
+              <CameraPreview onReady={(value: boolean) => setIsVideoReady(value)} />
               <MicorphoneTest
                 language={watch("interviewLanguage")}
-                onReady={(value : boolean) => setIsAudioReady(value)}
+                onReady={(value: boolean) => setIsAudioReady(value)}
               />
             </div>
 
@@ -260,7 +260,7 @@ export const SetupContainer = () => {
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div className="flex-1">

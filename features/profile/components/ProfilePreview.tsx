@@ -1,6 +1,6 @@
 "use client";
 
-import {  useEffect } from "react";
+import { useEffect } from "react";
 
 import ProfileEducation from "./ProfileEducation";
 import ProfileHeader from "./ProfileHeader";
@@ -9,6 +9,9 @@ import { useQuery } from "@tanstack/react-query";
 import { profileService } from "../services/profile.service";
 import { ProfileFormValues, ProfileHeaderData } from "../types/profileHeader.types";
 import { useUpdateProfile } from "../hook/useUpdateProfile";
+import { useUpdateSkills } from "../hook/useUpdateSkills";
+import { toast } from "sonner";
+import { ProficiencyLevel } from "@/shared/types/userSkills";
 import ProfileHeaderSkeleton from "./ProfileHeaderLoading";
 import { useRouter } from "next/navigation";
 
@@ -37,6 +40,13 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
 
   /* ACTION FOR PROFILE HEADER */
   const handleEditHeader = (data: ProfileHeaderData) => {
+    const isAvatarChange = Boolean(data.avatarUpload);
+    if (isAvatarChange) {
+      toast.loading("Uploading profile picture...", { id: "profile-update" });
+    } else {
+      toast.loading("Saving profile changes...", { id: "profile-update" });
+    }
+
     const formData = new FormData();
     if (data.firstName) formData.append("firstName", data.firstName);
     if (data.lastName) formData.append("lastName", data.lastName);
@@ -44,11 +54,11 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
     if (data.bio) formData.append("bio", data.bio);
     if (data.phoneNumber) formData.append("phoneNumber", data.phoneNumber);
 
-    const avatar = data.avatarUpload;
-    const isNewFile = avatar && typeof avatar !== "string";
+    const rawAvatar: any = data.avatarUpload;
+    const avatarFile = Array.isArray(rawAvatar) ? rawAvatar[0] : rawAvatar;
 
-    if (isNewFile) {
-      formData.append("avatar", avatar as File);
+    if (avatarFile instanceof File) {
+      formData.append("avatar", avatarFile);
     }
 
     const cleanSocialLink = (link: string): string => {
@@ -64,19 +74,45 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
     }
 
     updateProfiel(formData, {
-      onSuccess: () => console.log("Profile updated successfully"),
+      onSuccess: () => {
+        toast.success(
+          isAvatarChange
+            ? "Profile picture updated successfully!"
+            : "Profile updated successfully!",
+          { id: "profile-update" }
+        );
+      },
+      onError: (err: any) => {
+        toast.error(
+          err?.response?.data?.message || "Failed to update profile",
+          { id: "profile-update" }
+        );
+      },
     });
   };
 
-  
+
+
+  const { mutate: updateSkills, isPending: isUpdatingSkills } = useUpdateSkills();
 
   /* ACTION FOR SKILLS */
-  const handleEditSkills = () => {
-    console.log("interview");
-  };
-
-  const handleAddSkills = () => {
-    console.log("interview");
+  const handleSaveSkills = (
+    skills: { skillId: string; proficiencyLevel?: ProficiencyLevel }[]
+  ) => {
+    updateSkills(
+      skills.map((s) => ({
+        skillId: Number(s.skillId),
+        proficiencyLevel: s.proficiencyLevel || "Beginner",
+      })),
+      {
+        onSuccess: () => {
+          toast.success("Skills updated successfully");
+        },
+        onError: () => {
+          toast.error("Failed to update skills");
+        },
+      }
+    );
   };
 
   /* ACTION FOR EDUCATION */
@@ -84,23 +120,16 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
     console.log("interview");
   };
 
-  const handleEditEducation = (formData : FormData) => {
-    updateProfiel(formData , {
-      onSuccess : () => console.log("profile Updated Successfully")
+  const handleEditEducation = (formData: FormData) => {
+    updateProfiel(formData, {
+      onSuccess: () => console.log("profile Updated Successfully")
     })
   };
 
-
-
-
-
-
-  if(!profileData) {
+  if (!profileData) {
     return <ProfileHeaderSkeleton />
   }
 
-
- 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12 pt-12">
       {/* 1. Main Header Card (Banner + Avatar + Basic Info) */}
@@ -115,8 +144,8 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
       <ProfileSkills
         skillsData={profileData?.skills}
         editable={isEditable}
-        onEdit={handleEditSkills}
-        onAdd={handleAddSkills}
+        onSave={handleSaveSkills}
+        isLoading={isUpdatingSkills}
       />
 
       {/* 2. Education Section */}

@@ -2,29 +2,34 @@
 
 import { motion } from "framer-motion";
 import { BorderBeamPanel } from "@/components/ui/border-beam-panel";
+import { useLanguage, TranslationKey } from "@/shared/context/LanguageContext";
 
-const steps = [
+interface StepItem {
+  number: string;
+  titleKey: TranslationKey;
+  descKey: TranslationKey;
+}
+
+const stepList: StepItem[] = [
   {
     number: "01",
-    title: "Start Interview",
-    description:
-      "Begin a realistic AI-powered interview designed around the role you are applying for.",
+    titleKey: "how.s1Title",
+    descKey: "how.s1Desc",
   },
   {
     number: "02",
-    title: "AI Analysis",
-    description:
-      "Our AI analyzes your answers, communication style, confidence, and overall performance.",
+    titleKey: "how.s2Title",
+    descKey: "how.s2Desc",
   },
   {
     number: "03",
-    title: "Get Insights",
-    description:
-      "Receive clear feedback and actionable insights to help you perform better.",
+    titleKey: "how.s3Title",
+    descKey: "how.s3Desc",
   },
 ];
 
 export function HowItWorks() {
+  const { t } = useLanguage();
   return (
     <section
       id="how-it-works"
@@ -46,7 +51,7 @@ export function HowItWorks() {
           absolute
           inset-0
           opacity-[0.10]
-          [background-image:linear-gradient(rgba(163,106,246,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(163,106,246,0.18)_1px,transparent_1px)]
+          [background-image:linear-gradient(rgba(159,132,217,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(159,132,217,0.18)_1px,transparent_1px)]
           [background-size:70px_70px]
           [mask-image:radial-gradient(ellipse_at_center,black_15%,transparent_80%)]
         "
@@ -64,7 +69,7 @@ export function HowItWorks() {
           -translate-x-1/2
           -translate-y-1/2
           rounded-full
-          bg-[#8B5CF6]/10
+          bg-[#6136BF]/15
           blur-[140px]
         "
       />
@@ -76,23 +81,6 @@ export function HowItWorks() {
         ===================================== */}
 
         <div className="mx-auto max-w-3xl text-center">
-
-          {/* <motion.span
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="
-              text-xs
-              font-medium
-              uppercase
-              tracking-[0.25em]
-              text-[#A36AF6]
-              sm:text-sm
-            "
-          >
-            HOW IT WORKS
-          </motion.span> */}
 
           <motion.h2
             initial={{ opacity: 0, y: 25 }}
@@ -110,9 +98,9 @@ export function HowItWorks() {
               lg:text-5xl
             "
           >
-            Turn Data into{" "}
-            <span className="text-[#A36AF6]">
-              Decisions
+            {t("how.title1")}{" "}
+            <span className="text-[#9F84D9]">
+              {t("how.title2")}
             </span>
           </motion.h2>
 
@@ -127,12 +115,11 @@ export function HowItWorks() {
               max-w-2xl
               text-sm
               leading-7
-              text-white/45
+              text-white/50
               sm:text-base
             "
           >
-            A simple three-step process that transforms every interview into
-            useful, actionable intelligence.
+            {t("how.subtitle")}
           </motion.p>
 
         </div>
@@ -155,12 +142,12 @@ export function HowItWorks() {
               -translate-y-1/2
               border-t
               border-dashed
-              border-[#7D5BA6]/25
+              border-[#6136BF]/30
               md:block
             "
           />
 
-          {steps.map((step, index) => (
+          {stepList.map((step, index) => (
             <motion.div
               key={step.number}
               initial={{
@@ -183,7 +170,7 @@ export function HowItWorks() {
             >
               <BorderBeamPanel
                 beams={2}
-                colors={["#8B5CF6", "#FFFFFF"]}
+                colors={["#6136BF", "#9F84D9"]}
                 thickness={1.5}
                 radius={18}
                 glow
@@ -211,18 +198,18 @@ export function HowItWorks() {
                         justify-center
                         rounded-full
                         border
-                        border-[#7D5BA6]/30
-                        bg-[#7D5BA6]/10
+                        border-[#6136BF]/40
+                        bg-[#6136BF]/15
                         text-sm
                         font-semibold
-                        text-[#A36AF6]
-                        shadow-[0_0_20px_rgba(139,92,246,0.12)]
+                        text-[#9F84D9]
+                        shadow-[0_0_20px_rgba(97,54,191,0.2)]
                       "
                     >
                       {step.number}
                     </span>
 
-                    <div className="h-2 w-2 rounded-full bg-[#A36AF6] shadow-[0_0_12px_rgba(163,106,246,0.8)]" />
+                    <div className="h-2 w-2 rounded-full bg-[#724EBF] shadow-[0_0_12px_rgba(114,78,191,0.9)]" />
                   </div>
 
                   {/* Content */}
@@ -236,7 +223,7 @@ export function HowItWorks() {
                         text-white
                       "
                     >
-                      {step.title}
+                      {t(step.titleKey)}
                     </h3>
 
                     <p
@@ -247,7 +234,7 @@ export function HowItWorks() {
                         text-white/45
                       "
                     >
-                      {step.description}
+                      {t(step.descKey)}
                     </p>
 
                   </div>

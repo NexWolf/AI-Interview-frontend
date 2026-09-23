@@ -11,27 +11,10 @@ const getSocketUrl = () => {
 
 let sharedSocket: Socket | null = null;
 
-const getSocket = (): Socket => {
-  if (sharedSocket) return sharedSocket;
-
-  sharedSocket = io(getSocketUrl(), {
-    autoConnect: false,
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    transports: ["websocket"],
-    auth: (cb: (auth: Record<string, string>) => void) => {
-      fetch("/api/auth/token")
-        .then((res) => res.json())
-        .then((data) => {
-          cb({ token: data?.accessToken || "" });
-        })
-        .catch(() => cb({ token: "" }));
-    },
-  });
-
-  sharedSocket.connect();
-  return sharedSocket;
+// Socket.io disabled until backend implements websocket server.
+// Returning null / no-op avoids spamming connection failure errors in the console.
+const getSocket = (): Socket | null => {
+  return null;
 };
 
 export type SocketEventPayload = Record<string, unknown> | string | unknown[] | number | boolean | null;
@@ -63,51 +46,25 @@ export interface SocketErrorPayload {
 }
 
 export function useInterviewSocket() {
-  const [connected, setConnected] = useState(false);
-
-  useEffect(() => {
-    const socket = getSocket();
-
-    const onConnect = () => setConnected(true);
-    const onDisconnect = () => setConnected(false);
-
-    if (socket.connected) setConnected(true);
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("connect_error", onDisconnect);
-
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("connect_error", onDisconnect);
-    };
-  }, []);
+  const [connected] = useState(false);
 
   const emitEvent = useCallback(
     (
-      event: string,
-      payload: Record<string, unknown>,
+      _event: string,
+      _payload: Record<string, unknown>,
       ack?: (response: { ok: boolean; message?: string; data?: unknown }) => void,
     ) => {
-      const socket = getSocket();
-      if (!socket.connected) {
-        ack?.({ ok: false, message: "Live server is not connected" });
-        return;
-      }
-      if (ack) socket.emit(event, payload, ack);
-      else socket.emit(event, payload);
+      ack?.({ ok: false, message: "Socket is disabled" });
     },
     [],
   );
 
   const onEvent = useCallback(
-    <T = SocketEventPayload>(event: string, handler: (payload: T) => void) => {
-      const socket = getSocket();
-      socket.on(event, handler as (...args: unknown[]) => void);
-      return () => socket.off(event, handler as (...args: unknown[]) => void);
+    <T = SocketEventPayload>(_event: string, _handler: (payload: T) => void) => {
+      return () => { };
     },
     [],
   );
 
-  return { connected, socket: getSocket(), emitEvent, onEvent };
+  return { connected, socket: null as unknown as Socket, emitEvent, onEvent };
 }

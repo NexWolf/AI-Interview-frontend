@@ -3,6 +3,7 @@ import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 import { API_URL } from "@/constants/routes";
 import { useTimerLeft } from "@/shared/hook/useTimerLeft";
 import { useState } from "react";
+import { toast } from "sonner";
 
 type props = {
   email: string;
@@ -14,11 +15,12 @@ export const ConfirmEmailPop = ({ email, closePopup }: props) => {
 
   const handleResendConfirm = async () => {
     try {
-      await AxiosAPI.post(`${API_URL}/api/v1/auth/resend-verification`);
-
+      const response = await AxiosAPI.post(`/api/v1/auth/resend-verification`, { email });
+      toast.success(response?.data?.message || "Verification email sent!");
       setButtonDisabled(true);
     } catch (error) {
       console.error(error);
+      toast.error("Failed to resend verification email");
     }
   };
 

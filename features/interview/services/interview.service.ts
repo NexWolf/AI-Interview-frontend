@@ -19,9 +19,16 @@ export const interviewService = {
   },
 
   getById: async (interviewId: string | number): Promise<InterviewRoom> => {
+    const cleanId = String(interviewId ?? "").trim();
+    if (!cleanId || cleanId === "undefined" || cleanId === "null") {
+      throw new Error("Valid interview ID is required");
+    }
     const response = await AxiosAPI.get<StandardApiResponse<InterviewRoomResponse>>(
-      `/api/interviews/${interviewId}`,
+      `/api/interviews/${cleanId}`,
     );
+    if (!response?.data?.data?.interview) {
+      throw new Error("Interview not found");
+    }
     return response.data.data.interview;
   },
 

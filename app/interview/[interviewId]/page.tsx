@@ -120,6 +120,9 @@ export default function InterviewSessionPage({ params }: PageProps) {
   // Live socket text (used only during report generation)
   const [reportLiveText, setReportLiveText] = useState<string>("");
 
+  // Error state for answer submission resilience
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+
   const transition = useCallback((next: Phase) => {
     phaseRef.current = next;
     setPhase(next);
@@ -145,11 +148,21 @@ export default function InterviewSessionPage({ params }: PageProps) {
   // don't wipe user's typed text or duplicate interim results.
   const draftBaseRef = useRef<string>("");
 
-  // Latest answer text (kept in sync with answerText state)
+  // Latest answer text (kept in sync with answerText state and cached in sessionStorage)
   const answerTextRef = useRef<string>("");
   const setAnswer = useCallback((text: string) => {
     answerTextRef.current = text;
     setAnswerText(text);
+    const q = currentQuestionRef.current;
+    if (q?.id && typeof window !== "undefined") {
+      try {
+        if (text.trim()) {
+          sessionStorage.setItem(`interview_draft_${q.id}`, text);
+        } else {
+          sessionStorage.removeItem(`interview_draft_${q.id}`);
+        }
+      } catch { }
+    }
   }, []);
 
   // Latest current question (kept in sync with currentQuestion state)
@@ -157,6 +170,9 @@ export default function InterviewSessionPage({ params }: PageProps) {
   useEffect(() => {
     currentQuestionRef.current = currentQuestion;
   }, [currentQuestion]);
+
+  // Lock to avoid double submission
+  const isSubmittingRef = useRef<boolean>(false);
 
   // Callback fired when Sara finishes reading a question out loud —
   // wired to auto-open the mic when the flow is live.
@@ -302,7 +318,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
   // Fired by the speech recognition engine when the user stops talking
   const handleRecognitionEnd = () => {
     setIsListening(false);
-    if (phaseRef.current !== "listening") return;
+    if (phaseRef.current !== "listening" || isSubmittingRef.current) return;
     const text = answerTextRef.current.trim();
     if (text) {
       transition("processing");
@@ -312,7 +328,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
       // No speech detected - keep the session alive and try again
       try {
         recognitionRef.current?.start();
-      } catch {}
+      } catch { }
     }
   };
   const handleRecognitionEndRef = useRef(handleRecognitionEnd);
@@ -357,7 +373,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     return () => {
       try {
         recognition.stop();
-      } catch {}
+      } catch { }
     };
   }, [setAnswer, RoomData?.interviewLanguage]);
 
@@ -406,12 +422,22 @@ export default function InterviewSessionPage({ params }: PageProps) {
   // Ask a question: speak it, then open the mic so the user can answer
   const onAskQuestion = useCallback(
     (q: QuestionItem, shouldSpeak: boolean, autoListen: boolean) => {
+      isSubmittingRef.current = false;
+      currentQuestionRef.current = q;
       setCurrentQuestion(q);
       setQuestionList((prev) =>
         prev.some((x) => x.id === q.id) ? prev : [...prev, q],
       );
-      setAnswer("");
-      draftBaseRef.current = "";
+      // Restore saved draft if user had previously typed/spoken something
+      let existingDraft = "";
+      if (typeof window !== "undefined" && q?.id) {
+        try {
+          existingDraft = sessionStorage.getItem(`interview_draft_${q.id}`) || "";
+        } catch { }
+      }
+      setAnswer(existingDraft);
+      draftBaseRef.current = existingDraft;
+      setSubmissionError(null);
       transition("speaking");
       if (shouldSpeak) {
         const audio = q.questionAudio || null;
@@ -430,10 +456,6 @@ export default function InterviewSessionPage({ params }: PageProps) {
     [setAnswer, transition, speakQuestion, startListening],
   );
 
-
-
-
-
   const onAskQuestionRef = useRef(onAskQuestion);
   onAskQuestionRef.current = onAskQuestion;
 
@@ -450,7 +472,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     }
 
     AxiosAPI.post(`/api/interviews/${interviewId}/questions/generate`, {
-      speakQuestion: true,
+      speakQuestion: false,
     })
       .then((res) => {
         onAskQuestionRef.current(toQuestionItem(res.data.data), true, true);
@@ -467,9 +489,21 @@ export default function InterviewSessionPage({ params }: PageProps) {
   // Save the user's answer (socket first, HTTP fallback), then move on
   const submitAnswerWithText = useCallback(
     (text: string) => {
+      if (isSubmittingRef.current) return;
       const q = currentQuestionRef.current;
-      if (!q) return;
+      if (!q || q.isAnswered) return;
+
+      isSubmittingRef.current = true;
+
       const proceed = () => {
+        isSubmittingRef.current = false;
+        setSubmissionError(null);
+        if (typeof window !== "undefined" && q?.id) {
+          try {
+            sessionStorage.removeItem(`interview_draft_${q.id}`);
+          } catch { }
+        }
+        setAnswer("");
         setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
         requestNextQuestionRef.current();
       };
@@ -479,8 +513,11 @@ export default function InterviewSessionPage({ params }: PageProps) {
       if (liveConnected) {
         emitEvent("answer:submit", payload, ({ ok, message }) => {
           if (!ok) {
+            isSubmittingRef.current = false;
             transition("idle");
-            toast.error(message || "Failed to save answer");
+            const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
+            setSubmissionError(errMsg);
+            toast.error(errMsg);
             return;
           }
           proceed();
@@ -494,15 +531,20 @@ export default function InterviewSessionPage({ params }: PageProps) {
       )
         .then(proceed)
         .catch((e: any) => {
+          isSubmittingRef.current = false;
           console.error("Save answer error:", e);
           transition("idle");
-          toast.error(e?.response?.data?.message || "Failed to save answer");
+          const errMsg =
+            e?.response?.data?.message ||
+            "تعذر إرسال الإجابة بسبب مشكلة في الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة.";
+          setSubmissionError(errMsg);
+          toast.error(errMsg);
         });
     },
-    [interviewId, liveConnected, emitEvent, transition],
+    [interviewId, liveConnected, emitEvent, transition, setAnswer],
   );
 
-  
+
   const submitAnswerRef = useRef(submitAnswerWithText);
   submitAnswerRef.current = submitAnswerWithText;
 
@@ -526,27 +568,31 @@ export default function InterviewSessionPage({ params }: PageProps) {
       return;
     }
 
+    setSubmissionError(null);
     try {
       recognitionRef.current?.stop();
-    } catch {}
+    } catch { }
 
     stopSpeaking();
     transition("processing");
     submitAnswerWithText(text);
   };
 
-
-
-
   // Skip question
   const handleSkipQuestion = () => {
+    setSubmissionError(null);
     try {
       recognitionRef.current?.stop();
-    } catch {}
+    } catch { }
     stopSpeaking();
     toast.info("Question skipped");
     const q = currentQuestionRef.current;
     if (q) {
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem(`interview_draft_${q.id}`);
+        } catch { }
+      }
       AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/skip`).catch((e) => {
         console.warn("Skip persistence failed:", e?.response?.data?.message || e?.message);
       });
@@ -619,11 +665,17 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
   const handleFinishInterview = useCallback(() => {
     if (phaseRef.current === "closing") return;
+
+    const confirmed = typeof window !== "undefined"
+      ? window.confirm("Are you sure you want to end the interview now?")
+      : true;
+    if (!confirmed) return;
+
     transition("closing");
     stopSpeaking();
     try {
       recognitionRef.current?.stop();
-    } catch {}
+    } catch { }
     toast.loading("Generating your comprehensive AI interview report...");
     console.log("[FINISH] liveConnected:", liveConnected);
 
@@ -639,10 +691,15 @@ export default function InterviewSessionPage({ params }: PageProps) {
         toast.success("Interview completed! Loading your evaluation report...");
         router.push(`/dashboard/interviewDetails?id=${interviewId}`);
       })
-      .catch((e: any) => {
-        console.error("Finish interview error:", e);
+      .catch(async (e: any) => {
+        console.warn("Finish interview summary error, executing direct completion fallback:", e);
+        try {
+          await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`);
+        } catch (completeErr) {
+          console.error("Direct completion error:", completeErr);
+        }
         toast.dismiss();
-        toast.error(e?.response?.data?.message || "Error completing interview");
+        toast.info("Interview session closed.");
         router.push(`/dashboard/interviewDetails?id=${interviewId}`);
       });
   }, [liveConnected, emitEvent, interviewId, transition, router]);
@@ -700,6 +757,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
   const { formattedTime } = useInterviewTimer({
     endTimeIso: RoomData?.endTime,
+    durationMinutes: RoomData?.duration,
     onExpire: handleFinishInterview,
   });
 
@@ -836,9 +894,8 @@ export default function InterviewSessionPage({ params }: PageProps) {
               {/* Dynamic Sound Orb */}
               <div className="relative flex items-center justify-center my-auto">
                 <div
-                  className={`w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-500 via-cyan-400 to-emerald-400 blur-md opacity-60 transition-all duration-300 ${
-                    isAISpeaking ? "animate-pulse scale-110 opacity-90" : "scale-95 opacity-30"
-                  }`}
+                  className={`w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-500 via-cyan-400 to-emerald-400 blur-md opacity-60 transition-all duration-300 ${isAISpeaking ? "animate-pulse scale-110 opacity-90" : "scale-95 opacity-30"
+                    }`}
                 />
                 <div className="w-20 h-20 rounded-full bg-slate-950 border-2 border-cyan-400 absolute flex items-center justify-center shadow-lg">
                   <Cpu className={`w-8 h-8 text-cyan-400 transition-transform duration-300 ${isAISpeaking ? "scale-110" : ""}`} />
@@ -944,11 +1001,10 @@ export default function InterviewSessionPage({ params }: PageProps) {
               <button
                 type="button"
                 onClick={toggleListening}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition cursor-pointer ${
-                  isListening
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition cursor-pointer ${isListening
                     ? "bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20"
                     : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
-                }`}
+                  }`}
               >
                 {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
                 <span>{isListening ? "Stop & submit" : "Start speaking"}</span>
@@ -963,6 +1019,25 @@ export default function InterviewSessionPage({ params }: PageProps) {
               rows={5}
               className="w-full p-4 rounded-xl border border-slate-800 bg-slate-950/70 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none placeholder:text-slate-600"
             />
+
+            {/* Submission Error Banner & Retry Button */}
+            {submissionError && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>تعذر إرسال الإجابة بسبب انقطاع الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة: ({submissionError})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSubmitAnswer}
+                  disabled={isSubmittingAnswer}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition cursor-pointer flex items-center gap-1.5 self-end sm:self-auto shrink-0"
+                >
+                  {isSubmittingAnswer ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>إعادة المحاولة (Retry)</span>
+                </button>
+              </div>
+            )}
 
             {/* Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -1036,13 +1111,12 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 questionList.map((q, idx) => (
                   <div
                     key={q.id || idx}
-                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 transition ${
-                      currentQuestion?.id === q.id
+                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 transition ${currentQuestion?.id === q.id
                         ? "bg-indigo-600/10 border-indigo-500/40 text-indigo-200"
                         : q.isAnswered
-                        ? "bg-slate-800/50 border-slate-800 text-slate-400"
-                        : "bg-slate-900 border-slate-800 text-slate-300"
-                    }`}
+                          ? "bg-slate-800/50 border-slate-800 text-slate-400"
+                          : "bg-slate-900 border-slate-800 text-slate-300"
+                      }`}
                   >
                     <span className="mt-0.5">
                       {q.isAnswered ? (

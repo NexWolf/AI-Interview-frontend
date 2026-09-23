@@ -6,36 +6,41 @@
 
 @layer base {
   :root {
-    /* ================= 1. خلفية الصفحة العامة (Light Sky Gradient) ================= */
-    --background: 210 60% 96%;
-    --background-gradient: linear-gradient(180deg, hsl(205 75% 90%) 0%, hsl(210 50% 95%) 45%, hsl(0 0% 100%) 100%);
-    --foreground: 222 47% 11%;
+    /* ================= 1. خلفية الصفحة العامة (Light Brand Neutral: #F2F2F2) ================= */
+    --background: 0 0% 95%;
+    /* #F2F2F2 */
+    --background-gradient: linear-gradient(180deg, #F2F2F2 0%, #FFFFFF 100%);
+    --foreground: 259 45% 12%;
 
     /* النصوص والعناوين */
-    --heading: 222 47% 11%;
-    --subheading: 215 16% 47%;
+    --heading: 259 50% 12%;
+    --subheading: 259 20% 38%;
 
     /* ================= 2. الكارد الزجاجي (Frosted Glass Card) ================= */
     --card: 0 0% 100%;
-    --card-gradient: linear-gradient(160deg, hsl(0 0% 100% / 0.85) 0%, hsl(210 50% 98% / 0.75) 100%);
-    --card-opacity: 0.82;
-    --card-border: 214 32% 91%;
-    --card-foreground: 222 47% 11%;
+    --card-gradient: linear-gradient(160deg, hsl(0 0% 100% / 0.9) 0%, hsl(259 30% 98% / 0.8) 100%);
+    --card-opacity: 0.9;
+    --card-border: 259 40% 90%;
+    --card-foreground: 259 45% 12%;
 
     /* الحدود العامة (Border Token) */
-    --border: 214 32% 90%;
+    --border: 259 35% 88%;
 
     /* ================= 3. حقول الإدخال (Inputs) ================= */
-    --input: 210 30% 98%;
-    --input-border: 214 32% 88%;
-    --input-foreground: 222 47% 11%;
-    --input-focus-border: 220 85% 55%;
-    --input-focus-ring: 220 85% 65%;
+    --input: 0 0% 100%;
+    --input-border: 259 25% 86%;
+    --input-foreground: 259 45% 12%;
+    --input-focus-border: 259 56% 48%;
+    /* #6136BF */
+    --input-focus-ring: 259 70% 83%;
+    /* #C7B3F2 */
 
-    /* ================= 4. الأزرار الأساسية والثانوية ================= */
-    --primary: 222 47% 11%;
+    /* ================= 4. الأزرار الأساسية والثانوية (Priority 1: #6136BF, Priority 2: #724EBF) ================= */
+    --primary: 259 56% 48%;
+    /* #6136BF */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 222 47% 18%;
+    --primary-hover: 259 48% 53%;
+    /* #724EBF */
 
     --button: var(--primary);
     --button-foreground: var(--primary-foreground);
@@ -43,21 +48,22 @@
     --button-hover: var(--primary-hover);
     --button-border-hover: var(--primary-hover);
 
-    --secondary: 210 40% 92%;
-    --secondary-foreground: 222 47% 15%;
+    --secondary: 259 45% 94%;
+    --secondary-foreground: 259 56% 38%;
 
-    --button-secondary: 210 40% 92%;
-    --button-secondary-foreground: 222 47% 15%;
-    --button-secondary-border: 210 30% 86%;
-    --button-secondary-hover: 210 35% 88%;
-    --button-secondary-border-hover: 210 30% 80%;
+    --button-secondary: 259 45% 94%;
+    --button-secondary-foreground: 259 56% 38%;
+    --button-secondary-border: 259 35% 86%;
+    --button-secondary-hover: 259 45% 90%;
+    --button-secondary-border-hover: 259 35% 80%;
 
-    /* ================= 5. عناصر ثانوية وتنبيهات ================= */
-    --muted: 210 30% 94%;
-    --muted-foreground: 215 16% 47%;
+    /* ================= 5. عناصر ثانوية وتنبيهات (Priority 3: #9F84D9, Priority 4: #C7B3F2) ================= */
+    --muted: 259 20% 94%;
+    --muted-foreground: 259 18% 46%;
 
-    --accent: 210 50% 92%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 259 52% 69%;
+    /* #9F84D9 */
+    --accent-foreground: 259 56% 25%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
@@ -66,36 +72,40 @@
   }
 
   .dark {
-    /* ================= 1. خلفية الصفحة العامة (Dark Cosmic Violet Gradient) ================= */
-    --background: 268 35% 6%;
-    --background-gradient: linear-gradient(180deg, hsl(268 40% 9%) 0%, hsl(268 32% 6%) 50%, hsl(268 35% 4%) 100%);
-    --foreground: 240 5% 92%;
+    /* ================= 1. خلفية الصفحة العامة (Dark Cosmic Violet) ================= */
+    --background: 265 48% 6%;
+    --background-gradient: linear-gradient(180deg, hsl(265 48% 7%) 0%, hsl(265 45% 5%) 50%, hsl(265 48% 4%) 100%);
+    --foreground: 0 0% 96%;
 
     /* النصوص والعناوين */
-    --heading: 268 20% 96%;
-    --subheading: 268 12% 65%;
+    --heading: 0 0% 98%;
+    --subheading: 259 25% 72%;
 
-    /* ================= 2. الكارد الزجاجي (Dark Glassmorphic Card) ================= */
-    --card: 268 28% 9%;
-    --card-gradient: linear-gradient(160deg, hsl(268 28% 12% / 0.85) 0%, hsl(268 26% 8% / 0.75) 100%);
-    --card-opacity: 0.75;
-    --card-border: 268 20% 18%;
-    --card-foreground: 0 0% 95%;
+    /* ================= 2. الكارد الزجاجي ================= */
+    --card: 265 32% 9%;
+    --card-gradient: linear-gradient(160deg, hsl(265 32% 12% / 0.85) 0%, hsl(265 30% 8% / 0.75) 100%);
+    --card-opacity: 0.8;
+    --card-border: 259 28% 20%;
+    --card-foreground: 0 0% 96%;
 
     /* الحدود العامة (Border Token) */
-    --border: 268 20% 18%;
+    --border: 259 28% 19%;
 
     /* ================= 3. حقول الإدخال (Inputs) ================= */
-    --input: 268 22% 12%;
-    --input-border: 268 20% 20%;
-    --input-foreground: 240 5% 92%;
-    --input-focus-border: 268 85% 65%;
-    --input-focus-ring: 268 75% 45%;
+    --input: 265 26% 12%;
+    --input-border: 259 24% 22%;
+    --input-foreground: 0 0% 96%;
+    --input-focus-border: 259 56% 48%;
+    /* #6136BF */
+    --input-focus-ring: 259 48% 53%;
+    /* #724EBF */
 
-    /* ================= 4. الأزرار الأساسية والثانوية ================= */
-    --primary: 268 85% 65%;
+    /* ================= 4. الأزرار الأساسية والثانوية (Priority 1: #6136BF, Priority 2: #724EBF) ================= */
+    --primary: 259 56% 48%;
+    /* #6136BF */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 268 85% 72%;
+    --primary-hover: 259 48% 53%;
+    /* #724EBF */
 
     --button: var(--primary);
     --button-foreground: var(--primary-foreground);
@@ -103,21 +113,22 @@
     --button-hover: var(--primary-hover);
     --button-border-hover: var(--primary-hover);
 
-    --secondary: 268 22% 15%;
-    --secondary-foreground: 268 20% 90%;
+    --secondary: 265 24% 15%;
+    --secondary-foreground: 259 52% 85%;
 
-    --button-secondary: 268 22% 15%;
-    --button-secondary-foreground: 0 0% 92%;
-    --button-secondary-border: 268 20% 22%;
-    --button-secondary-hover: 268 22% 19%;
-    --button-secondary-border-hover: 268 20% 28%;
+    --button-secondary: 265 24% 15%;
+    --button-secondary-foreground: 0 0% 95%;
+    --button-secondary-border: 259 22% 24%;
+    --button-secondary-hover: 265 24% 19%;
+    --button-secondary-border-hover: 259 22% 28%;
 
     /* ================= 5. عناصر ثانوية وتنبيهات ================= */
-    --muted: 268 22% 13%;
-    --muted-foreground: 268 12% 65%;
+    --muted: 265 22% 13%;
+    --muted-foreground: 259 15% 65%;
 
-    --accent: 268 60% 22%;
-    --accent-foreground: 268 85% 75%;
+    --accent: 259 52% 69%;
+    /* #9F84D9 */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
@@ -170,6 +181,13 @@
 
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  /* Brand Palette from User Reference Image */
+  --color-brand-1: #6136BF;
+  --color-brand-2: #724EBF;
+  --color-brand-3: #9F84D9;
+  --color-brand-4: #C7B3F2;
+  --color-brand-5: #F2F2F2;
 
   --radius: var(--radius);
 }

@@ -1,24 +1,34 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   AlertTriangle,
+  ArrowRight,
   Award,
   Brain,
+  Briefcase,
+  Check,
   CheckCircle2,
   ChevronLeft,
+  Clock,
+  Copy,
   FileText,
   Lightbulb,
+  Loader2,
   MessageSquare,
   Mic,
   Play,
   Plus,
+  Sparkles,
   Star,
   Target,
   TrendingUp,
   XCircle,
 } from "lucide-react";
+import { useGetAllInterviews } from "@/features/interview/hooks/ReactQueryHooks/useGetAllInterviews";
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-lg bg-muted/50", className)} />;
@@ -72,6 +82,14 @@ const formatDate = (iso?: string | null) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+const statusStyles: Record<string, string> = {
+  Running: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+  Completed: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30",
+  Paused: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+  Pending: "bg-slate-500/10 text-slate-300 border-slate-600/30",
+  Failed: "bg-red-500/10 text-red-400 border-red-500/30",
 };
 
 const scoreColor = (score: number) =>
@@ -164,17 +182,222 @@ function parseRecommendations(report: ReportApi | null): string[] {
   return [];
 }
 
-export default function InterviewDetails({ searchParams }: PageProps) {
-  const params = use(searchParams);
-  const interviewId = params?.id;
+function MyInterviewsList() {
+  const router = useRouter();
+  const { data: interviews, isLoading, isError, refetch } = useGetAllInterviews();
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-40" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-md mx-auto my-20 rounded-2xl border border-border bg-card/60 p-8 text-center">
+        <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto mb-3" />
+        <h2 className="text-lg font-bold">Failed to load interviews</h2>
+        <p className="text-sm text-muted-foreground mt-2">Could not retrieve your interview list.</p>
+        <div className="mt-6 flex gap-3 justify-center">
+          <button
+            onClick={() => refetch()}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/90 cursor-pointer"
+          >
+            Try Again
+          </button>
+          <Link href="/dashboard" className="border border-border px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50">
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const items = interviews || [];
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Interviews</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Review your previous AI technical interviews, view detailed performance evaluations, or resume ongoing sessions.
+          </p>
+        </div>
+        <Link
+          href="/interview/setup"
+          className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98]"
+        >
+          <Plus className="w-4 h-4" />
+          Start New Interview
+        </Link>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="rounded-2xl border border-border/70 bg-card/60 p-12 text-center space-y-4">
+          <Briefcase className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+          <h3 className="text-lg font-bold">No interviews yet</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            Take your first realistic AI mock interview to practice your skills and get immediate actionable feedback.
+          </p>
+          <Link
+            href="/interview/setup"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            Start Now <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {items.map((interview) => {
+            const inProgress = interview.status === "Running" || interview.status === "Paused";
+            return (
+              <div
+                key={interview.id}
+                className="group relative rounded-2xl border border-border/70 bg-card/70 hover:bg-card hover:border-primary/40 p-5 sm:p-6 transition-all duration-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5"
+              >
+                <div className="min-w-0 space-y-2">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span
+                      className={cn(
+                        "text-xs px-2.5 py-0.5 rounded-full border font-semibold",
+                        statusStyles[interview.status] || statusStyles.Pending,
+                      )}
+                    >
+                      {interview.status}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {interview.difficultyLevel}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      • {interview.interviewLanguage}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      • {interview.duration} mins
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      • {interview.totalQuestions} Questions
+                    </span>
+                  </div>
+
+                  <p className="text-base font-semibold tracking-tight text-foreground">
+                    {interview.skills?.map((s) => s.name).join(", ") || "General Technical Evaluation"}
+                  </p>
+
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    Created: {formatDate(interview.createdAt)}
+                  </p>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-3">
+                  {inProgress ? (
+                    <button
+                      onClick={() => router.push(`/interview/${interview.id}`)}
+                      className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer"
+                    >
+                      <Play className="w-4 h-4 fill-white" />
+                      Resume Interview
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/dashboard/interviewDetails?id=${interview.id}`)}
+                      className="inline-flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/20 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4" />
+                      View Report
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImprovementPlanCard({ plan }: { plan: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(plan);
+      setCopied(true);
+      toast.success("Improvement plan copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-card via-card to-amber-500/5 p-6 sm:p-7 space-y-4 shadow-sm relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 shadow-inner">
+            <Sparkles className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-bold text-base sm:text-lg tracking-tight text-foreground">
+                Personalized Improvement Plan
+              </h2>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
+                AI Roadmap
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Actionable recommendations & targeted challenges tailored from your interview answers
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card/80 hover:bg-muted text-xs font-semibold text-foreground transition-all cursor-pointer w-fit self-start sm:self-auto shrink-0 shadow-sm"
+          title="Copy plan to clipboard"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Copy Plan</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90 font-normal">
+        {plan}
+      </div>
+    </div>
+  );
+}
+
+function InterviewReportView({ interviewId }: { interviewId: string }) {
   const {
     data: interview,
     isLoading,
     isError,
     error,
     refetch,
-  } = useGetInterveiwRoom(interviewId ?? "");
+  } = useGetInterveiwRoom(interviewId);
 
   const report = interview?.report ?? null;
 
@@ -210,8 +433,8 @@ export default function InterviewDetails({ searchParams }: PageProps) {
           >
             Try Again
           </button>
-          <Link href="/dashboard" className="border border-border px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50">
-            Back to Dashboard
+          <Link href="/dashboard/interviewDetails" className="border border-border px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50">
+            Back to All Interviews
           </Link>
         </div>
       </div>
@@ -380,15 +603,7 @@ export default function InterviewDetails({ searchParams }: PageProps) {
 
           {/* Improvement plan */}
           {report.improvementPlan && (
-            <div className="rounded-2xl border border-border/70 bg-card/70 p-6 space-y-3">
-              <h2 className="font-bold text-sm flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-amber-400" />
-                Improvement Plan
-              </h2>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
-                {report.improvementPlan}
-              </p>
-            </div>
+            <ImprovementPlanCard plan={report.improvementPlan} />
           )}
 
           {/* Recommendations */}
@@ -433,7 +648,7 @@ export default function InterviewDetails({ searchParams }: PageProps) {
                         {scoreBar(toNumber(skill.evaluation.aiAssessmentScore))}
                         <p className="text-[11px] text-muted-foreground mt-1.5">
                           {skill.evaluation.aiAssessmentScore !== null &&
-                          skill.evaluation.aiAssessmentScore !== undefined
+                            skill.evaluation.aiAssessmentScore !== undefined
                             ? `${Math.round(toNumber(skill.evaluation.aiAssessmentScore))}%`
                             : "Not scored"}
                         </p>
@@ -521,4 +736,15 @@ export default function InterviewDetails({ searchParams }: PageProps) {
       )}
     </div>
   );
+}
+
+export default function InterviewDetails({ searchParams }: PageProps) {
+  const params = use(searchParams);
+  const interviewId = params?.id ? String(params.id).trim() : null;
+
+  if (!interviewId) {
+    return <MyInterviewsList />;
+  }
+
+  return <InterviewReportView interviewId={interviewId} />;
 }

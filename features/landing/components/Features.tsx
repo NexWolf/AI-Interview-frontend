@@ -4,29 +4,35 @@ import { BarChart3, Settings2, Database } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { BorderBeamPanel } from "@/components/ui/border-beam-panel";
+import { useLanguage, TranslationKey } from "@/shared/context/LanguageContext";
 
-const features = [
+interface FeatureItem {
+  icon: typeof BarChart3;
+  titleKey: TranslationKey;
+  descKey: TranslationKey;
+}
+
+const featureList: FeatureItem[] = [
   {
     icon: BarChart3,
-    title: "Insightful Analytics",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Integer tellus eu scelerisque nunc. Integer ac convallis tempus nibh ac tristique penatibus nulla a.",
+    titleKey: "features.f1Title",
+    descKey: "features.f1Desc",
   },
   {
     icon: Settings2,
-    title: "Automate Tasks",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Integer tellus eu scelerisque nunc. Integer ac convallis tempus nibh ac tristique penatibus nulla a.",
+    titleKey: "features.f2Title",
+    descKey: "features.f2Desc",
   },
   {
     icon: Database,
-    title: "Data-Backed Strategies",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Integer tellus eu scelerisque nunc. Integer ac convallis tempus nibh ac tristique penatibus nulla a.",
+    titleKey: "features.f3Title",
+    descKey: "features.f3Desc",
   },
 ];
 
 export function Features() {
+  const { t } = useLanguage();
+
   return (
     <section
       id="features"
@@ -50,7 +56,7 @@ export function Features() {
           absolute
           inset-0
           opacity-[0.08]
-          [background-image:linear-gradient(rgba(163,106,246,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(163,106,246,0.18)_1px,transparent_1px)]
+          [background-image:linear-gradient(rgba(159,132,217,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(159,132,217,0.18)_1px,transparent_1px)]
           [background-size:70px_70px]
           [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_80%)]
         "
@@ -68,7 +74,7 @@ export function Features() {
           -translate-x-1/2
           -translate-y-1/2
           rounded-full
-          bg-[#8B5CF6]/10
+          bg-[#6136BF]/15
           blur-[140px]
         "
       />
@@ -96,11 +102,11 @@ export function Features() {
               font-medium
               uppercase
               tracking-[0.25em]
-              text-[#A36AF6]
+              text-[#9F84D9]
               sm:text-sm
             "
           >
-            Features
+            {t("features.badge")}
           </span>
 
           <h2
@@ -114,7 +120,7 @@ export function Features() {
               lg:text-5xl
             "
           >
-            Everything You Need to Scale
+            {t("features.title")}
           </h2>
 
           <p
@@ -124,23 +130,22 @@ export function Features() {
               max-w-2xl
               text-sm
               leading-7
-              text-white/40
+              text-white/50
               sm:text-base
             "
           >
-            Powerful tools designed to help you make smarter decisions,
-            automate repetitive work, and turn your data into action.
+            {t("features.subtitle")}
           </p>
         </motion.div>
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {features.map((feature, index) => {
+          {featureList.map((feature, index) => {
             const Icon = feature.icon;
 
             return (
               <motion.div
-                key={feature.title}
+                key={feature.titleKey}
                 initial={{
                   opacity: 0,
                   y: 35,
@@ -160,7 +165,7 @@ export function Features() {
               >
                 <BorderBeamPanel
                   beams={2}
-                  colors={["#8B5CF6", "#FFFFFF"]}
+                  colors={["#6136BF", "#9F84D9"]}
                   thickness={1.5}
                   radius={18}
                   glow
@@ -185,19 +190,19 @@ export function Features() {
                         w-16
                         items-center
                         justify-center
-                        rounded-[6px]
+                        rounded-[8px]
                         border
-                        border-[#7D5BA6]/30
-                        bg-[#1D1724]
-                        shadow-[0_0_22px_rgba(139,92,246,0.12)]
+                        border-[#6136BF]/30
+                        bg-[#1A1424]
+                        shadow-[0_0_22px_rgba(97,54,191,0.2)]
                       "
                     >
                       <div
                         className="
                           absolute
                           inset-0
-                          rounded-[6px]
-                          bg-[#8B5CF6]/10
+                          rounded-[8px]
+                          bg-[#6136BF]/20
                           blur-md
                         "
                       />
@@ -208,8 +213,8 @@ export function Features() {
                           z-10
                           h-8
                           w-8
-                          text-[#A36AF6]
-                          drop-shadow-[0_0_8px_rgba(163,106,246,0.65)]
+                          text-[#9F84D9]
+                          drop-shadow-[0_0_8px_rgba(159,132,217,0.7)]
                         "
                         strokeWidth={1.8}
                       />
@@ -224,7 +229,7 @@ export function Features() {
                         text-white
                       "
                     >
-                      {feature.title}
+                      {t(feature.titleKey)}
                     </h3>
 
                     {/* Description */}
@@ -234,10 +239,10 @@ export function Features() {
                         max-w-md
                         text-sm
                         leading-6
-                        text-white/45
+                        text-white/50
                       "
                     >
-                      {feature.description}
+                      {t(feature.descKey)}
                     </p>
                   </div>
                 </BorderBeamPanel>
