@@ -1,8 +1,10 @@
 "use client";
 
 import { Input } from "@/shared/components/ui/Input";
+import { Select } from "@/shared/components/ui/Select";
 import { ArrayPath,  FieldValues, Path, PathValue, useFieldArray, useFormContext } from "react-hook-form";
 import { GraduationCap, Plus, Trash2, ArrowLeft, Calendar } from "lucide-react";
+import { DEGREE_OPTIONS, FIELD_OF_STUDY_OPTIONS } from "../constants/educationOptions";
 
 type PropsEducation<T extends FieldValues> = {
   onBack?: () => void;
@@ -57,17 +59,19 @@ const EducationStep = <T extends FieldValues>({ onBack , name}: PropsEducation<T
                   placeholder="Ex: Stanford University"
                   {...register(`${name}.${index}.institution` as Path<T>)}
                 />
-                <Input
+                <Select
                   label="Degree"
-                  placeholder="Ex: Bachelor's, Master's"
+                  placeholder="Select Degree"
+                  options={DEGREE_OPTIONS}
                   {...register(`${name}.${index}.degree` as Path<T>)}
                 />
               </div>
 
               {/* حقل التخصص */}
-              <Input
+              <Select
                 label="Field of Study"
-                placeholder="Ex: Computer Science & Software Engineering"
+                placeholder="Select Field of Study"
+                options={FIELD_OF_STUDY_OPTIONS}
                 {...register(`${name}.${index}.fieldOfStudy` as Path<T>)}
               />
 
@@ -135,7 +139,7 @@ const EducationStep = <T extends FieldValues>({ onBack , name}: PropsEducation<T
           onClick={() =>
             append({
               institution: "",
-              degree: null,
+              degree: "",
               fieldOfStudy: "",
               startDate: "",
               endDate: "",
