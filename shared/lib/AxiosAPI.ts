@@ -48,7 +48,7 @@ AxiosAPI.interceptors.response.use(
         }
 
         isRefreshing = true;
-            originalRequest._retry = true
+        originalRequest._retry = true
 
         try {
             const res = await fetch(`/api/auth/refresh`, {
