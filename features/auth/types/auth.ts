@@ -6,8 +6,8 @@ export interface SigninType {
 export interface SignupType {
   firstname: string;
   lastname: string;
-  username: string;
+  username?: string;
   email: string;
   password: string;
-  confirmPassword : string,
+  confirmPassword : string;
 }

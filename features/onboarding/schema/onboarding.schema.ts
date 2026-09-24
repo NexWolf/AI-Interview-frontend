@@ -25,7 +25,7 @@ export const bioApiSchema = z.object({
 export const educationApiSchema = z
   .object({
     institution: z.string().optional().or(z.literal("")),
-    degree: z.number().nullable().optional(),
+    degree: z.string().nullable().optional().or(z.literal("")),
     fieldOfStudy: z.string().optional().or(z.literal("")),
     startDate: z.string().optional().or(z.literal("")),
     endDate: z.string().optional().or(z.literal("")),

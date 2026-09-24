@@ -33,7 +33,6 @@ import { ProfileApi } from "../types/profile.types";
 
 type PropsPropfile = {
   onSave: (data: ProfileHeaderData) => void;
-  onStart?: () => void;
   editable?: boolean;
   data: ProfileApi;
   onEditImage?: (data: string) => void;
@@ -42,7 +41,6 @@ type PropsPropfile = {
 export const ProfileHeader = ({
   onSave,
   onEditImage,
-  onStart,
   data,
   editable,
 }: PropsPropfile) => {
@@ -55,6 +53,61 @@ export const ProfileHeader = ({
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // Profile Background Cover
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userKey = data?.userName ? `profile_cover_${data.userName}` : "profile_cover_me";
+      const savedCover = localStorage.getItem(userKey);
+      if (savedCover) {
+        setCoverImage(savedCover);
+      } else if ((data as any)?.coverUrl) {
+        setCoverImage((data as any).coverUrl);
+      }
+    }
+  }, [data?.userName, (data as any)?.coverUrl]);
+
+  const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file for cover background");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Cover image size must not exceed 10MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setCoverImage(result);
+      if (typeof window !== "undefined") {
+        const userKey = data?.userName ? `profile_cover_${data.userName}` : "profile_cover_me";
+        try {
+          localStorage.setItem(userKey, result);
+        } catch {}
+      }
+      toast.success("Cover background updated successfully!");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCover = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCoverImage(null);
+    if (typeof window !== "undefined") {
+      const userKey = data?.userName ? `profile_cover_${data.userName}` : "profile_cover_me";
+      localStorage.removeItem(userKey);
+    }
+    toast.info("Cover background removed");
+  };
 
   const parseSocialLinks = (links: string[] | null): { value: string }[] => {
     if (!links || !Array.isArray(links)) return [];
@@ -272,9 +325,56 @@ export const ProfileHeader = ({
       )}
 
       {/* Cover Banner */}
-      <div className="relative h-36 sm:h-48 md:h-52 w-full overflow-hidden bg-gradient-to-r from-primary/25 via-primary/10 to-accent/30 dark:from-primary/20 dark:via-primary/5 dark:to-card">
-        <div className="absolute -top-12 -left-12 h-44 w-44 rounded-full bg-primary/20 blur-2xl" />
-        <div className="absolute -bottom-8 right-10 h-36 w-36 rounded-full bg-primary/15 blur-2xl" />
+      <div className="relative h-36 sm:h-48 md:h-56 w-full overflow-hidden bg-gradient-to-r from-primary/25 via-primary/10 to-accent/30 dark:from-primary/20 dark:via-primary/5 dark:to-card group">
+        {coverImage ? (
+          <Image
+            src={coverImage}
+            alt="Profile Cover"
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover w-full h-full"
+          />
+        ) : (
+          <>
+            <div className="absolute -top-12 -left-12 h-44 w-44 rounded-full bg-primary/20 blur-2xl" />
+            <div className="absolute -bottom-8 right-10 h-36 w-36 rounded-full bg-primary/15 blur-2xl" />
+          </>
+        )}
+
+        {/* Change Cover Controls */}
+        {editable && (
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+            {coverImage && (
+              <button
+                type="button"
+                onClick={handleRemoveCover}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white/90 hover:text-white text-xs font-medium backdrop-blur-md border border-white/20 transition-all shadow-md active:scale-95 cursor-pointer"
+                title="Remove cover"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Remove</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-medium backdrop-blur-md border border-white/20 transition-all shadow-md active:scale-95 cursor-pointer"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>{coverImage ? "Change Cover" : "Add Cover Photo"}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Hidden Cover file input */}
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/jpg,image/webp"
+          onChange={handleCoverFileSelect}
+          className="hidden"
+        />
       </div>
 
       <div className="p-6 sm:p-8 pt-0 relative z-10">
@@ -332,17 +432,6 @@ export const ProfileHeader = ({
 
           {/* Action Buttons Row */}
           <div className="flex items-center gap-3 self-end sm:self-auto">
-            {editable && (
-              <button
-                onClick={() => onStart?.()}
-                type="button"
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg dark:shadow-none transition-all duration-200 active:scale-[0.98] cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4 text-primary-foreground" />
-                <span>Start Interview</span>
-              </button>
-            )}
-
             {editable && <ActionIcons onEdit={() => setOpenForm(true)} />}
           </div>
         </div>

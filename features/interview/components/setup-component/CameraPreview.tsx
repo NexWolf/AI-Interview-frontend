@@ -1,26 +1,68 @@
 "use client";
 
 import { useMediaStream } from "@/shared/components/provider/MediaStermProvider";
-import { Check, Video, VideoOff } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  Check,
+  Video,
+  VideoOff,
+  ShieldCheck,
+  AlertTriangle,
+  Users,
+  EyeOff,
+} from "lucide-react";
+import { useEffect, useRef } from "react";
+import {
+  useCameraProctoring,
+  CameraViolationEvent,
+} from "@/features/interview/hooks/useCameraProctoring";
 
 type CameraProps = {
   onReady?: (value: boolean) => void;
   isRoomInterview?: boolean;
+  onCameraViolation?: (violation: CameraViolationEvent) => void;
 };
 
-const CameraPreview = ({ onReady, isRoomInterview = false }: CameraProps) => {
+const CameraPreview = ({
+  onReady,
+  isRoomInterview = false,
+  onCameraViolation,
+}: CameraProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { stream, videoStatus } = useMediaStream();
+  const { stream, videoStatus, ensureStreamActive } = useMediaStream();
 
+  // Auto-acquire stream if idle
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    if (videoStatus === "idle") {
+      ensureStreamActive().catch((err) => {
+        console.warn("Failed to activate camera stream:", err);
+      });
     }
-  }, [stream]);
+  }, [videoStatus, ensureStreamActive]);
 
-  const cameraReady = videoStatus === "ready";
+  const hasLiveVideoTrack = Boolean(
+    stream && stream.getVideoTracks().some((t) => t.readyState === "live" && t.enabled)
+  );
+  const cameraReady = (videoStatus === "ready" || hasLiveVideoTrack) && videoStatus !== "error";
   const cameraError = videoStatus === "error";
+
+  // Bind stream to video element
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !stream) return;
+
+    if (videoEl.srcObject !== stream) {
+      videoEl.srcObject = stream;
+    }
+
+    const playPromise = videoEl.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        if (err.name !== "AbortError") {
+          console.warn("Camera video play caught:", err);
+        }
+      });
+    }
+  }, [stream, cameraReady]);
 
   useEffect(() => {
     if (onReady) {
@@ -28,12 +70,72 @@ const CameraPreview = ({ onReady, isRoomInterview = false }: CameraProps) => {
     }
   }, [cameraReady, onReady]);
 
+  // Real-time camera proctoring
+  const {
+    faceDetected,
+    multipleFaces,
+    isLookingAway,
+    statusMessage,
+  } = useCameraProctoring({
+    videoRef,
+    isEnabled: isRoomInterview && cameraReady,
+    onViolation: (v) => {
+      onCameraViolation?.(v);
+    },
+  });
+
   if (isRoomInterview) {
+    const hasVisualViolation = !faceDetected || multipleFaces || isLookingAway;
+
     return (
-      <div className="relative w-full h-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col items-center justify-center shadow-xl">
-        <span className="absolute top-3 left-3 z-10 text-xs text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2.5 py-1 rounded-full">
+      <div
+        className={`relative w-full h-full bg-slate-900 border rounded-2xl overflow-hidden flex flex-col items-center justify-center shadow-xl transition-all duration-300 ${
+          hasVisualViolation
+            ? !faceDetected || multipleFaces
+              ? "border-red-500/80 ring-2 ring-red-500/20"
+              : "border-amber-500/80 ring-2 ring-amber-500/20"
+            : "border-slate-800"
+        }`}
+      >
+        {/* Candidate Identifier Badge */}
+        <span className="absolute top-3 left-3 z-10 text-xs text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2.5 py-1 rounded-full font-medium shadow-sm">
           Candidate (You)
         </span>
+
+        {/* Real-time AI Proctoring Status Badge */}
+        {cameraReady && (
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full backdrop-blur-md border shadow-md font-medium transition-all duration-200">
+            {!faceDetected ? (
+              <span className="flex items-center gap-1 text-red-400 bg-red-950/80 border-red-800/70">
+                <AlertTriangle className="w-3.5 h-3.5 animate-pulse" />
+                <span>Face Missing</span>
+              </span>
+            ) : multipleFaces ? (
+              <span className="flex items-center gap-1 text-red-400 bg-red-950/80 border-red-800/70">
+                <Users className="w-3.5 h-3.5 animate-pulse" />
+                <span>Multiple Faces</span>
+              </span>
+            ) : isLookingAway ? (
+              <span className="flex items-center gap-1 text-amber-400 bg-amber-950/80 border-amber-800/70">
+                <EyeOff className="w-3.5 h-3.5 animate-pulse" />
+                <span>Look at Screen</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-emerald-400 bg-emerald-950/80 border-emerald-800/60">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Verified</span>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Real-time Warning Banner (if attention drifted) */}
+        {cameraReady && hasVisualViolation && (
+          <div className="absolute bottom-3 inset-x-3 z-10 py-1.5 px-3 rounded-xl bg-black/80 backdrop-blur-md border border-amber-500/40 text-center animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <p className="text-xs font-medium text-amber-300">{statusMessage}</p>
+          </div>
+        )}
+
         <video
           ref={videoRef}
           autoPlay

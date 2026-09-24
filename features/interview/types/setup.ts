@@ -11,6 +11,8 @@ export type SkillsType = {
   difficultyLevel: DifficultyLevel;
 };
 
+export type VoiceName = "Kore" | "Aoede" | "Charon" | "Puck" | "Fenrir";
+
 export interface setupInterview {
   interviewLanguage: InterviewLanguage;
   mode: ModeType;
@@ -18,6 +20,7 @@ export interface setupInterview {
   skillsIds: string[];
   difficultyLevel: InterviewLevel;
   duration: number;
+  aiVoice: VoiceName;
 }
 
 /**********************************/

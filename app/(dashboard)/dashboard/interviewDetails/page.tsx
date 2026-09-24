@@ -4,6 +4,8 @@ import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   AlertTriangle,
   ArrowRight,
@@ -343,8 +345,8 @@ function ImprovementPlanCard({ plan }: { plan: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-card via-card to-amber-500/5 p-6 sm:p-7 space-y-4 shadow-sm relative overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+    <div className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-card via-card to-amber-500/5 p-6 sm:p-7 space-y-5 shadow-sm relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-amber-500/15">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 shadow-inner">
             <Sparkles className="w-5 h-5 text-amber-400" />
@@ -383,8 +385,127 @@ function ImprovementPlanCard({ plan }: { plan: string }) {
         </button>
       </div>
 
-      <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90 font-normal">
-        {plan}
+      <div className="text-sm leading-relaxed text-foreground/90 space-y-3">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ children }) => (
+              <div className="pt-3 pb-1 border-b border-amber-500/20 first:pt-0">
+                <h3 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2.5">
+                  <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-amber-400 to-amber-600 shrink-0" />
+                  {children}
+                </h3>
+              </div>
+            ),
+            h2: ({ children }) => (
+              <div className="pt-3 pb-1 first:pt-0">
+                <h4 className="text-sm sm:text-base font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                  <span className="w-1.5 h-3.5 rounded-full bg-amber-500 shrink-0" />
+                  {children}
+                </h4>
+              </div>
+            ),
+            h3: ({ children }) => (
+              <h5 className="text-sm font-semibold text-foreground mt-3 mb-1 flex items-center gap-2">
+                <span className="w-1 h-2.5 rounded-full bg-amber-500/70 shrink-0" />
+                {children}
+              </h5>
+            ),
+            h4: ({ children }) => (
+              <h6 className="text-xs sm:text-sm font-semibold text-foreground/90 mt-2 mb-1">
+                {children}
+              </h6>
+            ),
+            p: ({ children }) => (
+              <p className="text-sm leading-relaxed text-foreground/90 my-2">
+                {children}
+              </p>
+            ),
+            ul: ({ children }) => (
+              <ul className="my-2.5 space-y-2 pl-4 list-disc marker:text-amber-500 marker:text-sm text-sm leading-relaxed text-foreground/90">
+                {children}
+              </ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="my-2.5 space-y-2 pl-4 list-decimal marker:text-amber-500 dark:marker:text-amber-400 marker:font-bold text-sm leading-relaxed text-foreground/90">
+                {children}
+              </ol>
+            ),
+            li: ({ children }) => (
+              <li className="pl-1 leading-relaxed">
+                {children}
+              </li>
+            ),
+            strong: ({ children }) => (
+              <strong className="font-semibold text-foreground">
+                {children}
+              </strong>
+            ),
+            blockquote: ({ children }) => (
+              <blockquote className="my-3 rounded-xl border-l-4 border-amber-500 bg-amber-500/10 dark:bg-amber-500/5 px-4 py-3 text-sm italic text-foreground/90">
+                {children}
+              </blockquote>
+            ),
+            pre: ({ children }) => (
+              <pre className="my-3 rounded-xl bg-muted/80 p-3.5 text-xs font-mono overflow-x-auto border border-border/70 text-foreground [&_code]:bg-transparent [&_code]:p-0 [&_code]:border-none [&_code]:text-foreground">
+                {children}
+              </pre>
+            ),
+            code: ({ children, className, ...props }) => (
+              <code
+                className="px-1.5 py-0.5 text-[12px] font-mono rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium"
+                {...props}
+              >
+                {children}
+              </code>
+            ),
+            table: ({ children }) => (
+              <div className="overflow-x-auto my-3 rounded-xl border border-border/70 bg-card/50">
+                <table className="w-full text-left text-xs border-collapse">
+                  {children}
+                </table>
+              </div>
+            ),
+            thead: ({ children }) => (
+              <thead className="bg-muted/60 border-b border-border/70 text-foreground font-semibold">
+                {children}
+              </thead>
+            ),
+            tbody: ({ children }) => (
+              <tbody className="divide-y divide-border/40">
+                {children}
+              </tbody>
+            ),
+            tr: ({ children }) => (
+              <tr className="hover:bg-muted/20 transition-colors">
+                {children}
+              </tr>
+            ),
+            th: ({ children }) => (
+              <th className="p-2.5 font-semibold text-foreground">
+                {children}
+              </th>
+            ),
+            td: ({ children }) => (
+              <td className="p-2.5 text-foreground/90">
+                {children}
+              </td>
+            ),
+            a: ({ href, children }) => (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-600 dark:text-amber-400 underline underline-offset-4 hover:text-amber-500 font-medium transition-colors"
+              >
+                {children}
+              </a>
+            ),
+            hr: () => <hr className="my-4 border-amber-500/20" />,
+          }}
+        >
+          {plan}
+        </ReactMarkdown>
       </div>
     </div>
   );
@@ -586,18 +707,48 @@ function InterviewReportView({ interviewId }: { interviewId: string }) {
                 <CheckCircle2 className="w-4 h-4" />
                 Strengths
               </h2>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                {report.strengths || "No strengths recorded."}
-              </p>
+              <div className="text-sm leading-relaxed text-foreground/90">
+                {report.strengths ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({ children }) => <p className="my-1.5">{children}</p>,
+                      ul: ({ children }) => <ul className="my-1.5 space-y-1.5 pl-4 list-disc marker:text-emerald-500">{children}</ul>,
+                      ol: ({ children }) => <ol className="my-1.5 space-y-1.5 pl-4 list-decimal marker:text-emerald-500">{children}</ol>,
+                      li: ({ children }) => <li className="pl-1">{children}</li>,
+                      strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                    }}
+                  >
+                    {report.strengths}
+                  </ReactMarkdown>
+                ) : (
+                  <p className="text-muted-foreground">No strengths recorded.</p>
+                )}
+              </div>
             </div>
             <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6 space-y-3">
               <h2 className="font-bold text-sm text-rose-400 flex items-center gap-2">
                 <XCircle className="w-4 h-4" />
                 Areas for Improvement
               </h2>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                {report.weaknesses || "No areas recorded."}
-              </p>
+              <div className="text-sm leading-relaxed text-foreground/90">
+                {report.weaknesses ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({ children }) => <p className="my-1.5">{children}</p>,
+                      ul: ({ children }) => <ul className="my-1.5 space-y-1.5 pl-4 list-disc marker:text-rose-400">{children}</ul>,
+                      ol: ({ children }) => <ol className="my-1.5 space-y-1.5 pl-4 list-decimal marker:text-rose-400">{children}</ol>,
+                      li: ({ children }) => <li className="pl-1">{children}</li>,
+                      strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                    }}
+                  >
+                    {report.weaknesses}
+                  </ReactMarkdown>
+                ) : (
+                  <p className="text-muted-foreground">No areas recorded.</p>
+                )}
+              </div>
             </div>
           </div>
 

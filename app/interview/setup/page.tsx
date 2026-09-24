@@ -16,24 +16,24 @@ export const dynamic = "force-dynamic";
 const page = async () => {
   const queryClient = new QueryClient();
 
-  await queryClient.prefetchQuery({
-    queryKey: USER_INFO_QUERY_KEY,
-    queryFn: userService.getMe,
-    retry: defaultAuthRetry,
-  });
-
-  await queryClient.prefetchQuery({
-    queryKey : USER_SKILLS_QUERY_KEY,
-    queryFn :userService.getUserSkills,
-    retry : defaultAuthRetry,
-  })
-
-  await queryClient.prefetchQuery({
-    queryKey : skillsKey.All,
-    queryFn : skillsService.getAll,
-    staleTime : 5 * 60 * 1000,
-    retry : defaultAuthRetry,
-  })
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: USER_INFO_QUERY_KEY,
+      queryFn: userService.getMe,
+      retry: defaultAuthRetry,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: USER_SKILLS_QUERY_KEY,
+      queryFn: userService.getUserSkills,
+      retry: defaultAuthRetry,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: skillsKey.All,
+      queryFn: skillsService.getAll,
+      staleTime: 5 * 60 * 1000,
+      retry: defaultAuthRetry,
+    }),
+  ]);
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
