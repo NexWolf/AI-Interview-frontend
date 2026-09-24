@@ -6,7 +6,7 @@ import {
   UseFormReturn,
 } from "react-hook-form";
 import { Button } from "../ui/button";
-import LoadingIcon from "@/component/shared/LoadingIcon";
+import LoadingIcon from "../ui/LoadingIcon";
 
 type FormProps<T extends FieldValues> = {
   children: React.ReactNode;

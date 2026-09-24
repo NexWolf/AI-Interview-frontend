@@ -1,103 +1,136 @@
-/* THIS HOOK USE TO GET MICROPHONEAND MEDIASTREAM AND RECORD THE VOICE*/
+/* THIS HOOK USE TO GET MICROPHONE AND MEDIASTREAM AND RECORD VOICE SAFELY */
+"use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
-/* HERE WE STORE THE CHUNKS IN ARRAY => NOTE : VOICE LIKE A ALOT OF CHUNKS WE MUST STORED IN ARRAY  */
-    const audioChunks: Blob[] = []
-    /* THE TIME OF SILENCE 2 SECOUNDS */
-    const  SILENCE_DURATION = 2000;
+const SILENCE_DURATION = 2000;
 
 export function useAudioRecorder() {
-    /* STREAM REF USED TO CONNECTED IN MICROPHONE */
-    const streamRef = useRef<MediaStream | null>(null);
-    /* RECORDER REF USED TO RECORD THE AUDIO */
-    const recordRef = useRef<MediaRecorder | null>(null);
-    /* SAVE THE THERSOLD ITS A RATE OF AUDIO WHEN SILENT =< 10 AND WHEN TAKE >= 11 */
-    const silenceStartRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recordRef = useRef<MediaRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const silenceStartRef = useRef<number | null>(null);
 
+  const [isListening, setIsListening] = useState<boolean>(false);
 
+  const cleanupAudio = useCallback(() => {
+    // 1. Cancel animation frame
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
 
-    const [isListening, setIsListening] = useState<boolean>(false);
-    
+    // 2. Stop and close AudioContext
+    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
 
-const stopListening = () => {
-            recordRef.current?.stop();
-            setIsListening(false)
+    // 3. Stop MediaRecorder
+    if (recordRef.current && recordRef.current.state !== "inactive") {
+      try {
+        recordRef.current.stop();
+      } catch {}
+    }
+    recordRef.current = null;
+
+    // 4. Release media stream tracks (free the microphone)
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    silenceStartRef.current = null;
+  }, []);
+
+  const stopListening = useCallback(() => {
+    cleanupAudio();
+    setIsListening(false);
+  }, [cleanupAudio]);
+
+  const startListening = useCallback(async () => {
+    // Clean up any existing stream before starting a new one
+    cleanupAudio();
+    audioChunksRef.current = [];
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+      streamRef.current = stream;
+
+      const recorder = new MediaRecorder(stream);
+      recordRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
+      };
 
+      recorder.onstop = () => {
+        // audio chunks available in audioChunksRef.current
+      };
 
+      recorder.start();
+      setIsListening(true);
 
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
 
+      const audioContext = new AudioCtx();
+      audioContextRef.current = audioContext;
 
-    const startListening = async () => {
-        /* STREAM HERE IS THE CONNECTION IN MICROPHONE */
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-        })
-        streamRef.current = stream;
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = 256;
+      source.connect(analyzer);
 
+      const dataArray = new Uint8Array(analyzer.frequencyBinCount);
 
-        /* RECORDER HERE IS THE TOOLS USED TO RECORED AUDIO AND CONNECT WITH STREAM "MIC CONNECT WITH RECORD TOOL" */
-        const recorder = new MediaRecorder(stream);
-        recordRef.current = recorder;
+      const checkAudio = () => {
+        if (!audioContextRef.current || audioContextRef.current.state === "closed") return;
 
-        /* START RECORD USER AUDIO */
-        recorder.start();
-        setIsListening(true);
-
-
-        /* DATAAVAILABLE IS CUT THE VOICE TO ALOT OF CHUNCKS */
-        recorder.ondataavailable = (event) => {
-            audioChunks.push(event.data);
-        }
-
-        /* WHEN STOP WE STORE THE CHUNCKS IN BLOB */
-        recorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, {
-                type: recorder.mimeType,
-            })
-        }
-
-        const audioContext = new AudioContext();
-
-        /* TAKE THE SOUND FROM STREAM AND CONVERT IT TO SOURCE TO ANALYZE IT */
-        const source = audioContext.createMediaStreamSource(stream);
-
-        /* HERE WE CHECK THE SOUND IS HIGH OR LOW , THERE IS SOUND OR NO?  */
-        const analyzer = audioContext.createAnalyser();
-        source.connect(analyzer);
-
-        /* HERE WE PUT THE SOUND DATA IN SPACIAL ARRAY */
-        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
-
-        const checkAudio = () => {
-            /* HERE WE GET THE DATA */
         analyzer.getByteFrequencyData(dataArray);
-        
-        /* GET THE AVARAGE OF NUMBER IN THE ARRAY */
-            const average = dataArray.reduce((sum , value) => sum + value , 0) / dataArray.length;
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
 
-            if(average <= 10) {
-                if(silenceStartRef.current === null) {
-                    silenceStartRef.current = Date.now();
-                }
+        if (average <= 10) {
+          if (silenceStartRef.current === null) {
+            silenceStartRef.current = Date.now();
+          }
 
-                const silenceDuration = Date.now() - silenceStartRef.current;
-
-                if(silenceDuration >= SILENCE_DURATION) {
-                    stopListening();
-                    return;
-                }
-            }else {
-                silenceStartRef.current = null;
-            }
-        requestAnimationFrame(checkAudio)
+          const silenceDuration = Date.now() - silenceStartRef.current;
+          if (silenceDuration >= SILENCE_DURATION) {
+            stopListening();
+            return;
+          }
+        } else {
+          silenceStartRef.current = null;
         }
 
-        checkAudio()
-    }
+        rafIdRef.current = requestAnimationFrame(checkAudio);
+      };
 
-    return {
-        isListening, startListening, stopListening,
+      rafIdRef.current = requestAnimationFrame(checkAudio);
+    } catch (err) {
+      console.error("Failed to start audio recording:", err);
+      stopListening();
     }
+  }, [cleanupAudio, stopListening]);
+
+  // Cleanup completely on unmount
+  useEffect(() => {
+    return () => {
+      cleanupAudio();
+    };
+  }, [cleanupAudio]);
+
+  return {
+    isListening,
+    startListening,
+    stopListening,
+    audioChunks: audioChunksRef,
+  };
 }

@@ -37,6 +37,7 @@ import {
   SocketErrorPayload,
 } from "@/shared/hook/useInterviewSocket";
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
+import { useMediaStream, stopGlobalMediaStream } from "@/shared/components/provider/MediaStermProvider";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -61,6 +62,12 @@ type IntegrityEvent = {
 export default function InterviewSessionPage({ params }: PageProps) {
   const { interviewId } = use(params);
   const router = useRouter();
+  const { stopStream, ensureStreamActive } = useMediaStream();
+
+  // Ensure webcam and mic are active upon entering the interview room
+  useEffect(() => {
+    ensureStreamActive().catch(() => { });
+  }, [ensureStreamActive]);
 
   /* ==========================================================================
    * SECTION 1: DATA FETCHING (room data)
@@ -80,6 +87,22 @@ export default function InterviewSessionPage({ params }: PageProps) {
       languageRef.current = RoomData.interviewLanguage;
     }
   }, [RoomData?.interviewLanguage]);
+
+  const [selectedVoice, setSelectedVoice] = useState<string>("Kore");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const v = sessionStorage.getItem("interview_ai_voice");
+      if (v) setSelectedVoice(v);
+    }
+  }, []);
+
+  const aiPersonaName = {
+    Kore: "Sara",
+    Aoede: "Elena",
+    Charon: "David",
+    Puck: "Alex",
+    Fenrir: "Marcus",
+  }[selectedVoice] || "Sara";
 
   /* ==========================================================================
    * SECTION 2: CORE STATE + PHASE STATE MACHINE
@@ -225,13 +248,40 @@ export default function InterviewSessionPage({ params }: PageProps) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = language === "Arabic" ? "ar-SA" : "en-US";
-      utterance.rate = 1.0;
+
+      if (selectedVoice === "Charon") {
+        utterance.pitch = 0.85;
+        utterance.rate = 0.95;
+      } else if (selectedVoice === "Aoede") {
+        utterance.pitch = 1.15;
+        utterance.rate = 0.98;
+      } else if (selectedVoice === "Puck") {
+        utterance.pitch = 1.0;
+        utterance.rate = 1.05;
+      } else if (selectedVoice === "Fenrir") {
+        utterance.pitch = 0.9;
+        utterance.rate = 1.0;
+      } else {
+        utterance.pitch = 1.05;
+        utterance.rate = 1.0;
+      }
+
       if (language === "Arabic") {
-        // Pick the browser's Arabic voice if one exists so Arabic text is
-        // never read back with an English voice.
         const voices = window.speechSynthesis.getVoices();
         const arabic = voices.find((v) => v.lang.toLowerCase().startsWith("ar"));
         if (arabic) utterance.voice = arabic;
+      } else {
+        const voices = window.speechSynthesis.getVoices();
+        const isFemale = selectedVoice === "Kore" || selectedVoice === "Aoede";
+        const enVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
+        if (enVoices.length > 0) {
+          const matched = enVoices.find((v) =>
+            isFemale
+              ? /female|samantha|victoria|zira|karen/i.test(v.name)
+              : /male|david|george|mark|alex/i.test(v.name),
+          );
+          if (matched) utterance.voice = matched;
+        }
       }
       utterance.onstart = () => setIsAISpeaking(true);
       utterance.onend = complete;
@@ -318,7 +368,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
   // Fired by the speech recognition engine when the user stops talking
   const handleRecognitionEnd = () => {
     setIsListening(false);
-    if (phaseRef.current !== "listening" || isSubmittingRef.current) return;
+    if (phaseRef.current === "closing" || phaseRef.current !== "listening" || isSubmittingRef.current || !recognitionRef.current) return;
     const text = answerTextRef.current.trim();
     if (text) {
       transition("processing");
@@ -327,7 +377,9 @@ export default function InterviewSessionPage({ params }: PageProps) {
     } else {
       // No speech detected - keep the session alive and try again
       try {
-        recognitionRef.current?.start();
+        if (phaseRef.current === "listening" && recognitionRef.current) {
+          recognitionRef.current.start();
+        }
       } catch { }
     }
   };
@@ -372,8 +424,15 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
     return () => {
       try {
-        recognition.stop();
+        recognition.onend = null;
+        recognition.onerror = null;
+        recognition.onresult = null;
+        recognition.onstart = null;
+        recognition.abort();
       } catch { }
+      if (recognitionRef.current === recognition) {
+        recognitionRef.current = null;
+      }
     };
   }, [setAnswer, RoomData?.interviewLanguage]);
 
@@ -465,14 +524,20 @@ export default function InterviewSessionPage({ params }: PageProps) {
     transition("generating");
     stopSpeaking();
 
-    console.log("[REQUEST-NEXT] path:", liveConnected ? "socket" : "http");
+    const voiceToSend =
+      (typeof window !== "undefined"
+        ? sessionStorage.getItem("interview_ai_voice")
+        : null) || selectedVoice || "Kore";
+
+    console.log("[REQUEST-NEXT] path:", liveConnected ? "socket" : "http", "voice:", voiceToSend);
     if (liveConnected) {
-      emitEvent("question:generate", { interviewId, speakQuestion: true });
+      emitEvent("question:generate", { interviewId, speakQuestion: true, voice: voiceToSend });
       return;
     }
 
     AxiosAPI.post(`/api/interviews/${interviewId}/questions/generate`, {
-      speakQuestion: false,
+      speakQuestion: true,
+      voice: voiceToSend,
     })
       .then((res) => {
         onAskQuestionRef.current(toQuestionItem(res.data.data), true, true);
@@ -482,7 +547,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
         transition("idle");
         toast.error(e?.response?.data?.message || "Failed to generate next question");
       });
-  }, [interviewId, liveConnected, emitEvent, transition]);
+  }, [interviewId, liveConnected, emitEvent, transition, selectedVoice]);
   const requestNextQuestionRef = useRef(requestNextQuestion);
   requestNextQuestionRef.current = requestNextQuestion;
 
@@ -646,11 +711,12 @@ export default function InterviewSessionPage({ params }: PageProps) {
         console.log("[SOCKET] summary:done received");
         setReportLiveText("");
         transition("idle");
+        stopGlobalMediaStream();
         toast.dismiss();
         toast.success("Interview completed! Loading your evaluation report...");
         setTimeout(() => {
-          router.push(`/dashboard/interviewDetails?id=${interviewId}`);
-        }, 600);
+          router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
+        }, 300);
       }),
     ];
 
@@ -673,11 +739,32 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
     transition("closing");
     stopSpeaking();
-    try {
-      recognitionRef.current?.stop();
-    } catch { }
+
+    // 1. Immediately abort & null speech recognition to instantly release the OS microphone
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.abort();
+      } catch { }
+      recognitionRef.current = null;
+    }
+
+    // 2. Shut down media stream and hardware tracks
+    stopStream();
+    stopGlobalMediaStream();
+
     toast.loading("Generating your comprehensive AI interview report...");
     console.log("[FINISH] liveConnected:", liveConnected);
+
+    const navigateToReport = () => {
+      stopGlobalMediaStream();
+      toast.dismiss();
+      toast.success("Interview completed! Loading your evaluation report...");
+      router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
+    };
 
     if (liveConnected) {
       setReportLiveText("");
@@ -687,22 +774,19 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
     AxiosAPI.post(`/api/interviews/${interviewId}/summary`)
       .then(() => {
-        toast.dismiss();
-        toast.success("Interview completed! Loading your evaluation report...");
-        router.push(`/dashboard/interviewDetails?id=${interviewId}`);
+        navigateToReport();
       })
       .catch(async (e: any) => {
+        stopGlobalMediaStream();
         console.warn("Finish interview summary error, executing direct completion fallback:", e);
         try {
           await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`);
         } catch (completeErr) {
           console.error("Direct completion error:", completeErr);
         }
-        toast.dismiss();
-        toast.info("Interview session closed.");
-        router.push(`/dashboard/interviewDetails?id=${interviewId}`);
+        navigateToReport();
       });
-  }, [liveConnected, emitEvent, interviewId, transition, router]);
+  }, [liveConnected, emitEvent, interviewId, transition, router, stopStream]);
 
   /* ==========================================================================
    * SECTION 9: INITIAL LOAD / RESUME
@@ -876,8 +960,8 @@ export default function InterviewSessionPage({ params }: PageProps) {
             {/* AI Avatar */}
             <div className="relative bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-between shadow-xl overflow-hidden">
               <div className="w-full flex items-center justify-between z-10">
-                <span className="text-xs text-cyan-400 bg-cyan-950/80 border border-cyan-800/60 px-2.5 py-1 rounded-full">
-                  AI Interviewer (SALEM)
+                <span className="text-xs text-cyan-400 bg-cyan-950/80 border border-cyan-800/60 px-2.5 py-1 rounded-full font-medium">
+                  AI Interviewer ({aiPersonaName} • {selectedVoice})
                 </span>
                 <button
                   onClick={() => {
@@ -906,12 +990,12 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 {isAISpeaking ? (
                   <span className="text-cyan-400 flex items-center gap-1.5 justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    Sara is speaking...
+                    {aiPersonaName} is speaking...
                   </span>
                 ) : isGeneratingQuestion ? (
                   <span className="text-indigo-400 flex items-center gap-1.5 justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-                    Sara is writing the next question...
+                    {aiPersonaName} is preparing the next question...
                   </span>
                 ) : isListening ? (
                   <span className="text-red-400 flex items-center gap-1.5 justify-center">
@@ -933,7 +1017,15 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
             {/* Candidate Webcam Feed */}
             <div className="w-full h-full">
-              <CameraPreview isRoomInterview={true} />
+              {!isFinishing && (
+                <CameraPreview
+                  isRoomInterview={true}
+                  onCameraViolation={(v) => {
+                    setWarningCount((prev) => prev + 1);
+                    toast.warning(`Proctoring Notice: ${v.message}`);
+                  }}
+                />
+              )}
             </div>
           </div>
 
@@ -1002,8 +1094,8 @@ export default function InterviewSessionPage({ params }: PageProps) {
                 type="button"
                 onClick={toggleListening}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition cursor-pointer ${isListening
-                    ? "bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20"
-                    : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                  ? "bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20"
+                  : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
                   }`}
               >
                 {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
@@ -1112,10 +1204,10 @@ export default function InterviewSessionPage({ params }: PageProps) {
                   <div
                     key={q.id || idx}
                     className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 transition ${currentQuestion?.id === q.id
-                        ? "bg-indigo-600/10 border-indigo-500/40 text-indigo-200"
-                        : q.isAnswered
-                          ? "bg-slate-800/50 border-slate-800 text-slate-400"
-                          : "bg-slate-900 border-slate-800 text-slate-300"
+                      ? "bg-indigo-600/10 border-indigo-500/40 text-indigo-200"
+                      : q.isAnswered
+                        ? "bg-slate-800/50 border-slate-800 text-slate-400"
+                        : "bg-slate-900 border-slate-800 text-slate-300"
                       }`}
                   >
                     <span className="mt-0.5">

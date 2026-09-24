@@ -1,7 +1,7 @@
+import { SplashScreen } from "@/components/ui/splash-screen";
+
 export const Loading = () => {
-    return (
-        <div className="w-full h-screen flex justify-center items-center">Loading...</div>
-    )
-}
+  return <SplashScreen />;
+};
 
 export default Loading;

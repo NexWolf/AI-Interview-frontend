@@ -33,10 +33,6 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
       : profileService.getAll,
   });
 
-  /* START INTERVIEW ACTION */
-  const handleStartInterview = () => {
-    router.push("/interview/setup");
-  };
 
   /* ACTION FOR PROFILE HEADER */
   const handleEditHeader = (data: ProfileHeaderData) => {
@@ -137,7 +133,6 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
         data={profileData}
         editable={isEditable}
         onSave={handleEditHeader}
-        onStart={handleStartInterview}
       />
 
       {/* 3. Skills Section */}

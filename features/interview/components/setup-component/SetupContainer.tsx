@@ -4,6 +4,7 @@ import MicorphoneTest from "@/features/interview/components/setup-component/Mico
 import { useForm } from "react-hook-form";
 import { setupInterview, StartInterviewPayload } from "@/features/interview/types/setup";
 import LanguageSelect from "./LanguageSelect";
+import VoiceSelect from "./VoiceSelect";
 import TecnologiesSelect from "./TechnologiesSelect";
 import InterviewLevelSelect from "./InterviewLevelSelect";
 import { ThemeToggle } from "@/shared/components/ui/ThemeToggle";
@@ -21,6 +22,7 @@ const setupDefaultData: setupInterview = {
   skillsIds: [],
   duration: 20,
   difficultyLevel: "Beginner",
+  aiVoice: "Kore",
 };
 
 export const SetupContainer = () => {
@@ -110,6 +112,9 @@ export const SetupContainer = () => {
 
     startInterview(payload, {
       onSuccess: (response) => {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("interview_ai_voice", data.aiVoice || "Kore");
+        }
         const interviewId = response?.interview?.id;
         if (interviewId) {
           router.push(`/interview/${interviewId}`);
@@ -160,6 +165,24 @@ export const SetupContainer = () => {
             <LanguageSelect />
           </div>
 
+          {/* Section 2: AI Voice */}
+          <div className="flex flex-col gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-foreground">
+                  2. Choose AI Interviewer Voice
+                </h3>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  Interactive Audio
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Select the interviewer persona and vocal tone for your session. Click &ldquo;Preview Voice&rdquo; to test:
+              </p>
+            </div>
+            <VoiceSelect />
+          </div>
+
           {/* Job Description Optional Toggle */}
           <div className="p-4 rounded-xl border border-border bg-card/50 flex flex-col gap-3 my-3">
             <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -186,11 +209,11 @@ export const SetupContainer = () => {
             )}
           </div>
 
-          {/* Section 2: Technologies */}
+          {/* Section 3: Technologies */}
           <div className="flex flex-col gap-3">
             <div>
               <h3 className="text-base font-semibold text-foreground">
-                2. Select Technologies
+                3. Select Technologies
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Choose the technologies you want to be evaluated on:
@@ -199,11 +222,11 @@ export const SetupContainer = () => {
             <TecnologiesSelect />
           </div>
 
-          {/* Section 3: Interview Level */}
+          {/* Section 4: Interview Level */}
           <div className="flex flex-col gap-3">
             <div>
               <h3 className="text-base font-semibold text-foreground">
-                3. Interview Level
+                4. Interview Level
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Select your expected experience level for this session:
@@ -212,11 +235,11 @@ export const SetupContainer = () => {
             <InterviewLevelSelect />
           </div>
 
-          {/* Section 4: Hardware Check */}
+          {/* Section 5: Hardware Check */}
           <div className="flex flex-col gap-3">
             <div>
               <h3 className="text-base font-semibold text-foreground">
-                4. Hardware Check
+                5. Hardware Check
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Ensure your camera and microphone are properly functioning:

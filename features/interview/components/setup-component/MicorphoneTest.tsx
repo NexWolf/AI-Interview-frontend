@@ -1,13 +1,15 @@
-"use client";
+import { useMediaStream } from "@/shared/components/provider/MediaStermProvider";
 import { Check, Mic } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type PropsMic = {
   language: "Arabic" | "English";
-  onReady : (value : boolean) => void
+  onReady: (value: boolean) => void;
 };
 
-const MicorphoneTest = ({ language , onReady }: PropsMic) => {
+const MicorphoneTest = ({ language, onReady }: PropsMic) => {
+  const { stream, audioStatus, ensureStreamActive } = useMediaStream();
+
   const [microphoneReady, setMicrophoneReady] = useState<boolean>(false);
   const [microphoneError, setMicrophoneError] = useState<boolean>(false);
   const [spokenText, setSpokenText] = useState<string>("");
@@ -19,59 +21,36 @@ const MicorphoneTest = ({ language , onReady }: PropsMic) => {
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-
-
-
   // تتغير الجملة حسب اللغة المختارة لضمان عمل التعرف الصوتي بدقة
   const expectedText =
     language === "Arabic" ? "أنا مستعد الآن" : "I am ready now";
   const newLanguage = language === "Arabic" ? "ar-SA" : "en-US";
 
-  /* TEST THE MICROPHONE AUDIO IS WORK OR NOT */
+  /* SYNC WITH SHARED MEDIA STREAM */
   useEffect(() => {
-    let stream: MediaStream | null = null;
-    let audioTrack: MediaStreamTrack | null = null;
+    if (audioStatus === "idle") {
+      ensureStreamActive?.().catch(() => {});
+    }
+  }, [audioStatus, ensureStreamActive]);
 
-    const handleEnded = () => {
+  useEffect(() => {
+    const hasLiveAudioTrack = Boolean(
+      stream && stream.getAudioTracks().some((t) => t.readyState === "live" && t.enabled)
+    );
+    if ((audioStatus === "ready" || hasLiveAudioTrack) && stream) {
+      streamRef.current = stream;
+      setMicrophoneReady(true);
+      setMicrophoneError(false);
+    } else if (audioStatus === "error") {
       setMicrophoneReady(false);
       setMicrophoneError(true);
-    };
+    } else {
+      setMicrophoneReady(false);
+      setMicrophoneError(false);
+    }
+  }, [audioStatus, stream]);
 
-    const startMicrophone = async () => {
-      try {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-
-        stream = streamRef.current;
-
-        audioTrack = stream.getAudioTracks()[0];
-
-        if (!audioTrack) {
-          setMicrophoneError(true);
-          return;
-        }
-
-        setMicrophoneReady(true);
-
-        audioTrack.addEventListener("ended", () => {
-          setMicrophoneError(true);
-          setMicrophoneReady(false);
-        });
-      } catch (e) {
-        console.error("Audio Error", e);
-        setMicrophoneReady(false);
-        setMicrophoneError(true);
-      }
-    };
-
-    startMicrophone();
-
-    return () => {
-      stream?.getTracks().forEach((track) => track.stop());
-      audioTrack?.removeEventListener("ended", handleEnded);
-    };
-  }, []);
+  const testRecognitionRef = useRef<any>(null);
 
   /* TEST THE USER SOUND IS CAN COVERT IT TO THE TEXT IN THE RIGHT TEXT OR NOT  */
   const startVoiceTest = () => {
@@ -84,7 +63,15 @@ const MicorphoneTest = ({ language , onReady }: PropsMic) => {
       return;
     }
 
+    if (testRecognitionRef.current) {
+      try {
+        testRecognitionRef.current.abort();
+      } catch {}
+      testRecognitionRef.current = null;
+    }
+
     const recognition = new SpeechRecognition();
+    testRecognitionRef.current = recognition;
 
     recognition.lang = newLanguage;
     recognition.continuous = false;
@@ -101,6 +88,12 @@ const MicorphoneTest = ({ language , onReady }: PropsMic) => {
     recognition.onend = () => {
       setIsListening(false);
       stopAudioVisualizer();
+      testRecognitionRef.current = null;
+    };
+    recognition.onerror = () => {
+      setIsListening(false);
+      stopAudioVisualizer();
+      testRecognitionRef.current = null;
     };
     recognition.start();
   };
@@ -141,15 +134,27 @@ const MicorphoneTest = ({ language , onReady }: PropsMic) => {
       animationFrameRef.current = null;
     }
 
-    audioContextRef.current?.close();
+    audioContextRef.current?.close().catch(() => {});
     audioContextRef.current = null;
 
     setVolume(0);
   };
 
+  useEffect(() => {
+    return () => {
+      stopAudioVisualizer();
+      if (testRecognitionRef.current) {
+        try {
+          testRecognitionRef.current.abort();
+        } catch {}
+        testRecognitionRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() =>{
     onReady(microphoneReady)
-  },[microphoneReady])
+  },[microphoneReady, onReady])
 
   return (
     <div className="w-full md:w-1/2 p-5 sm:p-6 rounded-2xl border border-border bg-card/60 shadow-sm transition-all flex flex-col justify-between h-full">

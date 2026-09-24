@@ -82,20 +82,37 @@ export function SplineScene({ scene, className }: SplineSceneProps) {
 
     hideLogo();
 
-    viewer.addEventListener("load-complete", hideLogo);
-
-    let attempts = 0;
-    const interval = setInterval(() => {
+    const applyHideLogo = () => {
       hideLogo();
-      attempts++;
-      if (attempts > 50) {
-        clearInterval(interval);
-      }
-    }, 100);
+    };
+
+    viewer.addEventListener("load-complete", applyHideLogo);
+
+    // Use MutationObserver on shadowRoot when available instead of setInterval
+    let observer: MutationObserver | null = null;
+    if (viewer.shadowRoot) {
+      hideLogo();
+      observer = new MutationObserver(() => hideLogo());
+      observer.observe(viewer.shadowRoot, { childList: true, subtree: true });
+    } else {
+      // Fallback check once on next tick
+      const timer = setTimeout(() => {
+        if (viewer.shadowRoot) {
+          hideLogo();
+          observer = new MutationObserver(() => hideLogo());
+          observer.observe(viewer.shadowRoot, { childList: true, subtree: true });
+        }
+      }, 500);
+      return () => {
+        clearTimeout(timer);
+        observer?.disconnect();
+        viewer.removeEventListener("load-complete", applyHideLogo);
+      };
+    }
 
     return () => {
-      clearInterval(interval);
-      viewer.removeEventListener("load-complete", hideLogo);
+      observer?.disconnect();
+      viewer.removeEventListener("load-complete", applyHideLogo);
     };
   }, [isLoaded]);
 
