@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 const TOKEN_COOKIE_NAME = "accessToken";
 
 // الصفحات اللي مفتوحة للكل (بدون تسجيل دخول)
-const publicRoutes = ["/", "/auth", "/verify-email", "/forgot-password", "/reset-password"];
+const publicRoutes = ["/", "/auth", "/verify-email", "/forgot-password", "/reset-password", "/guest-interview"];
 
 // المسارات التي تتطلب إكمال البروفايل (onboarding)
 const onboardingRequiredRoutes = ["/dashboard", "/interview", "/admin", "/profile"];

@@ -147,7 +147,7 @@ const OnBoardingComponent = () => {
       await dbStore.clear();
       await fetch("/api/auth/onboarding-done", { method: "POST" }).catch(() => { });
       document.cookie = "onboardingDone=true; path=/; max-age=2592000";
-      window.location.href = "/dashboard";
+      window.location.href = "/dashboard/learn";
     } catch (e) {
       console.error("Onboarding submission failed:", e);
     }

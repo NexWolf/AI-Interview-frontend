@@ -1,0 +1,30 @@
+export type AssessmentQuestion = { id: string; prompt: string; type: "single" | "text"; options?: string[] };
+export type LearningTaskStatus = "Locked" | "Available" | "Submitted" | "DefensePending" | "Completed" | "NeedsRevision";
+export type LearningTask = {
+  id: string;
+  taskOrder: number;
+  type: "Lesson" | "Exercise" | "Project";
+  title: string;
+  description: string;
+  acceptanceCriteria: string[];
+  xpReward: number;
+  status: LearningTaskStatus;
+  submissionUrl?: string | null;
+  aiEvaluation?: { score?: number; feedback?: string; strengths?: string[]; improvements?: string[] } | null;
+  defenseQuestion?: string | null;
+  defenseScore?: number | null;
+  completedAt?: string | null;
+};
+export type RoadmapLevel = { id: string; levelNumber: number; title: string; description: string; objectives: string[]; requiredXp: number; tasks: LearningTask[] };
+export type LearningJourney = {
+  id: string;
+  status: "Assessing" | "Active" | "Completed";
+  assessmentSummary?: string | null;
+  specializationSlug: string;
+  specializationName: string;
+  specializationReason?: string | null;
+  currentLevel: number;
+  xp: number;
+  levels: RoadmapLevel[];
+};
+export type CommunityMessage = { id: string; body: string; createdAt: string; user: { id: string; firstName: string; lastName?: string | null; userName: string; avatarUrl?: string | null } };

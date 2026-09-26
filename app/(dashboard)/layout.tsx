@@ -11,6 +11,8 @@ import {
   LogOut,
   Plus,
   Sparkles,
+  GraduationCap,
+  Plug,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useUserInfo } from "@/shared/hook/useUserInfo";
@@ -20,8 +22,10 @@ import { Menu, X } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/learn", label: "My Learning Path", icon: GraduationCap },
   { href: "/dashboard/interviewDetails", label: "My Interviews", icon: Briefcase },
   { href: "/dashboard/profile", label: "Profile", icon: User },
+  { href: "/dashboard/integrations", label: "Partner API", icon: Plug },
   { href: "/dashboard/setting", label: "Settings", icon: Settings },
 ];
 

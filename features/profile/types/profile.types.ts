@@ -91,6 +91,24 @@ export interface ProfileApi {
   createdAt : string,
   updatedAt : string,
   educations : EducationApi[],
+  learningJourney?: {
+    specializationName: string | null,
+    currentLevel: number,
+    xp: number,
+    levels: {
+      levelNumber: number,
+      title: string,
+      tasks: {
+        id: string,
+        title: string,
+        description: string,
+        submissionUrl: string | null,
+        defenseScore: number | null,
+        completedAt: string | null,
+        aiEvaluation?: { feedback?: string } | null,
+      }[],
+    }[],
+  } | null,
 }
 
 export interface defaultProfile {

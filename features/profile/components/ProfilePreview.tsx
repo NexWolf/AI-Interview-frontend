@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ProficiencyLevel } from "@/shared/types/userSkills";
 import ProfileHeaderSkeleton from "./ProfileHeaderLoading";
 import { useRouter } from "next/navigation";
+import ProfilePortfolio from "./ProfilePortfolio";
 
 type ProfileViewProps = {
   editable?: boolean;
@@ -147,6 +148,8 @@ export const ProfilePreview = ({ editable = false, username }: ProfileViewProps)
         onSave={handleSaveSkills}
         isLoading={isUpdatingSkills}
       />
+
+      <ProfilePortfolio journey={profileData?.learningJourney} />
 
       {/* 2. Education Section */}
       <ProfileEducation
