@@ -4,7 +4,7 @@ import { AllSkills, AdminSkill, CreateSkillPayload } from "../types/allSkills";
 
 export const skillsService = {
     getAll : async (): Promise<AdminSkill[]> => {
-        const response = await AxiosAPI.get("/api/v1/skills/admin/skills");
+        const response = await AxiosAPI.get("/api/v1/skills/admin/skills?limit=100");
         return response?.data.data;
     },
 
