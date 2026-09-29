@@ -33,6 +33,9 @@ interface UseInterviewFlowProps {
   router: AppRouterInstance;
   stopStream: () => void;
   currentQuestion: QuestionItem | null;
+  disconnectSocket: () => void;
+  setMicEnabled: (enabled: boolean) => void;
+  flushViolations?: () => Promise<void>;
 }
 
 export function useInterviewFlow({
@@ -63,11 +66,30 @@ export function useInterviewFlow({
   router,
   stopStream,
   currentQuestion,
+  disconnectSocket,
+  setMicEnabled,
+  flushViolations,
 }: UseInterviewFlowProps) {
   const [displayedQuestion, setDisplayedQuestion] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
 
-  // Model a freshly generated question from the socket/HTTP payload
+  const questionTokenRef = useRef(0);
+  const listenTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const cleanupMicTimers = useCallback(() => {
+    if (listenTimerRef.current) clearTimeout(listenTimerRef.current);
+    setMicEnabled(true);
+  }, [setMicEnabled]);
+
+  const stopSpeakingWrapped = useCallback(() => {
+    cleanupMicTimers();
+    stopSpeaking();
+  }, [cleanupMicTimers, stopSpeaking]);
+
+  useEffect(() => {
+    return () => cleanupMicTimers();
+  }, [cleanupMicTimers]);
+
   const toQuestionItem = useCallback(
     (qd: any): QuestionItem => {
       const audio = qd.questionAudio
@@ -85,7 +107,6 @@ export function useInterviewFlow({
     [makeAudioUrl]
   );
 
-  // Ask a question: speak it, then open the mic so the user can answer
   const onAskQuestion = useCallback(
     (q: QuestionItem, shouldSpeak: boolean, autoListen: boolean) => {
       isSubmittingRef.current = false;
@@ -94,28 +115,73 @@ export function useInterviewFlow({
       setQuestionList((prev) =>
         prev.some((x) => x.id === q.id) ? prev : [...prev, q]
       );
-      
+
       let existingDraft = "";
       if (typeof window !== "undefined" && q?.id) {
         try {
           existingDraft = sessionStorage.getItem(`interview_draft_${q.id}`) || "";
-        } catch {}
+        } catch { }
       }
       setAnswer(existingDraft);
       draftBaseRef.current = existingDraft;
       setSubmissionError(null);
       transition("speaking");
-      
+
+      abortRecognition(); // AGGRESSIVELY DESTROY STT BEFORE AI SPEAKS
+
+      questionTokenRef.current += 1;
+      const myToken = questionTokenRef.current;
+      cleanupMicTimers();
+
       if (shouldSpeak) {
+        setMicEnabled(false); // Hardware mute!
         const audio = q.questionAudio || null;
-        if (autoListen) {
-          speakDoneRef.current = () => setTimeout(startListening, 800);
-        } else {
-          speakDoneRef.current = null;
-        }
+
+        speakDoneRef.current = () => {
+          if (questionTokenRef.current !== myToken) {
+            console.debug(`[speakDone] block token: ${myToken} != ${questionTokenRef.current}`);
+            return;
+          }
+          if (phaseRef.current !== "speaking") {
+            console.debug(`[speakDone] block phase: ${phaseRef.current}`);
+            cleanupMicTimers();
+            return;
+          }
+          if (isSubmittingRef.current) {
+            console.debug(`[speakDone] block submitting`);
+            cleanupMicTimers();
+            return;
+          }
+          if (currentQuestionRef.current?.id !== q.id) {
+            console.debug(`[speakDone] block diff question`);
+            cleanupMicTimers();
+            return;
+          }
+          if (currentQuestionRef.current?.isAnswered) {
+            console.debug(`[speakDone] block answered`);
+            cleanupMicTimers();
+            return;
+          }
+
+          setMicEnabled(true);
+          if (autoListen) {
+            listenTimerRef.current = setTimeout(() => {
+              startListening();
+            }, 800);
+          } else {
+            transition("idle");
+          }
+        };
         speakQuestion(q.question, audio, languageRef.current || "English");
       } else {
-        speakDoneRef.current = autoListen ? () => setTimeout(startListening, 800) : null;
+        setMicEnabled(true);
+        if (autoListen) {
+          listenTimerRef.current = setTimeout(startListening, 800);
+        } else {
+          speakDoneRef.current = () => {
+            transition("idle");
+          };
+        }
         speakQuestion(q.question, null, languageRef.current || "English");
       }
     },
@@ -128,10 +194,14 @@ export function useInterviewFlow({
       draftBaseRef,
       setSubmissionError,
       transition,
+      abortRecognition,
+      cleanupMicTimers,
+      setMicEnabled,
       speakDoneRef,
       startListening,
       speakQuestion,
       languageRef,
+      phaseRef,
     ]
   );
 
@@ -140,9 +210,11 @@ export function useInterviewFlow({
 
   const requestNextQuestion = useCallback(() => {
     if (phaseRef.current === "generating" || phaseRef.current === "closing") return;
+    cleanupMicTimers();
     transition("generating");
-    stopSpeaking();
-    setQuestionLiveText(""); 
+    stopSpeakingWrapped();
+    abortRecognition();
+    setQuestionLiveText("");
 
     const voiceToSend =
       (typeof window !== "undefined"
@@ -171,8 +243,10 @@ export function useInterviewFlow({
       });
   }, [
     phaseRef,
+    cleanupMicTimers,
     transition,
-    stopSpeaking,
+    stopSpeakingWrapped,
+    abortRecognition,
     setQuestionLiveText,
     selectedVoice,
     liveConnected,
@@ -180,19 +254,19 @@ export function useInterviewFlow({
     interviewId,
     toQuestionItem,
   ]);
-  
+
   const requestNextQuestionRef = useRef(requestNextQuestion);
   requestNextQuestionRef.current = requestNextQuestion;
 
   const submitAnswerWithText = useCallback(
     (text: string) => {
+      cleanupMicTimers();
       if (isSubmittingRef.current) return;
       const q = currentQuestionRef.current;
       if (!q || q.isAnswered) return;
 
       isSubmittingRef.current = true;
-      
-      // Immediately clear the user's text and aggressively stop the microphone
+
       setAnswer("");
       abortRecognition();
 
@@ -202,7 +276,7 @@ export function useInterviewFlow({
         if (typeof window !== "undefined" && q?.id) {
           try {
             sessionStorage.removeItem(`interview_draft_${q.id}`);
-          } catch {}
+          } catch { }
         }
         setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
         requestNextQuestionRef.current();
@@ -215,7 +289,7 @@ export function useInterviewFlow({
         emitEvent("answer:submit", payload, ({ ok, message }: any) => {
           if (!ok) {
             isSubmittingRef.current = false;
-            setAnswer(text); // Restore text on failure
+            setAnswer(text);
             transition("idle");
             const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
             setSubmissionError(errMsg);
@@ -233,7 +307,7 @@ export function useInterviewFlow({
         .then(proceed)
         .catch((e: any) => {
           isSubmittingRef.current = false;
-          setAnswer(text); // Restore text on failure
+          setAnswer(text);
           console.error("Save answer error:", e);
           transition("idle");
           const errMsg =
@@ -244,6 +318,7 @@ export function useInterviewFlow({
         });
     },
     [
+      cleanupMicTimers,
       isSubmittingRef,
       currentQuestionRef,
       setSubmissionError,
@@ -260,12 +335,33 @@ export function useInterviewFlow({
   const replayQuestion = useCallback(() => {
     const q = currentQuestionRef.current;
     if (!q) return;
-    speakDoneRef.current = q.isAnswered ? null : () => setTimeout(startListening, 800);
+
+    questionTokenRef.current += 1;
+    const myToken = questionTokenRef.current;
+    cleanupMicTimers();
+
+    setMicEnabled(false);
+
+    speakDoneRef.current = () => {
+      if (questionTokenRef.current !== myToken) return;
+      if (phaseRef.current !== "speaking") { cleanupMicTimers(); return; }
+      if (isSubmittingRef.current) { cleanupMicTimers(); return; }
+      if (currentQuestionRef.current?.id !== q.id) { cleanupMicTimers(); return; }
+
+      setMicEnabled(true);
+      if (!q.isAnswered) {
+        listenTimerRef.current = setTimeout(startListening, 800);
+      } else {
+        transition("idle");
+      }
+    };
+
     transition("speaking");
     speakQuestion(q.question, q.questionAudio, languageRef.current || "English");
-  }, [currentQuestionRef, speakDoneRef, startListening, transition, speakQuestion, languageRef]);
+  }, [currentQuestionRef, cleanupMicTimers, setMicEnabled, speakDoneRef, phaseRef, isSubmittingRef, startListening, transition, speakQuestion, languageRef]);
 
   const handleSubmitAnswer = useCallback(() => {
+    cleanupMicTimers();
     const text = answerTextRef.current.trim();
     if (!text) {
       toast.error("Please provide or speak an answer before submitting.");
@@ -273,31 +369,33 @@ export function useInterviewFlow({
     }
     setSubmissionError(null);
     forceStopRecognition();
-    stopSpeaking();
+    stopSpeakingWrapped();
     transition("processing");
     submitAnswerWithText(text);
-  }, [answerTextRef, setSubmissionError, forceStopRecognition, stopSpeaking, transition, submitAnswerWithText]);
+  }, [cleanupMicTimers, answerTextRef, setSubmissionError, forceStopRecognition, stopSpeakingWrapped, transition, submitAnswerWithText]);
 
   const handleSkipQuestion = useCallback(() => {
+    cleanupMicTimers();
     setSubmissionError(null);
     forceStopRecognition();
-    stopSpeaking();
+    stopSpeakingWrapped();
     toast.info("Question skipped");
     const q = currentQuestionRef.current;
     if (q) {
       if (typeof window !== "undefined") {
         try {
           sessionStorage.removeItem(`interview_draft_${q.id}`);
-        } catch {}
+        } catch { }
       }
       AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/skip`).catch((e) => {
         console.warn("Skip persistence failed:", e?.response?.data?.message || e?.message);
       });
     }
     requestNextQuestionRef.current();
-  }, [setSubmissionError, forceStopRecognition, stopSpeaking, currentQuestionRef, interviewId]);
+  }, [cleanupMicTimers, setSubmissionError, forceStopRecognition, stopSpeakingWrapped, currentQuestionRef, interviewId]);
 
-  const handleFinishInterview = useCallback(() => {
+  const handleFinishInterview = useCallback(async () => {
+    cleanupMicTimers();
     if (phaseRef.current === "closing") return;
 
     const confirmed = typeof window !== "undefined"
@@ -306,10 +404,16 @@ export function useInterviewFlow({
     if (!confirmed) return;
 
     transition("closing");
-    stopSpeaking();
+    stopSpeakingWrapped();
     abortRecognition();
     stopStream();
     stopGlobalMediaStream();
+    
+    // Flush any pending violations before concluding
+    if (flushViolations) {
+      await flushViolations();
+    }
+    
     toast.loading("Generating your comprehensive AI interview report...");
 
     const navigateToReport = () => {
@@ -338,9 +442,10 @@ export function useInterviewFlow({
         navigateToReport();
       });
   }, [
+    cleanupMicTimers,
     phaseRef,
     transition,
-    stopSpeaking,
+    stopSpeakingWrapped,
     abortRecognition,
     stopStream,
     liveConnected,
@@ -348,9 +453,9 @@ export function useInterviewFlow({
     emitEvent,
     interviewId,
     router,
+    flushViolations,
   ]);
 
-  // Typewriter effect for displaying the generated question smoothly
   useEffect(() => {
     if (!currentQuestion?.question) {
       setDisplayedQuestion("");
@@ -385,5 +490,6 @@ export function useInterviewFlow({
     handleSkipQuestion,
     handleFinishInterview,
     toQuestionItem,
+    stopSpeakingWrapped,
   };
 }

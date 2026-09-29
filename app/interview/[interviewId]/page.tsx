@@ -9,6 +9,7 @@ import { use, useEffect, useRef, useState, useCallback } from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useInterviewTimer } from "@/shared/hook/useInterviewTimer";
 import { useInterviewProtection } from "@/features/interview/hooks/useInterviewProtection";
+import { useViolationsManager } from "@/features/interview/hooks/useViolationsManager";
 import CameraPreview from "@/features/interview/components/setup-component/CameraPreview";
 import { InterviewHeader } from "@/features/interview/components/session-component/InterviewHeader";
 import { AIAvatarStage } from "@/features/interview/components/session-component/AIAvatarStage";
@@ -38,7 +39,8 @@ interface PageProps {
 export default function InterviewSessionPage({ params }: PageProps) {
   const { interviewId } = use(params);
   const router = useRouter();
-  const { stopStream, ensureStreamActive } = useMediaStream();
+  const { stopStream, ensureStreamActive, setMicEnabled } = useMediaStream();
+  const { addViolation, flushViolations } = useViolationsManager(interviewId);
 
   // Ensure webcam and mic are active upon entering the interview room
   useEffect(() => {
@@ -195,6 +197,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     error: socketError,
     emitEvent,
     onEvent,
+    disconnect: disconnectSocket,
   } = useInterviewSocket({ interviewId });
 
   /* ==========================================================================
@@ -208,6 +211,8 @@ export default function InterviewSessionPage({ params }: PageProps) {
     setIsAISpeaking,
     speakDoneRef,
   });
+
+  const stopSpeakingRef = useRef<() => void>(stopSpeaking);
 
   /* ==========================================================================
    * SECTION 5: SPEECH-TO-TEXT (microphone / SpeechRecognition)
@@ -226,7 +231,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     isSubmittingRef,
     setIsListening,
     answerTextRef,
-    stopSpeaking,
+    stopSpeaking: () => stopSpeakingRef.current(),
     submitAnswerRef,
     setAnswer,
     draftBaseRef,
@@ -252,6 +257,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     handleSkipQuestion,
     handleFinishInterview,
     toQuestionItem,
+    stopSpeakingWrapped,
   } = useInterviewFlow({
     interviewId,
     liveConnected,
@@ -280,10 +286,14 @@ export default function InterviewSessionPage({ params }: PageProps) {
     router,
     stopStream,
     currentQuestion,
+    disconnectSocket,
+    setMicEnabled,
+    flushViolations,
   });
 
   // Wire up the submit answer ref so STT can call it
   submitAnswerRef.current = submitAnswerWithText;
+  stopSpeakingRef.current = stopSpeakingWrapped;
 
   /* ==========================================================================
    * SECTION 7: SOCKET WIRING (event subscriptions)
@@ -307,20 +317,19 @@ export default function InterviewSessionPage({ params }: PageProps) {
     }
   }, [liveConnected, socketConnecting, socketError]);
 
-  // Explicit room join guard — the hook auto-joins via interviewId option,
-  // but this ensures the room is joined even after a reconnect.
-  useEffect(() => {
-    if (!interviewId || !liveConnected) return;
-    console.log("[SOCKET] Joining room:", interviewId);
-    emitEvent("interview:join", { interviewId });
-  }, [interviewId, liveConnected, emitEvent]);
+  const handledQuestionIdsRef = useRef<Set<string | number>>(new Set());
 
   useEffect(() => {
     if (!interviewId) return;
 
     const offs = [
       onEvent<QuestionNewPayload>("question:new", ({ question }) => {
-        console.log("[SOCKET] question:new received, id:", question.questionId);
+        console.log(`[SOCKET] question:new received, id: ${question.questionId}, current q: ${currentQuestionRef.current?.id}`);
+        if (phaseRef.current === "closing") return;
+        if (currentQuestionRef.current?.id === String(question.questionId)) return;
+        if (handledQuestionIdsRef.current.has(question.questionId)) return;
+        
+        handledQuestionIdsRef.current.add(question.questionId);
         setQuestionLiveText(""); // Clear stream text when done
         onAskQuestion(toQuestionItem(question), true, true);
       }),
@@ -418,6 +427,14 @@ export default function InterviewSessionPage({ params }: PageProps) {
       setWarning(event);
       setWarningCount((prev) => prev + 1);
       toast.warning(`Integrity Notice: Hardware event detected (${event.type})`);
+      
+      addViolation({
+        violationType: event.type === "fullscreen_exit" ? "FULLSCREEN_EXITED" : "SYSTEM_ISSUE",
+        category: "System_Issue",
+        details: `Integrity monitor triggered: ${event.type}`,
+        description: "Hardware or system integrity event detected.",
+        systemResponse: "Warned user and logged event.",
+      });
     },
   });
 
@@ -432,6 +449,15 @@ export default function InterviewSessionPage({ params }: PageProps) {
     onTabSwitch: () => {
       setWarningCount((prev) => prev + 1);
       toast.error("Proctoring Warning: Please do not switch tabs or minimize the browser during the interview!");
+      
+      addViolation({
+        violationType: "TAB_SWITCH",
+        category: "Intentional",
+        details: "User switched browser tabs or minimized the window.",
+        description: "Tab switch detected during active interview.",
+        systemResponse: "Displayed error toast to user.",
+        isCheating: true,
+      });
     },
   });
 
@@ -487,13 +513,63 @@ export default function InterviewSessionPage({ params }: PageProps) {
         handleFinishInterview={handleFinishInterview}
       />
 
-      {/* 2. Main Workspace Grid */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 sm:p-6 max-w-7xl mx-auto w-full">
-        {/* Main Stage (8 Columns) */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          {/* 12b. Dual Stage: AI Avatar & Candidate Video Feed */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[260px] h-[300px]">
-            {/* AI Avatar */}
+      {/* 2. Main Workspace (Dual Column / Split-Screen Layout) */}
+      <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 h-full">
+        
+        {/* =========================================================
+            LEFT COLUMN: CANDIDATE (YOU)
+            ========================================================= */}
+        <div className="flex flex-col gap-6 w-full h-full">
+          {/* Candidate Webcam (Top) */}
+          <div className="h-[320px] w-full flex items-center justify-center relative bg-muted/20 rounded-[2rem] shadow-inner overflow-hidden border border-border/30">
+            {!isFinishing && (
+              <div className="absolute inset-0 w-full h-full">
+                <CameraPreview
+                  isRoomInterview={true}
+                  onCameraViolation={(v) => {
+                    setWarningCount((prev) => prev + 1);
+                    toast.warning(`Proctoring Notice: ${v.message}`);
+                    
+                    let mappedType: any = "SYSTEM_ISSUE";
+                    if (v.message.toLowerCase().includes("multiple faces")) mappedType = "MULTIPLE_FACES_DETECTED";
+                    else if (v.message.toLowerCase().includes("no face")) mappedType = "FACE_NOT_DETECTED";
+
+                    addViolation({
+                      violationType: mappedType,
+                      category: mappedType === "MULTIPLE_FACES_DETECTED" ? "Intentional" : "Unintentional",
+                      details: v.message,
+                      description: "Camera violation detected by model.",
+                      systemResponse: "Displayed warning toast.",
+                      isCheating: mappedType === "MULTIPLE_FACES_DETECTED",
+                    });
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Candidate Workspace / Text (Bottom) */}
+          <div className="flex-1 min-h-[250px] flex flex-col justify-start">
+            <CandidateResponseWorkspace
+              isListening={isListening}
+              isSubmittingAnswer={isSubmittingAnswer}
+              toggleListening={toggleListening}
+              answerText={answerText}
+              setAnswer={setAnswer}
+              submissionError={submissionError}
+              handleSubmitAnswer={handleSubmitAnswer}
+              handleSkipQuestion={handleSkipQuestion}
+              isGeneratingQuestion={isGeneratingQuestion}
+            />
+          </div>
+        </div>
+
+        {/* =========================================================
+            RIGHT COLUMN: AI INTERVIEWER (SARA)
+            ========================================================= */}
+        <div className="flex flex-col gap-6 w-full h-full">
+          {/* AI Avatar (Top) */}
+          <div className="h-[320px] w-full flex items-center justify-center relative bg-muted/20 rounded-[2rem] border border-border/30 shadow-inner overflow-hidden">
             <AIAvatarStage
               aiPersonaName={aiPersonaName}
               selectedVoice={selectedVoice}
@@ -502,55 +578,25 @@ export default function InterviewSessionPage({ params }: PageProps) {
               isGeneratingQuestion={isGeneratingQuestion}
               isListening={isListening}
               isSubmittingAnswer={isSubmittingAnswer}
-              stopSpeaking={stopSpeaking}
+              stopSpeaking={stopSpeakingWrapped}
               replayQuestion={replayQuestion}
             />
-
-            {/* Candidate Webcam Feed */}
-            <div className="w-full h-full">
-              {!isFinishing && (
-                <CameraPreview
-                  isRoomInterview={true}
-                  onCameraViolation={(v) => {
-                    setWarningCount((prev) => prev + 1);
-                    toast.warning(`Proctoring Notice: ${v.message}`);
-                  }}
-                />
-              )}
-            </div>
           </div>
 
-          {/* 12c. Question Display Card */}
-          <QuestionDisplayCard
-            currentQuestion={currentQuestion}
-            questionList={questionList}
-            replayQuestion={replayQuestion}
-            isGeneratingQuestion={isGeneratingQuestion}
-            questionLiveText={questionLiveText}
-            displayedQuestion={displayedQuestion}
-            isTyping={isTyping}
-          />
-
-          {/* 12d. Candidate Response Workspace */}
-          <CandidateResponseWorkspace
-            isListening={isListening}
-            isSubmittingAnswer={isSubmittingAnswer}
-            toggleListening={toggleListening}
-            answerText={answerText}
-            setAnswer={setAnswer}
-            submissionError={submissionError}
-            handleSubmitAnswer={handleSubmitAnswer}
-            handleSkipQuestion={handleSkipQuestion}
-            isGeneratingQuestion={isGeneratingQuestion}
-          />
+          {/* AI Speech Bubble (Bottom) */}
+          <div className="flex-1 min-h-[250px] flex flex-col justify-start">
+            <QuestionDisplayCard
+              currentQuestion={currentQuestion}
+              questionList={questionList}
+              replayQuestion={replayQuestion}
+              isGeneratingQuestion={isGeneratingQuestion}
+              questionLiveText={questionLiveText}
+              displayedQuestion={displayedQuestion}
+              isTyping={isTyping}
+            />
+          </div>
         </div>
 
-        {/* 12e. Sidebar Info (4 Columns) */}
-        <InterviewSidebar
-          RoomData={RoomData}
-          questionList={questionList}
-          currentQuestion={currentQuestion}
-        />
       </div>
 
       {/* 12f. Live report generation overlay */}
