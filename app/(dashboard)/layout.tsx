@@ -17,6 +17,7 @@ import { useUserInfo } from "@/shared/hook/useUserInfo";
 import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
 import { Menu, X } from "lucide-react";
+import { AdminSidebarNav } from "@/features/admin/components/AdminSidebarNav";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -33,6 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const isAdminRoute = pathname?.startsWith("/admin");
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -57,41 +59,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const nav = (
     <>
-      {navItems.map(({ href, label, icon: Icon, exact }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors",
-            isActive(href, exact)
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-          )}
-        >
-          <Icon className="w-[18px] h-[18px]" />
-          <span>{label}</span>
-        </Link>
-      ))}
+      <div className="space-y-1">
+        <div className="px-3 pb-1 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
+          Menu
+        </div>
+        {navItems.map(({ href, label, icon: Icon, exact }) => (
+          <Link
+            key={href}
+            href={href}
+            onClick={() => setMobileMenuOpen(false)}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors",
+              isActive(href, exact)
+                ? "bg-primary/10 text-primary font-semibold"
+                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+            )}
+          >
+            <Icon className="w-4 h-4 shrink-0" />
+            <span>{label}</span>
+          </Link>
+        ))}
+      </div>
 
       {isAdmin && (
-        <Link
-          href="/admin"
-          className={cn(
-            "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors",
-            isActive("/admin")
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-          )}
-        >
-          <Shield className="w-[18px] h-[18px]" />
-          <span>Admin Panel</span>
-        </Link>
+        <div className="pt-3 border-t border-border/40 space-y-1">
+          <div className="px-3 pb-1 flex items-center justify-between text-[11px] font-semibold text-primary uppercase tracking-wider">
+            <span className="flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5" />
+              Admin Command
+            </span>
+          </div>
+          <AdminSidebarNav onItemClick={() => setMobileMenuOpen(false)} />
+        </div>
       )}
 
-      <div className="!mt-6 pt-4 border-t border-border/40">
+      <div className="pt-3 border-t border-border/40">
         <Link
           href="/interview/setup"
-          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-3.5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+          onClick={() => setMobileMenuOpen(false)}
+          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
         >
           <Plus className="w-4 h-4" />
           <span>New Interview</span>
@@ -104,17 +110,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-background text-foreground flex w-full">
       {/* Sidebar */}
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border/60 bg-card/60 backdrop-blur sticky top-0 h-screen">
-        <div className="h-16 flex items-center gap-2.5 px-6 border-b border-border/50">
+        <div className="h-16 flex items-center gap-2.5 px-6 border-b border-border/50 shrink-0">
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center font-bold text-primary-foreground shadow-lg shadow-primary/20">
             AI
           </div>
           <div>
             <p className="font-bold text-sm leading-tight">AI Interview Coach</p>
-            <p className="text-[11px] text-muted-foreground">Candidate Dashboard</p>
+            <p className="text-[11px] text-muted-foreground">
+              {isAdminRoute ? "Admin Console" : "Candidate Dashboard"}
+            </p>
           </div>
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-1">{nav}</nav>
+        <nav className="flex-1 py-4 px-3 space-y-3 overflow-y-auto">{nav}</nav>
 
         <div className="p-3 border-t border-border/50">
           <div className="flex items-center gap-3 px-2 py-2">
@@ -163,7 +171,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground text-sm">
               AI
             </div>
-            <span className="font-bold text-sm">Dashboard</span>
+            <span className="font-bold text-sm">
+              {isAdminRoute ? "Admin Console" : "Dashboard"}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -198,7 +208,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </div>
                   <div>
                     <p className="font-bold text-sm leading-tight">AI Interview Coach</p>
-                    <p className="text-[11px] text-muted-foreground">Candidate Dashboard</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {isAdminRoute ? "Admin Console" : "Candidate Dashboard"}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -210,7 +222,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </button>
               </div>
 
-              <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">{nav}</nav>
+              <nav className="flex-1 py-4 px-3 space-y-3 overflow-y-auto">{nav}</nav>
 
               <div className="p-3 border-t border-border/50">
                 <div className="flex items-center gap-3 px-2 py-2">
@@ -237,7 +249,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <main
+          className={cn(
+            "flex-1 w-full mx-auto px-4 sm:px-6 py-6 sm:py-8",
+            isAdminRoute ? "max-w-7xl" : "max-w-6xl",
+          )}
+        >
           {children}
         </main>
       </div>

@@ -3,18 +3,10 @@
 import { useState, useTransition } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  Briefcase,
-  Users,
-  Sparkles,
   ShieldAlert,
-  FileText,
-  Layers,
   RefreshCw,
   Shield,
-  AlertTriangle,
   Loader2,
-  CheckCircle2,
 } from "lucide-react";
 import { useUserInfo } from "@/shared/hook/useUserInfo";
 import {
@@ -107,18 +99,8 @@ export default function AdminPage() {
     );
   }
 
-  const tabs = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "interviews", label: "Interviews", icon: Briefcase, count: interviews.length },
-    { id: "users", label: "Users & Access", icon: Users, count: users.length },
-    { id: "ai", label: "AI Telemetry", icon: Sparkles, count: aiRequests.length },
-    { id: "violations", label: "Integrity & Alerts", icon: ShieldAlert, count: violations.length, alert: violations.some((v) => v.isCheating) },
-    { id: "reports", label: "Evaluations", icon: FileText, count: reports.length },
-    { id: "skills", label: "Skills Catalog", icon: Layers },
-  ];
-
   return (
-    <div className="space-y-8 animate-in fade-in-50 duration-300 pb-16">
+    <div className="space-y-6 animate-in fade-in-50 duration-300 pb-16">
       {/* Top Banner / Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border/60">
         <div>
@@ -153,45 +135,8 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Modern Tabs Navigation */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-border/40">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span
-                  className={cn(
-                    "ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold",
-                    isActive
-                      ? "bg-primary-foreground/20 text-primary-foreground"
-                      : tab.alert
-                      ? "bg-rose-500/20 text-rose-500"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Active Tab Views */}
-      <div className="mt-6">
+      <div>
         {activeTab === "overview" && (
           <AdminOverviewTab
             interviews={interviews}
