@@ -3,48 +3,52 @@
 import { useState } from "react";
 import {
   Search,
-  Filter,
   Eye,
-  Calendar,
   Clock,
-  CheckCircle,
-  AlertCircle,
-  Layers,
-  Sparkles,
+  Briefcase,
+  Loader2,
 } from "lucide-react";
 import { AdminInterview } from "@/shared/types/admin";
+import { useAdminInterviews } from "@/shared/hook/useAdmin";
+import { AdminPagination } from "./AdminPagination";
 import { cn } from "@/shared/lib/utils";
 
 interface AdminInterviewsTabProps {
-  interviews: AdminInterview[];
-  isLoading: boolean;
   onViewDetails: (id: string | number) => void;
 }
 
-export function AdminInterviewsTab({
-  interviews,
-  isLoading,
-  onViewDetails,
-}: AdminInterviewsTabProps) {
+export function AdminInterviewsTab({ onViewDetails }: AdminInterviewsTabProps) {
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [langFilter, setLangFilter] = useState("ALL");
 
-  const filtered = interviews.filter((item) => {
-    const q = search.toLowerCase().trim();
-    const matchSearch =
-      !q ||
-      item.user.firstName?.toLowerCase().includes(q) ||
-      item.user.lastName?.toLowerCase().includes(q) ||
-      item.user.email?.toLowerCase().includes(q) ||
-      item.user.userName?.toLowerCase().includes(q) ||
-      String(item.id).includes(q);
-
-    const matchStatus = statusFilter === "ALL" || item.status.toLowerCase() === statusFilter.toLowerCase();
-    const matchLang = langFilter === "ALL" || item.interviewLanguage.toLowerCase() === langFilter.toLowerCase();
-
-    return matchSearch && matchStatus && matchLang;
+  const { data, isLoading } = useAdminInterviews({
+    page,
+    limit,
+    user: search.trim() || undefined,
+    status: statusFilter !== "ALL" ? statusFilter : undefined,
+    language: langFilter !== "ALL" ? langFilter : undefined,
   });
+
+  const interviews: AdminInterview[] = data?.interviews || [];
+  const pagination = data?.pagination;
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setPage(1);
+  };
+
+  const handleStatusChange = (val: string) => {
+    setStatusFilter(val);
+    setPage(1);
+  };
+
+  const handleLangChange = (val: string) => {
+    setLangFilter(val);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -56,7 +60,7 @@ export function AdminInterviewsTab({
             type="text"
             placeholder="Search candidate by name, email, or interview ID..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-sm bg-background/80 border border-border/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground transition-all"
           />
         </div>
@@ -64,7 +68,7 @@ export function AdminInterviewsTab({
         <div className="flex items-center gap-2 flex-wrap">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => handleStatusChange(e.target.value)}
             className="text-xs font-medium px-3 py-2 bg-background/80 border border-border/60 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
@@ -77,7 +81,7 @@ export function AdminInterviewsTab({
 
           <select
             value={langFilter}
-            onChange={(e) => setLangFilter(e.target.value)}
+            onChange={(e) => handleLangChange(e.target.value)}
             className="text-xs font-medium px-3 py-2 bg-background/80 border border-border/60 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
           >
             <option value="ALL">All Languages</option>
@@ -105,18 +109,21 @@ export function AdminInterviewsTab({
             <tbody className="divide-y divide-border/30">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground text-sm">
-                    Loading interview sessions...
+                  <td colSpan={7} className="px-5 py-16 text-center text-muted-foreground text-sm">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <span>Loading interview sessions...</span>
+                    </div>
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : interviews.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground text-sm">
                     No interviews match the current criteria.
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => {
+                interviews.map((item) => {
                   const score = item.reports?.[0]?.overallScore;
                   return (
                     <tr key={item.id} className="hover:bg-muted/30 transition-colors">
@@ -202,7 +209,7 @@ export function AdminInterviewsTab({
                       <td className="px-5 py-4 text-right">
                         <button
                           onClick={() => onViewDetails(item.id)}
-                          className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                          className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
                           title="View Full Details"
                         >
                           <Eye className="w-4 h-4" />
@@ -215,6 +222,16 @@ export function AdminInterviewsTab({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        <AdminPagination
+          pagination={pagination}
+          page={page}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          itemLabel="interviews"
+        />
       </div>
     </div>
   );

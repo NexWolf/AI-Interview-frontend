@@ -88,7 +88,7 @@ export const adminService = {
   // 3. AI Requests
   getAIRequests: async (
     params?: AdminFilterParams,
-  ): Promise<{ aiRequests: AdminAIRequest[]; pagination: AdminPagination }> => {
+  ): Promise<{ aiRequests: AdminAIRequest[]; pagination: AdminPagination; metrics?: any }> => {
     const response = await AxiosAPI.get<AdminApiResponse<AdminAIRequest[]>>("/api/v1/admin/ai-requests", {
       params,
     });
@@ -100,6 +100,7 @@ export const adminService = {
         total: response.data.data?.length || 0,
         totalPages: 1,
       },
+      metrics: (response.data as any).metrics,
     };
   },
 

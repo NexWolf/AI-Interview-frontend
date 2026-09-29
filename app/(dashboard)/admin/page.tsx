@@ -143,6 +143,10 @@ export default function AdminPage() {
             users={users}
             aiRequests={aiRequests}
             violations={violations}
+            totalInterviews={interviewsData?.pagination?.total}
+            totalUsers={usersData?.pagination?.total}
+            totalAiRequests={aiData?.pagination?.total}
+            totalViolations={violationsData?.pagination?.total}
             onSelectTab={handleTabChange}
             onViewInterview={(id) => setSelectedInterviewId(id)}
           />
@@ -150,36 +154,28 @@ export default function AdminPage() {
 
         {activeTab === "interviews" && (
           <AdminInterviewsTab
-            interviews={interviews}
-            isLoading={interviewsLoading}
             onViewDetails={(id) => setSelectedInterviewId(id)}
           />
         )}
 
         {activeTab === "users" && (
-          <AdminUsersTab users={users} isLoading={usersLoading} />
+          <AdminUsersTab />
         )}
 
         {activeTab === "ai" && (
           <AdminAiRequestsTab
-            aiRequests={aiRequests}
-            isLoading={aiLoading}
             onInspect={(id) => setSelectedAiRequestId(id)}
           />
         )}
 
         {activeTab === "violations" && (
           <AdminViolationsTab
-            violations={violations}
-            isLoading={violationsLoading}
             onViewInterview={(id) => setSelectedInterviewId(id)}
           />
         )}
 
         {activeTab === "reports" && (
           <AdminReportsTab
-            reports={reports}
-            isLoading={reportsLoading}
             onViewInterview={(id) => setSelectedInterviewId(id)}
           />
         )}

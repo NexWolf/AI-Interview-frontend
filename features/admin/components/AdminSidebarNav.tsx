@@ -39,27 +39,28 @@ function AdminSidebarNavContent({ onItemClick }: AdminSidebarNavProps) {
   const { data: violationsData } = useAdminViolations();
   const { data: reportsData } = useAdminReports();
 
-  const interviews = interviewsData?.interviews || [];
-  const users = usersData?.users || [];
-  const aiRequests = aiData?.aiRequests || [];
+  const totalInterviews = interviewsData?.pagination?.total ?? interviewsData?.interviews?.length;
+  const totalUsers = usersData?.pagination?.total ?? usersData?.users?.length;
+  const totalAiRequests = aiData?.pagination?.total ?? aiData?.aiRequests?.length;
   const violations = violationsData?.violations || [];
-  const reports = reportsData?.reports || [];
+  const totalViolations = violationsData?.pagination?.total ?? violations.length;
+  const totalReports = reportsData?.pagination?.total ?? reportsData?.reports?.length;
 
   const hasCheating = violations.some((v) => v.isCheating);
 
   const adminTabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "interviews", label: "Interviews", icon: Briefcase, count: interviews.length },
-    { id: "users", label: "Users & Access", icon: Users, count: users.length },
-    { id: "ai", label: "AI Telemetry", icon: Sparkles, count: aiRequests.length },
+    { id: "interviews", label: "Interviews", icon: Briefcase, count: totalInterviews },
+    { id: "users", label: "Users & Access", icon: Users, count: totalUsers },
+    { id: "ai", label: "AI Telemetry", icon: Sparkles, count: totalAiRequests },
     {
       id: "violations",
       label: "Integrity & Alerts",
       icon: ShieldAlert,
-      count: violations.length,
+      count: totalViolations,
       alert: hasCheating,
     },
-    { id: "reports", label: "Evaluations", icon: FileText, count: reports.length },
+    { id: "reports", label: "Evaluations", icon: FileText, count: totalReports },
     { id: "skills", label: "Skills Catalog", icon: Layers },
   ];
 

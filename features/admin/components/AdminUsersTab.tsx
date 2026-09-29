@@ -13,21 +13,21 @@ import {
   MoreVertical,
   Briefcase,
   CreditCard,
+  Loader2,
 } from "lucide-react";
 import { AdminUser } from "@/shared/types/admin";
 import {
+  useAdminUsers,
   useUpdateUserStatusMutation,
   useDeleteUserMutation,
   useCreateUserMutation,
 } from "@/shared/hook/useAdmin";
+import { AdminPagination } from "./AdminPagination";
 import { cn } from "@/shared/lib/utils";
 
-interface AdminUsersTabProps {
-  users: AdminUser[];
-  isLoading: boolean;
-}
-
-export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
+export function AdminUsersTab() {
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -42,27 +42,35 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
     role: "USER" as "USER" | "ADMIN" | "SUPER_ADMIN",
   });
 
+  const { data, isLoading } = useAdminUsers({
+    page,
+    limit,
+    search: search.trim() || undefined,
+    role: roleFilter !== "ALL" ? roleFilter : undefined,
+    status: statusFilter === "ALL" ? undefined : statusFilter === "ACTIVE" ? "true" : "false",
+  });
+
+  const users: AdminUser[] = data?.users || [];
+  const pagination = data?.pagination;
+
   const updateStatusMutation = useUpdateUserStatusMutation();
   const deleteUserMutation = useDeleteUserMutation();
   const createUserMutation = useCreateUserMutation();
 
-  const filtered = users.filter((u) => {
-    const q = search.toLowerCase().trim();
-    const matchSearch =
-      !q ||
-      u.firstName?.toLowerCase().includes(q) ||
-      u.lastName?.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      u.userName?.toLowerCase().includes(q);
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setPage(1);
+  };
 
-    const matchRole = roleFilter === "ALL" || u.role === roleFilter;
-    const matchStatus =
-      statusFilter === "ALL" ||
-      (statusFilter === "ACTIVE" && u.isActive) ||
-      (statusFilter === "INACTIVE" && !u.isActive);
+  const handleRoleChange = (val: string) => {
+    setRoleFilter(val);
+    setPage(1);
+  };
 
-    return matchSearch && matchRole && matchStatus;
-  });
+  const handleStatusChange = (val: string) => {
+    setStatusFilter(val);
+    setPage(1);
+  };
 
   const handleToggleStatus = (user: AdminUser) => {
     updateStatusMutation.mutate({ id: user.id, isActive: !user.isActive });
@@ -103,7 +111,7 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
             type="text"
             placeholder="Search users by name, username, or email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-sm bg-background/80 border border-border/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground transition-all"
           />
         </div>
@@ -111,7 +119,7 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            onChange={(e) => handleRoleChange(e.target.value)}
             className="text-xs font-medium px-3 py-2 bg-background/80 border border-border/60 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
           >
             <option value="ALL">All Roles</option>
@@ -122,7 +130,7 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => handleStatusChange(e.target.value)}
             className="text-xs font-medium px-3 py-2 bg-background/80 border border-border/60 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
           >
             <option value="ALL">All Accounts</option>
@@ -157,18 +165,21 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
             <tbody className="divide-y divide-border/30">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground text-sm">
-                    Loading users directory...
+                  <td colSpan={6} className="px-5 py-16 text-center text-muted-foreground text-sm">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <span>Loading users directory...</span>
+                    </div>
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground text-sm">
                     No users found matching your search.
                   </td>
                 </tr>
               ) : (
-                filtered.map((user) => (
+                users.map((user) => (
                   <tr key={user.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -207,7 +218,7 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
                     <td className="px-5 py-4">
                       <span
                         className={cn(
-                          "px-2.5 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1.5",
+                          "px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5",
                           user.isActive
                             ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                             : "bg-rose-500/10 text-rose-500 border border-rose-500/20",
@@ -219,16 +230,14 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
                     </td>
 
                     <td className="px-5 py-4">
-                      <div className="text-xs text-foreground font-medium flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Briefcase className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span>{user._count?.interviews ?? 0} sessions</span>
+                        <span className="font-semibold text-foreground">{user._count?.interviews || 0}</span> sessions
                       </div>
                     </td>
 
-                    <td className="px-5 py-4">
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </div>
+                    <td className="px-5 py-4 text-xs text-muted-foreground">
+                      {new Date(user.createdAt).toLocaleDateString()}
                     </td>
 
                     <td className="px-5 py-4 text-right">
@@ -240,9 +249,9 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
                             "p-2 rounded-xl transition-colors cursor-pointer",
                             user.isActive
                               ? "text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
-                              : "text-emerald-500 hover:bg-emerald-500/10",
+                              : "text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10",
                           )}
-                          title={user.isActive ? "Suspend User" : "Activate User"}
+                          title={user.isActive ? "Suspend account" : "Activate account"}
                         >
                           <Power className="w-4 h-4" />
                         </button>
@@ -268,6 +277,16 @@ export function AdminUsersTab({ users, isLoading }: AdminUsersTabProps) {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        <AdminPagination
+          pagination={pagination}
+          page={page}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          itemLabel="users"
+        />
       </div>
 
       {/* Create User Modal */}

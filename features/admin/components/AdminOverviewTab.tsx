@@ -21,6 +21,10 @@ interface AdminOverviewTabProps {
   users: AdminUser[];
   aiRequests: AdminAIRequest[];
   violations: AdminViolation[];
+  totalInterviews?: number;
+  totalUsers?: number;
+  totalAiRequests?: number;
+  totalViolations?: number;
   onSelectTab: (tab: string) => void;
   onViewInterview: (id: string | number) => void;
 }
@@ -30,6 +34,10 @@ export function AdminOverviewTab({
   users,
   aiRequests,
   violations,
+  totalInterviews,
+  totalUsers,
+  totalAiRequests,
+  totalViolations,
   onSelectTab,
   onViewInterview,
 }: AdminOverviewTabProps) {
@@ -46,7 +54,7 @@ export function AdminOverviewTab({
   const stats = [
     {
       title: "Total Interviews",
-      value: interviews.length,
+      value: totalInterviews ?? interviews.length,
       sub: `${completedCount} completed · ${runningCount} active`,
       icon: Briefcase,
       color: "text-blue-500",
@@ -55,7 +63,7 @@ export function AdminOverviewTab({
     },
     {
       title: "Registered Users",
-      value: users.length,
+      value: totalUsers ?? users.length,
       sub: `${activeUsersCount} active accounts`,
       icon: Users,
       color: "text-emerald-500",
@@ -73,7 +81,7 @@ export function AdminOverviewTab({
     },
     {
       title: "Proctoring Alerts",
-      value: violations.length,
+      value: totalViolations ?? violations.length,
       sub: `${cheatingViolationsCount} cheating flags detected`,
       icon: ShieldAlert,
       color: "text-rose-500",

@@ -8,33 +8,17 @@ import {
   Trash2,
   Search,
   Power,
-  Layers,
-  Sparkles,
-  Check,
-  X,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAllSkills } from "@/shared/hook/useAllSkills";
 import { skillsKey } from "@/shared/constants/query-key";
 import { skillsService } from "@/shared/services/skills.service";
-import { DifficultyLevelType } from "@/shared/types/allSkills";
 import { cn } from "@/shared/lib/utils";
-
-const difficultyOptions: DifficultyLevelType[] = ["Beginner", "Intermediate", "Advanced"];
-
-const difficultyColors: Record<DifficultyLevelType, string> = {
-  Beginner: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
-  Intermediate: "bg-amber-500/10 text-amber-400 border-amber-500/30",
-  Advanced: "bg-rose-500/10 text-rose-400 border-rose-500/30",
-};
 
 const emptyForm = {
   nameEn: "",
   nameAr: "",
-  difficultyLevel: "Beginner" as DifficultyLevelType,
-  descriptionEn: "",
-  descriptionAr: "",
   isActive: true,
 };
 
@@ -58,8 +42,7 @@ export function AdminSkillsTab() {
     return (skills ?? []).filter(
       (s) =>
         s.nameEn?.toLowerCase().includes(q) ||
-        s.nameAr?.toLowerCase().includes(q) ||
-        s.difficultyLevel?.toLowerCase().includes(q),
+        s.nameAr?.toLowerCase().includes(q),
     );
   }, [skills, search]);
 
@@ -78,9 +61,6 @@ export function AdminSkillsTab() {
     setForm({
       nameEn: skill.nameEn ?? "",
       nameAr: skill.nameAr ?? "",
-      difficultyLevel: skill.difficultyLevel,
-      descriptionEn: skill.descriptionEn ?? "",
-      descriptionAr: skill.descriptionAr ?? "",
       isActive: skill.isActive,
     });
     setFormOpen(true);
@@ -97,18 +77,15 @@ export function AdminSkillsTab() {
         await skillsService.update(editingId, {
           nameEn: form.nameEn.trim(),
           nameAr: form.nameAr.trim(),
-          difficultyLevel: form.difficultyLevel,
-          descriptionEn: form.descriptionEn.trim(),
-          descriptionAr: form.descriptionAr.trim(),
         });
         toast.success("Skill updated successfully");
       } else {
         await skillsService.create({
           nameEn: form.nameEn.trim(),
           nameAr: form.nameAr.trim(),
-          difficultyLevel: form.difficultyLevel,
-          descriptionEn: form.descriptionEn.trim(),
-          descriptionAr: form.descriptionAr.trim(),
+          difficultyLevel: "Beginner",
+          descriptionEn: "",
+          descriptionAr: "",
         });
         toast.success("Skill created successfully");
       }
@@ -188,8 +165,6 @@ export function AdminSkillsTab() {
             <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40">
               <tr>
                 <th className="px-5 py-3.5">Name (EN / AR)</th>
-                <th className="px-5 py-3.5">Level</th>
-                <th className="px-5 py-3.5">Description</th>
                 <th className="px-5 py-3.5">Status</th>
                 <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
@@ -197,13 +172,13 @@ export function AdminSkillsTab() {
             <tbody className="divide-y divide-border/30">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-muted-foreground text-sm">
+                  <td colSpan={3} className="px-5 py-12 text-center text-muted-foreground text-sm">
                     Loading skills catalog...
                   </td>
                 </tr>
               ) : filteredSkills.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-muted-foreground text-sm">
+                  <td colSpan={3} className="px-5 py-12 text-center text-muted-foreground text-sm">
                     No skills found.
                   </td>
                 </tr>
@@ -214,23 +189,6 @@ export function AdminSkillsTab() {
                       <div className="font-semibold text-foreground text-sm">{skill.nameEn}</div>
                       <div className="text-xs text-muted-foreground font-arabic" dir="rtl">
                         {skill.nameAr}
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span
-                        className={cn(
-                          "px-2.5 py-0.5 rounded-md text-xs font-medium border",
-                          difficultyColors[skill.difficultyLevel] || "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {skill.difficultyLevel}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <div className="text-xs text-muted-foreground max-w-sm truncate">
-                        {skill.descriptionEn || "—"}
                       </div>
                     </td>
 
@@ -294,20 +252,21 @@ export function AdminSkillsTab() {
       {/* Skill Modal */}
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in-50">
-          <div className="w-full max-w-lg p-6 rounded-2xl border border-border bg-card shadow-xl space-y-4">
+          <div className="w-full max-w-md p-6 rounded-2xl border border-border bg-card shadow-xl space-y-4">
             <h3 className="text-lg font-semibold text-foreground">
               {editingId ? "Edit Skill" : "Create New Skill"}
             </h3>
 
             <div className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Name (English)</label>
                   <input
                     type="text"
+                    placeholder="e.g. Node.js"
                     value={form.nameEn}
                     onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                    className="w-full mt-1 px-3 py-2 text-sm bg-background border border-border rounded-xl text-foreground"
+                    className="w-full mt-1 px-3 py-2 text-sm bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>
                 <div>
@@ -315,47 +274,12 @@ export function AdminSkillsTab() {
                   <input
                     type="text"
                     dir="rtl"
+                    placeholder="مثال: نود جي إس"
                     value={form.nameAr}
                     onChange={(e) => setForm({ ...form, nameAr: e.target.value })}
-                    className="w-full mt-1 px-3 py-2 text-sm bg-background border border-border rounded-xl text-foreground font-arabic"
+                    className="w-full mt-1 px-3 py-2 text-sm bg-background border border-border rounded-xl text-foreground font-arabic focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Difficulty Level</label>
-                <select
-                  value={form.difficultyLevel}
-                  onChange={(e) => setForm({ ...form, difficultyLevel: e.target.value as DifficultyLevelType })}
-                  className="w-full mt-1 px-3 py-2 text-sm bg-background border border-border rounded-xl text-foreground cursor-pointer"
-                >
-                  {difficultyOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Description (English)</label>
-                <textarea
-                  rows={2}
-                  value={form.descriptionEn}
-                  onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 text-sm bg-background border border-border rounded-xl text-foreground"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Description (Arabic)</label>
-                <textarea
-                  rows={2}
-                  dir="rtl"
-                  value={form.descriptionAr}
-                  onChange={(e) => setForm({ ...form, descriptionAr: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 text-sm bg-background border border-border rounded-xl text-foreground font-arabic"
-                />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3">

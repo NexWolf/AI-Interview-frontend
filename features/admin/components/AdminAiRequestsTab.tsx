@@ -4,48 +4,55 @@ import { useState } from "react";
 import {
   Sparkles,
   Search,
-  Filter,
   Activity,
   Cpu,
   Zap,
-  CheckCircle2,
-  XCircle,
   Eye,
   Clock,
-  Layers,
+  Loader2,
 } from "lucide-react";
 import { AdminAIRequest } from "@/shared/types/admin";
+import { useAdminAIRequests } from "@/shared/hook/useAdmin";
+import { AdminPagination } from "./AdminPagination";
 import { cn } from "@/shared/lib/utils";
 
 interface AdminAiRequestsTabProps {
-  aiRequests: AdminAIRequest[];
-  isLoading: boolean;
   onInspect: (id: string | number) => void;
 }
 
-export function AdminAiRequestsTab({
-  aiRequests,
-  isLoading,
-  onInspect,
-}: AdminAiRequestsTabProps) {
+export function AdminAiRequestsTab({ onInspect }: AdminAiRequestsTabProps) {
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [providerFilter, setProviderFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const totalTokens = aiRequests.reduce((acc, curr) => acc + (curr.totalTokens || 0), 0);
-  const promptTokens = aiRequests.reduce((acc, curr) => acc + (curr.promptTokens || 0), 0);
-  const completionTokens = aiRequests.reduce((acc, curr) => acc + (curr.completionTokens || 0), 0);
-  const avgLatency = aiRequests.length
-    ? Math.round(aiRequests.reduce((acc, curr) => acc + (curr.latencyMs || 0), 0) / aiRequests.length)
-    : 0;
-
-  const filtered = aiRequests.filter((item) => {
-    const matchProvider =
-      providerFilter === "ALL" ||
-      item.conversation?.provider?.toLowerCase() === providerFilter.toLowerCase();
-    const matchStatus =
-      statusFilter === "ALL" || item.status.toLowerCase() === statusFilter.toLowerCase();
-    return matchProvider && matchStatus;
+  const { data, isLoading } = useAdminAIRequests({
+    page,
+    limit,
+    provider: providerFilter !== "ALL" ? providerFilter : undefined,
+    status: statusFilter !== "ALL" ? statusFilter : undefined,
   });
+
+  const aiRequests: AdminAIRequest[] = data?.aiRequests || [];
+  const pagination = data?.pagination;
+  const metrics = (data as any)?.metrics;
+
+  const totalTokens = metrics?.totalTokens ?? aiRequests.reduce((acc, curr) => acc + (curr.totalTokens || 0), 0);
+  const promptTokens = metrics?.totalPromptTokens ?? aiRequests.reduce((acc, curr) => acc + (curr.promptTokens || 0), 0);
+  const completionTokens = metrics?.totalCompletionTokens ?? aiRequests.reduce((acc, curr) => acc + (curr.completionTokens || 0), 0);
+  const avgLatency = metrics?.avgLatencyMs ?? (aiRequests.length
+    ? Math.round(aiRequests.reduce((acc, curr) => acc + (curr.latencyMs || 0), 0) / aiRequests.length)
+    : 0);
+
+  const handleProviderChange = (val: string) => {
+    setProviderFilter(val);
+    setPage(1);
+  };
+
+  const handleStatusChange = (val: string) => {
+    setStatusFilter(val);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -61,61 +68,62 @@ export function AdminAiRequestsTab({
 
         <div className="p-4 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
-            <Sparkles className="w-4 h-4 text-emerald-500" /> Completion Tokens
+            <Zap className="w-4 h-4 text-blue-500" /> Completion Tokens
           </div>
           <div className="text-2xl font-bold text-foreground mt-2">{completionTokens.toLocaleString()}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Generated evaluations & questions</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Model output & feedback tokens</div>
         </div>
 
         <div className="p-4 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
-            <Layers className="w-4 h-4 text-blue-500" /> Total Tokens Billed
-          </div>
-          <div className="text-2xl font-bold text-foreground mt-2">{totalTokens.toLocaleString()}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Across all AI inference engines</div>
-        </div>
-
-        <div className="p-4 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
-            <Zap className="w-4 h-4 text-amber-500" /> Mean Latency
+            <Clock className="w-4 h-4 text-emerald-500" /> Average Latency
           </div>
           <div className="text-2xl font-bold text-foreground mt-2">{avgLatency} ms</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Average round-trip response time</div>
+          <div className="text-[11px] text-muted-foreground mt-1">End-to-end response delay</div>
+        </div>
+
+        <div className="p-4 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+            <Activity className="w-4 h-4 text-amber-500" /> Total Token Volume
+          </div>
+          <div className="text-2xl font-bold text-foreground mt-2">{totalTokens.toLocaleString()}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Total model tokens billed</div>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md">
-        <div className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Activity className="w-4 h-4 text-primary" /> Live AI Inference Log
+      {/* Filters Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">Inference Event Log</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={providerFilter}
-            onChange={(e) => setProviderFilter(e.target.value)}
+            onChange={(e) => handleProviderChange(e.target.value)}
             className="text-xs font-medium px-3 py-2 bg-background/80 border border-border/60 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
           >
             <option value="ALL">All Providers</option>
             <option value="openai">OpenAI</option>
             <option value="gemini">Google Gemini</option>
-            <option value="anthropic">Anthropic Claude</option>
+            <option value="groq">Groq</option>
+            <option value="anthropic">Anthropic</option>
           </select>
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => handleStatusChange(e.target.value)}
             className="text-xs font-medium px-3 py-2 bg-background/80 border border-border/60 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
             <option value="SUCCESS">Success</option>
             <option value="FAILED">Failed</option>
-            <option value="PENDING">Pending</option>
           </select>
         </div>
       </div>
 
-      {/* AI Telemetry Table */}
+      {/* Requests Table */}
       <div className="rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -123,28 +131,31 @@ export function AdminAiRequestsTab({
               <tr>
                 <th className="px-5 py-3.5">Request Type</th>
                 <th className="px-5 py-3.5">Provider / Model</th>
-                <th className="px-5 py-3.5">Candidate Context</th>
+                <th className="px-5 py-3.5">Candidate / Interview</th>
                 <th className="px-5 py-3.5">Tokens (In / Out)</th>
                 <th className="px-5 py-3.5">Latency</th>
                 <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Inspect</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground text-sm">
-                    Streaming AI telemetry data...
+                  <td colSpan={7} className="px-5 py-16 text-center text-muted-foreground text-sm">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <span>Loading LLM inference telemetry...</span>
+                    </div>
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : aiRequests.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground text-sm">
-                    No AI telemetry records match your filters.
+                    No AI telemetry requests found.
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => (
+                aiRequests.map((item) => (
                   <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-4">
                       <div className="font-mono text-xs font-semibold text-foreground">
@@ -211,7 +222,7 @@ export function AdminAiRequestsTab({
                     <td className="px-5 py-4 text-right">
                       <button
                         onClick={() => onInspect(item.id)}
-                        className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                        className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
                         title="Inspect AI Payload"
                       >
                         <Eye className="w-4 h-4" />
@@ -223,6 +234,16 @@ export function AdminAiRequestsTab({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        <AdminPagination
+          pagination={pagination}
+          page={page}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          itemLabel="AI requests"
+        />
       </div>
     </div>
   );
