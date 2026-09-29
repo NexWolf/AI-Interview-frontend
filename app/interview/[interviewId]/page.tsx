@@ -278,6 +278,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
     selectedVoice,
     languageRef,
     router,
+    stopStream,
     currentQuestion,
   });
 

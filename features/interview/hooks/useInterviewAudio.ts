@@ -13,6 +13,7 @@ export function useInterviewAudio({
 }: UseInterviewAudioProps) {
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlsRef = useRef<Set<string>>(new Set());
+  const ttsUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // base64 audio -> playable object URL (uses the real mimeType Gemini returns)
   const makeAudioUrl = useCallback((b64: string, mime: string) => {
@@ -37,6 +38,7 @@ export function useInterviewAudio({
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
+        ttsUtteranceRef.current = utterance;
         utterance.lang = language === "Arabic" ? "ar-SA" : "en-US";
 
         if (selectedVoice === "Charon") {
@@ -105,15 +107,18 @@ export function useInterviewAudio({
           const audio = new Audio(audioUrl);
           audioPlayerRef.current = audio;
           setIsAISpeaking(true);
-          audio.onended = finish;
-          audio.onerror = () => {
+          
+          let fallbackCalled = false;
+          const handleFallback = () => {
+            if (fallbackCalled) return;
+            fallbackCalled = true;
             setIsAISpeaking(false);
             fallbackTTS(text, language, finish);
           };
-          audio.play().catch(() => {
-            setIsAISpeaking(false);
-            fallbackTTS(text, language, finish);
-          });
+
+          audio.onended = finish;
+          audio.onerror = handleFallback;
+          audio.play().catch(handleFallback);
           return;
         } catch {
           fallbackTTS(text, language, finish);

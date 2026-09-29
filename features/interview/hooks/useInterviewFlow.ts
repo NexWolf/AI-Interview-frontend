@@ -109,13 +109,13 @@ export function useInterviewFlow({
       if (shouldSpeak) {
         const audio = q.questionAudio || null;
         if (autoListen) {
-          speakDoneRef.current = () => startListening();
+          speakDoneRef.current = () => setTimeout(startListening, 800);
         } else {
           speakDoneRef.current = null;
         }
         speakQuestion(q.question, audio, languageRef.current || "English");
       } else {
-        speakDoneRef.current = autoListen ? () => startListening() : null;
+        speakDoneRef.current = autoListen ? () => setTimeout(startListening, 800) : null;
         speakQuestion(q.question, null, languageRef.current || "English");
       }
     },
@@ -191,6 +191,10 @@ export function useInterviewFlow({
       if (!q || q.isAnswered) return;
 
       isSubmittingRef.current = true;
+      
+      // Immediately clear the user's text and aggressively stop the microphone
+      setAnswer("");
+      abortRecognition();
 
       const proceed = () => {
         isSubmittingRef.current = false;
@@ -200,7 +204,6 @@ export function useInterviewFlow({
             sessionStorage.removeItem(`interview_draft_${q.id}`);
           } catch {}
         }
-        setAnswer("");
         setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
         requestNextQuestionRef.current();
       };
@@ -212,6 +215,7 @@ export function useInterviewFlow({
         emitEvent("answer:submit", payload, ({ ok, message }: any) => {
           if (!ok) {
             isSubmittingRef.current = false;
+            setAnswer(text); // Restore text on failure
             transition("idle");
             const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
             setSubmissionError(errMsg);
@@ -229,6 +233,7 @@ export function useInterviewFlow({
         .then(proceed)
         .catch((e: any) => {
           isSubmittingRef.current = false;
+          setAnswer(text); // Restore text on failure
           console.error("Save answer error:", e);
           transition("idle");
           const errMsg =
@@ -248,13 +253,14 @@ export function useInterviewFlow({
       liveConnected,
       emitEvent,
       transition,
+      abortRecognition,
     ]
   );
 
   const replayQuestion = useCallback(() => {
     const q = currentQuestionRef.current;
     if (!q) return;
-    speakDoneRef.current = q.isAnswered ? null : () => startListening();
+    speakDoneRef.current = q.isAnswered ? null : () => setTimeout(startListening, 800);
     transition("speaking");
     speakQuestion(q.question, q.questionAudio, languageRef.current || "English");
   }, [currentQuestionRef, speakDoneRef, startListening, transition, speakQuestion, languageRef]);
