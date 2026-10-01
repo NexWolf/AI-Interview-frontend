@@ -3,7 +3,7 @@ import { useMediaStream } from "../components/provider/MediaStermProvider";
 import { AxiosAPI } from "../lib/AxiosAPI";
 import axios from "axios";
 
-type IntegrityEvent = {
+export type IntegrityEvent = {
     type : "camera_off" | "camera_muted" | "mic_off" | "mic_muted" | "mic_restored";
     timestamp: string;
 }
