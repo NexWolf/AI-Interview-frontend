@@ -15,7 +15,7 @@ const unwrap = async <T>(promise: Promise<{ data: StandardApiResponse<T> }>) => 
 
 export const interviewService = {
   create: async (data: StartInterviewPayload): Promise<StartInterviewResponse> => {
-    return unwrap(AxiosAPI.post(`/api/interviews/start`, data));
+    return unwrap(AxiosAPI.post(`/api/v1/interviews/start`, data));
   },
 
   getById: async (interviewId: string | number): Promise<InterviewRoom> => {

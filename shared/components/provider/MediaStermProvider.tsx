@@ -11,6 +11,7 @@ type MediaStreamContextType = {
   stopStream: () => void;
   restartStream: () => Promise<MediaStream | null>;
   ensureStreamActive: () => Promise<MediaStream | null>;
+  setMicEnabled: (enabled: boolean) => void;
 };
 
 const MediaStreamContext = createContext<MediaStreamContextType | null>(null);
@@ -223,6 +224,20 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
     return await startStream();
   }, [startStream]);
 
+  const setMicEnabled = useCallback((enabled: boolean) => {
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = enabled;
+      });
+    }
+    const globalStream = (typeof window !== "undefined" ? (window as any).__activeMediaStream : null) as MediaStream | undefined;
+    if (globalStream) {
+      globalStream.getAudioTracks().forEach((track) => {
+        track.enabled = enabled;
+      });
+    }
+  }, []);
+
   useEffect(() => {
     startStream();
 
@@ -246,6 +261,7 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
         stopStream,
         restartStream: startStream,
         ensureStreamActive,
+        setMicEnabled,
       }}
     >
       {children}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { InterviewViolation, BatchViolationsPayload } from "../types/violation";
-import AxiosAPI from "@/shared/lib/AxiosAPI";
+import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 import { API_URL } from "@/constants/routes";
 
 const BATCH_SIZE = 5;

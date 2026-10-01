@@ -257,7 +257,6 @@ export default function InterviewSessionPage({ params }: PageProps) {
     handleSkipQuestion,
     handleFinishInterview,
     toQuestionItem,
-    stopSpeakingWrapped,
   } = useInterviewFlow({
     interviewId,
     liveConnected,
@@ -293,7 +292,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
   // Wire up the submit answer ref so STT can call it
   submitAnswerRef.current = submitAnswerWithText;
-  stopSpeakingRef.current = stopSpeakingWrapped;
+  stopSpeakingRef.current = stopSpeaking;
 
   /* ==========================================================================
    * SECTION 7: SOCKET WIRING (event subscriptions)
@@ -578,7 +577,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
               isGeneratingQuestion={isGeneratingQuestion}
               isListening={isListening}
               isSubmittingAnswer={isSubmittingAnswer}
-              stopSpeaking={stopSpeakingWrapped}
+              stopSpeaking={stopSpeaking}
               replayQuestion={replayQuestion}
             />
           </div>

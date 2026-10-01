@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, VolumeX, Volume2 } from 'lucide-react';
+import Image from 'next/image';
 
 interface AIAvatarStageProps {
   aiPersonaName: string;
@@ -15,69 +15,67 @@ interface AIAvatarStageProps {
 
 export const AIAvatarStage: React.FC<AIAvatarStageProps> = ({
   aiPersonaName,
-  selectedVoice,
   isAISpeaking,
-  currentQuestion,
   isGeneratingQuestion,
   isListening,
   isSubmittingAnswer,
-  stopSpeaking,
-  replayQuestion,
 }) => {
   return (
-    <div className="relative bg-card border border-border rounded-2xl p-5 flex flex-col items-center justify-between shadow-xl overflow-hidden text-card-foreground">
-      <div className="w-full flex items-center justify-between z-10">
-        <span className="text-xs text-primary bg-primary/10 border border-primary/30 px-2.5 py-1 rounded-full font-medium">
-          AI Interviewer ({aiPersonaName} • {selectedVoice})
-        </span>
-        <button
-          onClick={() => {
-            if (isAISpeaking) stopSpeaking();
-            else if (currentQuestion) replayQuestion();
-          }}
-          className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground border border-border transition"
-          title={isAISpeaking ? "Mute AI" : "Read Question"}
-        >
-          {isAISpeaking ? <VolumeX className="w-4 h-4 text-primary" /> : <Volume2 className="w-4 h-4" />}
-        </button>
-      </div>
-
-      {/* Dynamic Sound Orb */}
-      <div className="relative flex items-center justify-center my-auto">
-        <div
-          className={`w-28 h-28 rounded-full bg-gradient-to-tr from-primary/50 via-primary to-accent blur-md opacity-60 transition-all duration-300 ${
-            isAISpeaking ? "animate-pulse scale-110 opacity-90" : "scale-95 opacity-30"
-          }`}
+    <div className="relative flex flex-col items-center justify-end w-full h-full min-h-[320px] overflow-hidden rounded-[2rem] group">
+      
+      {/* Background Full-bleed Image */}
+      <div className="absolute inset-0 z-0">
+        <Image 
+          src="/sara_avatar.jpg" 
+          alt={`AI Interviewer ${aiPersonaName}`} 
+          fill 
+          className="object-cover transition-transform duration-[20s] group-hover:scale-105"
+          priority
         />
-        <div className="w-20 h-20 rounded-full bg-background border-2 border-primary absolute flex items-center justify-center shadow-lg">
-          <Cpu className={`w-8 h-8 text-primary transition-transform duration-300 ${isAISpeaking ? "scale-110" : ""}`} />
-        </div>
+        {/* Cinematic dark gradients for text readability and depth */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+        
+        {/* Dynamic color overlay based on status */}
+        <div className={`absolute inset-0 mix-blend-overlay transition-colors duration-1000 ${
+          isAISpeaking ? "bg-primary/40" : isListening ? "bg-red-500/10" : "bg-transparent"
+        }`} />
       </div>
 
-      <div className="text-xs text-muted-foreground z-10 text-center">
+      {/* Speaking Pulse Overlay (Edges) */}
+      {isAISpeaking && (
+        <div className="absolute inset-0 z-10 border-[4px] border-primary/60 rounded-[2rem] shadow-[inset_0_0_50px_rgba(var(--primary),0.3)] animate-pulse pointer-events-none" />
+      )}
+      
+      {/* Listening Border Overlay */}
+      {isListening && (
+        <div className="absolute inset-0 z-10 border-[2px] border-red-500/50 rounded-[2rem] pointer-events-none" />
+      )}
+
+      {/* Minimal Status Text (Bottom of the image) */}
+      <div className="relative z-20 pb-4 text-sm sm:text-base font-semibold tracking-wide w-full text-center">
         {isAISpeaking ? (
-          <span className="text-primary flex items-center gap-1.5 justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+          <span className="text-white flex items-center gap-2 justify-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
             {aiPersonaName} is speaking...
           </span>
         ) : isGeneratingQuestion ? (
-          <span className="text-primary flex items-center gap-1.5 justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-            {aiPersonaName} is preparing the next question...
+          <span className="text-white/80 flex items-center gap-2 justify-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            <span className="w-2.5 h-2.5 rounded-full bg-primary/70 animate-pulse" />
+            {aiPersonaName} is preparing...
           </span>
         ) : isListening ? (
-          <span className="text-red-400 flex items-center gap-1.5 justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-            Your turn - speak now. It submits when you stop.
+          <span className="text-red-400 flex items-center gap-2 justify-center font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+            Listening to you...
           </span>
         ) : isSubmittingAnswer ? (
-          <span className="text-emerald-400 flex items-center gap-1.5 justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Analyzing your answer...
+          <span className="text-emerald-400 flex items-center gap-2 justify-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            Analyzing response...
           </span>
         ) : (
-          <span className="text-muted-foreground flex items-center gap-1.5 justify-center">
-            Reviewing your answers...
+          <span className="text-white/60 flex items-center gap-2 justify-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            Ready
           </span>
         )}
       </div>
