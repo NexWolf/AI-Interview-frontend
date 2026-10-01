@@ -170,7 +170,7 @@ export default function Signin() {
             window.location.href = `${API_URL}/api/v1/auth/google`;
           }}
         >
-          <span style={{ color: "#5B21B6", fontWeight: "bold" }}>G</span>
+          <span style={{ color: "#5B21B7", fontWeight: "bold" }}>G</span>
         </SocialIcon>
         <SocialIcon label="Facebook">
           <span style={{ color: "#5B21B6", fontWeight: "bold" }}>f</span>

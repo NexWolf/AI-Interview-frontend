@@ -89,12 +89,12 @@ const CameraPreview = ({
 
     return (
       <div
-        className={`relative w-full h-full bg-slate-900 border rounded-2xl overflow-hidden flex flex-col items-center justify-center shadow-xl transition-all duration-300 ${
+        className={`relative w-full h-full bg-slate-900 flex flex-col items-center justify-center transition-all duration-300 ${
           hasVisualViolation
             ? !faceDetected || multipleFaces
-              ? "border-red-500/80 ring-2 ring-red-500/20"
-              : "border-amber-500/80 ring-2 ring-amber-500/20"
-            : "border-slate-800"
+              ? "ring-4 ring-inset ring-red-500/80 shadow-[inset_0_0_50px_rgba(239,68,68,0.3)]"
+              : "ring-4 ring-inset ring-amber-500/80 shadow-[inset_0_0_50px_rgba(245,158,11,0.3)]"
+            : ""
         }`}
       >
         {/* Candidate Identifier Badge */}
