@@ -42,7 +42,7 @@ export default function InterviewSessionPage({ params }: PageProps) {
   const { stopStream, ensureStreamActive, setMicEnabled } = useMediaStream();
   const { addViolation, flushViolations } = useViolationsManager(interviewId);
 
-  // Ensure webcam and mic are active upon entering the interview room
+  // Ensure webcam and mic stream are active upon entering the interview room
   useEffect(() => {
     ensureStreamActive().catch(() => { });
   }, [ensureStreamActive]);
@@ -126,7 +126,11 @@ export default function InterviewSessionPage({ params }: PageProps) {
     setIsGeneratingQuestion(next === "generating");
     setIsSubmittingAnswer(next === "processing");
     setIsFinishing(next === "closing");
-    setIsAISpeaking(next === "speaking");
+    // isAISpeaking is primarily driven by useInterviewAudio's actual playback events;
+    // ensure it is cleared whenever leaving "speaking" phase
+    if (next !== "speaking") {
+      setIsAISpeaking(false);
+    }
     setIsListening(next === "listening");
   }, []);
 
@@ -137,8 +141,6 @@ export default function InterviewSessionPage({ params }: PageProps) {
    * callbacks, audio "onended" handlers) can always read the *latest*
    * value without being re-created / re-subscribed on every render.
    * ======================================================================== */
-
-  // The audio and STT refs have been moved to their respective hooks.
 
   // Snapshot of text that existed before live transcription started, so we
   // don't wipe user's typed text or duplicate interim results.
@@ -212,8 +214,6 @@ export default function InterviewSessionPage({ params }: PageProps) {
     speakDoneRef,
   });
 
-  const stopSpeakingRef = useRef<() => void>(stopSpeaking);
-
   /* ==========================================================================
    * SECTION 5: SPEECH-TO-TEXT (microphone / SpeechRecognition)
    * ----------------------------------------------------------------------
@@ -231,11 +231,13 @@ export default function InterviewSessionPage({ params }: PageProps) {
     isSubmittingRef,
     setIsListening,
     answerTextRef,
-    stopSpeaking: () => stopSpeakingRef.current(),
+    stopSpeaking,
     submitAnswerRef,
     setAnswer,
     draftBaseRef,
     interviewLanguage: RoomData?.interviewLanguage,
+    setMicEnabled,
+    isAISpeaking,
   });
 
   /* ==========================================================================
@@ -288,11 +290,11 @@ export default function InterviewSessionPage({ params }: PageProps) {
     disconnectSocket,
     setMicEnabled,
     flushViolations,
+    isAISpeaking,
   });
 
   // Wire up the submit answer ref so STT can call it
   submitAnswerRef.current = submitAnswerWithText;
-  stopSpeakingRef.current = stopSpeaking;
 
   /* ==========================================================================
    * SECTION 7: SOCKET WIRING (event subscriptions)
@@ -323,12 +325,24 @@ export default function InterviewSessionPage({ params }: PageProps) {
 
     const offs = [
       onEvent<QuestionNewPayload>("question:new", ({ question }) => {
-        console.log(`[SOCKET] question:new received, id: ${question.questionId}, current q: ${currentQuestionRef.current?.id}`);
-        if (phaseRef.current === "closing") return;
-        if (currentQuestionRef.current?.id === String(question.questionId)) return;
-        if (handledQuestionIdsRef.current.has(question.questionId)) return;
+        console.debug(
+          `[${phaseRef.current}][question:new] received id: ${question.questionId}, current q: ${currentQuestionRef.current?.id}`
+        );
+        if (phaseRef.current === "closing") {
+          console.debug(`[${phaseRef.current}][question:new] ignored (closing) id: ${question.questionId}`);
+          return;
+        }
+        if (currentQuestionRef.current?.id === String(question.questionId)) {
+          console.debug(`[${phaseRef.current}][question:new] ignored (same as current) id: ${question.questionId}`);
+          return;
+        }
+        if (handledQuestionIdsRef.current.has(question.questionId)) {
+          console.debug(`[${phaseRef.current}][question:new] ignored (already handled) id: ${question.questionId}`);
+          return;
+        }
         
         handledQuestionIdsRef.current.add(question.questionId);
+        console.debug(`[${phaseRef.current}][question:new] accepted id: ${question.questionId}`);
         setQuestionLiveText(""); // Clear stream text when done
         onAskQuestion(toQuestionItem(question), true, true);
       }),
@@ -407,9 +421,9 @@ export default function InterviewSessionPage({ params }: PageProps) {
     const pending = formatted.find((q) => !q.isAnswered);
     console.log("[BOOT] status:", RoomData.status, "qs:", formatted.length, "pending:", !!pending);
     if (pending) {
-      // Resume: Sara re-reads the unanswered question, then the mic opens
+      // Resume: Sara re-reads the unanswered question via TTS, then the mic opens
       setAnswer("");
-      onAskQuestion(pending, false, true);
+      onAskQuestion(pending, true, true);
     } else {
       // Fresh interview (or all questions answered) -> start the next one
       requestNextQuestion();
@@ -427,8 +441,12 @@ export default function InterviewSessionPage({ params }: PageProps) {
       setWarningCount((prev) => prev + 1);
       toast.warning(`Integrity Notice: Hardware event detected (${event.type})`);
       
+      const mappedViolation = event.type.startsWith("camera")
+        ? ("CAMERA_DISCONNECTED" as const)
+        : ("MICROPHONE_DISCONNECTED" as const);
+
       addViolation({
-        violationType: event.type === "fullscreen_exit" ? "FULLSCREEN_EXITED" : "SYSTEM_ISSUE",
+        violationType: mappedViolation,
         category: "System_Issue",
         details: `Integrity monitor triggered: ${event.type}`,
         description: "Hardware or system integrity event detected.",

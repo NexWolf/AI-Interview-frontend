@@ -58,13 +58,16 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
             <div className="w-1 bg-red-500 h-2/6 animate-[bounce_1s_infinite_100ms]" />
           </div>
         ) : (
-          <div
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border bg-muted text-muted-foreground border-border cursor-not-allowed"
-            title="الميكروفون يعمل تلقائياً عند الحاجة"
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={isGeneratingQuestion || isSubmittingAnswer}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border-border cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
+            title="الميكروفون مغلق (انقر للتشغيل يدوياً)"
           >
             <MicOff className="w-3.5 h-3.5" />
             <span>الميكروفون مغلق</span>
-          </div>
+          </button>
         )}
       </div>
 

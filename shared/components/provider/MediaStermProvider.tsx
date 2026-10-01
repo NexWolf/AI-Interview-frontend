@@ -11,7 +11,7 @@ type MediaStreamContextType = {
   stopStream: () => void;
   restartStream: () => Promise<MediaStream | null>;
   ensureStreamActive: () => Promise<MediaStream | null>;
-  setMicEnabled: (enabled: boolean) => void;
+  setMicEnabled: (enabled: boolean, caller?: string) => void;
 };
 
 const MediaStreamContext = createContext<MediaStreamContextType | null>(null);
@@ -91,7 +91,12 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
   const streamRef = useRef<MediaStream | null>(null);
   const pendingAcquisitionRef = useRef<Promise<MediaStream | null> | null>(null);
 
+  // Invariant: mic starts OFF by default. Remember desired state across acquisitions.
+  const micEnabledRef = useRef<boolean>(false);
+
   const stopStream = useCallback(() => {
+    micEnabledRef.current = false;
+
     // 1. Stop all tracks in streamRef
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => {
@@ -115,6 +120,23 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
     setAudioStatus("idle");
   }, []);
 
+  const setMicEnabled = useCallback((enabled: boolean, caller?: string) => {
+    micEnabledRef.current = enabled;
+    console.debug(`[MIC] setMicEnabled(${enabled}) called by: ${caller || "unknown"}`);
+
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = enabled;
+      });
+    }
+    const globalStream = (typeof window !== "undefined" ? (window as any).__activeMediaStream : null) as MediaStream | undefined;
+    if (globalStream) {
+      globalStream.getAudioTracks().forEach((track) => {
+        track.enabled = enabled;
+      });
+    }
+  }, []);
+
   const startStream = useCallback(async (): Promise<MediaStream | null> => {
     // If a request is already in-flight, return the existing promise so callers share it
     if (pendingAcquisitionRef.current) {
@@ -128,6 +150,10 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
         streamRef.current.active &&
         streamRef.current.getVideoTracks().some((t) => t.readyState === "live" && t.enabled)
       ) {
+        // Enforce the remembered mic state on the existing stream's audio tracks
+        streamRef.current.getAudioTracks().forEach((track) => {
+          track.enabled = micEnabledRef.current;
+        });
         setStream(streamRef.current);
         setVideoStatus("ready");
         setAudioStatus("ready");
@@ -169,6 +195,12 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
             autoGainControl: true,
           },
         });
+
+        // CRITICAL INVARIANT: newly acquired audio tracks default to enabled = false unless explicitly requested
+        newStream.getAudioTracks().forEach((track) => {
+          track.enabled = micEnabledRef.current;
+        });
+        console.debug(`[MIC] Applied micEnabledRef (${micEnabledRef.current}) to newly acquired stream audio tracks`);
 
         streamRef.current = newStream;
         activeStreamsRegistry.add(newStream);
@@ -216,6 +248,9 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
       current.active &&
       current.getVideoTracks().some((t) => t.readyState === "live" && t.enabled)
     ) {
+      current.getAudioTracks().forEach((track) => {
+        track.enabled = micEnabledRef.current;
+      });
       setStream(current);
       setVideoStatus("ready");
       setAudioStatus("ready");
@@ -223,20 +258,6 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
     }
     return await startStream();
   }, [startStream]);
-
-  const setMicEnabled = useCallback((enabled: boolean) => {
-    if (streamRef.current) {
-      streamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = enabled;
-      });
-    }
-    const globalStream = (typeof window !== "undefined" ? (window as any).__activeMediaStream : null) as MediaStream | undefined;
-    if (globalStream) {
-      globalStream.getAudioTracks().forEach((track) => {
-        track.enabled = enabled;
-      });
-    }
-  }, []);
 
   useEffect(() => {
     startStream();
@@ -274,4 +295,3 @@ export const useMediaStream = () => {
   if (!ctx) throw Error("useMediaStream must be used inside MediaStreamProvider");
   return ctx;
 };
-
