@@ -175,6 +175,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
 
   useEffect(() => {
     if (autoConnect) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       connect();
     }
 
@@ -268,6 +269,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       interviewId: string | number;
       questionId: string | number;
       answerText: string;
+      violations?: any[];
     }) => {
       return new Promise<SocketAckResponse>((resolve) => {
         if (!socketRef.current) {
@@ -279,6 +281,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
             interviewId: String(params.interviewId),
             questionId: String(params.questionId),
             answerText: params.answerText,
+            violations: params.violations,
           },
           (response: SocketAckResponse) => resolve(response || { ok: true }),
         );
@@ -308,6 +311,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
     connected,
     isConnecting,
     error,
+    // eslint-disable-next-line react-hooks/refs
     socket: socketRef.current,
     emitEvent,
     onEvent,

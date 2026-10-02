@@ -2,34 +2,22 @@ import { useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Phase } from "../types";
 
+import { useInterviewStore } from "../store/useInterviewStore";
+
 interface UseInterviewSpeechRecognitionProps {
-  transition: (phase: Phase) => void;
-  phaseRef: React.MutableRefObject<Phase>;
-  isSubmittingRef: React.MutableRefObject<boolean>;
-  setIsListening: (isListening: boolean) => void;
-  answerTextRef: React.MutableRefObject<string>;
   stopSpeaking: () => void;
   submitAnswerRef: React.MutableRefObject<(text: string) => void>;
-  setAnswer: (text: string) => void;
   draftBaseRef: React.MutableRefObject<string>;
   interviewLanguage?: string;
   setMicEnabled?: (enabled: boolean, caller?: string) => void;
-  isAISpeaking?: boolean;
 }
 
 export function useInterviewSpeechRecognition({
-  transition,
-  phaseRef,
-  isSubmittingRef,
-  setIsListening,
-  answerTextRef,
   stopSpeaking,
   submitAnswerRef,
-  setAnswer,
   draftBaseRef,
   interviewLanguage,
   setMicEnabled,
-  isAISpeaking,
 }: UseInterviewSpeechRecognitionProps) {
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -40,23 +28,28 @@ export function useInterviewSpeechRecognition({
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
+      clearInterval(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
+    useInterviewStore.getState().setAutoSubmitCountdown(null);
   }, []);
 
   const startListening = useCallback(() => {
-    const currentPhase = phaseRef.current;
+    const state = useInterviewStore.getState();
+    const currentPhase = state.phase;
+    const isSubmitting = state.isSubmittingAnswer;
+    const isAISpeaking = state.isAISpeaking;
 
     // Strict phase & submission guards: block only if generating, processing, closing, submitting, or AI actively speaking
     if (
       currentPhase === "generating" ||
       currentPhase === "processing" ||
       currentPhase === "closing" ||
-      isSubmittingRef.current ||
+      isSubmitting ||
       isAISpeaking
     ) {
       console.debug(
-        `[${currentPhase}][startListening] blocked: phase=${currentPhase}, isAISpeaking=${isAISpeaking}, isSubmitting=${isSubmittingRef.current}`
+        `[${currentPhase}][startListening] blocked: phase=${currentPhase}, isAISpeaking=${isAISpeaking}, isSubmitting=${isSubmitting}`
       );
       return;
     }
@@ -77,7 +70,7 @@ export function useInterviewSpeechRecognition({
 
     // Invariant: Hardware mic ON, UI listening TRUE, phase -> "listening"
     setMicEnabled?.(true, "startListening");
-    transition("listening");
+    useInterviewStore.getState().setPhase("listening");
 
     if (!startedRef.current) {
       try {
@@ -87,7 +80,7 @@ export function useInterviewSpeechRecognition({
         console.warn("SpeechRecognition.start() error:", err);
       }
     }
-  }, [phaseRef, isSubmittingRef, setMicEnabled, transition]);
+  }, [setMicEnabled]);
 
   // Fired by the speech recognition engine when utterance/stream ends
   const handleRecognitionEnd = useCallback(
@@ -96,64 +89,62 @@ export function useInterviewSpeechRecognition({
       startedRef.current = false;
 
       // Stale instance check
+      const state = useInterviewStore.getState();
+      const currentPhase = state.phase;
+      
       if (recognitionRef.current !== instance) {
-        console.debug(`[${phaseRef.current}][recognition onend] ignored (stale instance)`);
+        console.debug(`[${currentPhase}][recognition onend] ignored (stale instance)`);
         return;
       }
 
       // If a fatal permission/capture error occurred, leave mic off
       if (fatalErrorRef.current) {
-        console.debug(`[${phaseRef.current}][recognition onend] ignored (fatal error)`);
+        console.debug(`[${currentPhase}][recognition onend] ignored (fatal error)`);
         setMicEnabled?.(false, "recognition onend fatal error");
-        setIsListening(false);
+        useInterviewStore.getState().setIsListening(false);
         return;
       }
 
       if (
-        phaseRef.current === "closing" ||
-        phaseRef.current !== "listening" ||
-        isSubmittingRef.current
+        currentPhase === "closing" ||
+        currentPhase !== "listening" ||
+        state.isSubmittingAnswer
       ) {
         console.debug(
-          `[${phaseRef.current}][recognition onend] ignored (phase=${phaseRef.current}, submitting=${isSubmittingRef.current})`
+          `[${currentPhase}][recognition onend] ignored (phase=${currentPhase}, submitting=${state.isSubmittingAnswer})`
         );
         setMicEnabled?.(false, "recognition onend not listening");
-        setIsListening(false);
+        useInterviewStore.getState().setIsListening(false);
         return;
       }
 
-      const text = answerTextRef.current.trim();
+      const text = state.answerText.trim();
       if (text) {
-        console.debug(`[${phaseRef.current}][recognition onend] submit (answer length: ${text.length})`);
+        console.debug(`[${currentPhase}][recognition onend] submit (answer length: ${text.length})`);
         setMicEnabled?.(false, "recognition onend submit");
-        setIsListening(false);
-        transition("processing");
+        useInterviewStore.getState().setIsListening(false);
+        useInterviewStore.getState().setPhase("processing");
         stopSpeaking();
         submitAnswerRef.current(text);
       } else {
         // No speech detected yet - restart only when phase === "listening", not submitting, and no fatal error
-        console.debug(`[${phaseRef.current}][recognition onend] restart (waiting for candidate speech)`);
+        console.debug(`[${currentPhase}][recognition onend] restart (waiting for candidate speech)`);
         try {
           instance.start();
           startedRef.current = true;
-          setIsListening(true);
+          useInterviewStore.getState().setIsListening(true);
           setMicEnabled?.(true, "recognition onend restart");
         } catch (err) {
           console.warn("SpeechRecognition restart error:", err);
           startedRef.current = false;
           setMicEnabled?.(false, "recognition restart error");
-          setIsListening(false);
+          useInterviewStore.getState().setIsListening(false);
         }
       }
     },
     [
       clearSilenceTimer,
-      phaseRef,
-      isSubmittingRef,
-      answerTextRef,
       setMicEnabled,
-      setIsListening,
-      transition,
       stopSpeaking,
       submitAnswerRef,
     ]
@@ -191,18 +182,31 @@ export function useInterviewSpeechRecognition({
         fullTranscript += event.results[i][0].transcript;
       }
       const base = draftBaseRef.current.trim();
-      setAnswer(base ? `${base} ${fullTranscript}`.trim() : fullTranscript.trim());
+      useInterviewStore.getState().setAnswerText(base ? `${base} ${fullTranscript}`.trim() : fullTranscript.trim());
 
-      // Auto-submit after 3.5 seconds of silence
+      // Start countdown logic after 2 seconds of silence
       silenceTimerRef.current = setTimeout(() => {
-        if (recognitionRef.current === instance && phaseRef.current === "listening") {
-          console.log("[SILENCE DETECTED] Candidate stopped speaking. Auto-submitting...");
-          try {
-            instance.stop();
-            startedRef.current = false;
-          } catch {}
-        }
-      }, 3500);
+        if (recognitionRef.current !== instance || useInterviewStore.getState().phase !== "listening") return;
+        
+        let countdown = 5;
+        useInterviewStore.getState().setAutoSubmitCountdown(countdown);
+        
+        silenceTimerRef.current = setInterval(() => {
+          countdown -= 1;
+          if (countdown <= 0) {
+            clearSilenceTimer();
+            if (recognitionRef.current === instance && useInterviewStore.getState().phase === "listening") {
+              console.log("[SILENCE DETECTED] Countdown finished. Auto-submitting...");
+              try {
+                instance.stop();
+                startedRef.current = false;
+              } catch {}
+            }
+          } else {
+            useInterviewStore.getState().setAutoSubmitCountdown(countdown);
+          }
+        }, 1000);
+      }, 2000);
     };
 
     recognition.onerror = (err: any) => {
@@ -222,18 +226,18 @@ export function useInterviewSpeechRecognition({
         fatalErrorRef.current = true;
         startedRef.current = false;
         setMicEnabled?.(false, `recognition fatal error: ${errorType}`);
-        setIsListening(false);
+        useInterviewStore.getState().setIsListening(false);
         if (!hasShownFatalToastRef.current) {
           hasShownFatalToastRef.current = true;
           toast.error(
             "Microphone permission denied or audio capture unavailable. Please check your browser settings or type your answer."
           );
         }
-        console.warn(`[${phaseRef.current}][recognition onerror] Fatal error: ${errorType}`);
+        console.warn(`[${useInterviewStore.getState().phase}][recognition onerror] Fatal error: ${errorType}`);
         return;
       }
 
-      console.warn(`[${phaseRef.current}][recognition onerror] Non-fatal error:`, errorType);
+      console.warn(`[${useInterviewStore.getState().phase}][recognition onerror] Non-fatal error:`, errorType);
     };
 
     recognition.onend = () => {
@@ -256,9 +260,9 @@ export function useInterviewSpeechRecognition({
         recognitionRef.current = null;
       }
       setMicEnabled?.(false, "recognition unmount");
-      setIsListening(false);
+      useInterviewStore.getState().setIsListening(false);
     };
-  }, [clearSilenceTimer, draftBaseRef, interviewLanguage, phaseRef, setAnswer, setIsListening, setMicEnabled]);
+  }, [clearSilenceTimer, draftBaseRef, interviewLanguage, setMicEnabled]);
 
   // Manual mic toggle (also used to stop & submit a voice answer)
   const toggleListening = useCallback(() => {
@@ -269,14 +273,17 @@ export function useInterviewSpeechRecognition({
       return;
     }
 
+    const state = useInterviewStore.getState();
+    const currentPhase = state.phase;
+
     // If AI is speaking, user interrupting AI stops speech and begins candidate answer
-    if (phaseRef.current === "speaking" || isAISpeaking) {
+    if (currentPhase === "speaking" || state.isAISpeaking) {
       stopSpeaking();
       startListening();
       return;
     }
 
-    if (phaseRef.current === "listening") {
+    if (currentPhase === "listening") {
       stopSpeaking();
       clearSilenceTimer();
       startedRef.current = false;
@@ -288,7 +295,7 @@ export function useInterviewSpeechRecognition({
 
     stopSpeaking();
     startListening();
-  }, [clearSilenceTimer, phaseRef, startListening, stopSpeaking]);
+  }, [clearSilenceTimer, startListening, stopSpeaking]);
 
   // A helper to forcefully stop the recognition (e.g. when skip, manual submit, or finish)
   // CRITICAL: Do NOT call transition() inside forceStopRecognition
@@ -301,8 +308,8 @@ export function useInterviewSpeechRecognition({
       }
     } catch {}
     setMicEnabled?.(false, "forceStopRecognition");
-    setIsListening(false);
-  }, [clearSilenceTimer, setIsListening, setMicEnabled]);
+    useInterviewStore.getState().setIsListening(false);
+  }, [clearSilenceTimer, setMicEnabled]);
 
   // A helper to completely abort the instance
   // CRITICAL: Do NOT call transition() inside abortRecognition
@@ -315,8 +322,8 @@ export function useInterviewSpeechRecognition({
       } catch {}
     }
     setMicEnabled?.(false, "abortRecognition");
-    setIsListening(false);
-  }, [clearSilenceTimer, setIsListening, setMicEnabled]);
+    useInterviewStore.getState().setIsListening(false);
+  }, [clearSilenceTimer, setMicEnabled]);
 
   return {
     startListening,

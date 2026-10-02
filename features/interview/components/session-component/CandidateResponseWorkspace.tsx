@@ -1,5 +1,6 @@
 import React from 'react';
-import { MicOff, AlertTriangle, Loader2, SkipForward, Send } from 'lucide-react';
+import { MicOff, AlertTriangle, Loader2, SkipForward, Send, Clock } from 'lucide-react';
+import { useInterviewStore } from '../../store/useInterviewStore';
 
 interface CandidateResponseWorkspaceProps {
   isListening: boolean;
@@ -24,6 +25,8 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
   handleSkipQuestion,
   isGeneratingQuestion,
 }) => {
+  const autoSubmitCountdown = useInterviewStore(state => state.autoSubmitCountdown);
+
   return (
     <div className="bg-card border border-border rounded-2xl p-5 shadow-xl space-y-4">
       <div className="flex items-center justify-between">
@@ -39,6 +42,12 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
             <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] flex items-center gap-1 animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Answer submitted - Sara is thinking...
+            </span>
+          )}
+          {autoSubmitCountdown !== null && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] flex items-center gap-1 animate-pulse ml-2 font-bold shadow-sm shadow-amber-500/20">
+              <Clock className="w-3 h-3" />
+              Auto-submitting in {autoSubmitCountdown}...
             </span>
           )}
         </label>

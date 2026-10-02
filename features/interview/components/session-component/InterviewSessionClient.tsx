@@ -20,6 +20,7 @@ import { LiveReportOverlay } from "@/features/interview/components/session-compo
 import { useInterviewAudio } from "@/features/interview/hooks/useInterviewAudio";
 import { useInterviewSpeechRecognition } from "@/features/interview/hooks/useInterviewSpeechRecognition";
 import { useInterviewFlow } from "@/features/interview/hooks/useInterviewFlow";
+import { useInterviewStore } from "@/features/interview/store/useInterviewStore";
 import { Phase, QuestionItem } from "@/features/interview/types";
 import { useIntegrityMonitor, IntegrityEvent } from "@/shared/hook/useIntegrityMonitor";
 import {
@@ -38,13 +39,9 @@ interface InterviewSessionClientProps {
 
 export default function InterviewSessionClient({ interviewId }: InterviewSessionClientProps) {
   const router = useRouter();
-  const { stopStream, ensureStreamActive, setMicEnabled } = useMediaStream();
-  const { addViolation, flushViolations } = useViolationsManager(interviewId);
-
-  // Ensure webcam and mic stream are active upon entering the interview room
-  useEffect(() => {
-    ensureStreamActive().catch(() => { });
-  }, [ensureStreamActive]);
+  // Media stream and violation hooks
+  const { stopStream, setMicEnabled } = useMediaStream();
+  const { addViolation, flushViolations, pullPendingViolations } = useViolationsManager(interviewId);
 
   /* ==========================================================================
    * SECTION 1: DATA FETCHING (room data)
@@ -82,32 +79,31 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
   }[selectedVoice] || "Sara";
 
   /* ==========================================================================
-   * SECTION 2: CORE STATE + PHASE STATE MACHINE
+   * SECTION 2: CORE STATE + PHASE STATE MACHINE (ZUSTAND)
    * ----------------------------------------------------------------------
-   * This is the "brain" of the page. Everything else (audio, STT, socket,
-   * domain flow) reads/writes `phase` through `transition()`.
-   *
-   * idle -> generating -> speaking -> listening -> processing -> (loop)
-   *                                                            -> closing
+   * The core state is now managed globally by useInterviewStore.
    * ======================================================================== */
 
-  const [phase, setPhase] = useState<Phase>("idle");
-  const phaseRef = useRef<Phase>("idle");
+  const {
+    phase,
+    currentQuestion,
+    questionList,
+    answerText,
+    isAISpeaking,
+    isListening,
+    submissionError,
+    setAnswerText,
+    setIsAISpeaking,
+    setSubmissionError,
+  } = useInterviewStore();
 
-  // Question/answer domain state
-  const [currentQuestion, setCurrentQuestion] = useState<QuestionItem | null>(null);
-  const [questionList, setQuestionList] = useState<QuestionItem[]>([]);
-  const [answerText, setAnswerText] = useState<string>("");
+  const isGeneratingQuestion = phase === "generating";
+  const isSubmittingAnswer = phase === "processing";
+  const isFinishing = phase === "closing";
 
-  // Derived UI flags (kept in sync with `phase` by transition())
-  const [isGeneratingQuestion, setIsGeneratingQuestion] = useState<boolean>(false);
-  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState<boolean>(false);
-  const [isFinishing, setIsFinishing] = useState<boolean>(false);
-  const [isAISpeaking, setIsAISpeaking] = useState<boolean>(false);
-  const [isListening, setIsListening] = useState<boolean>(false);
+
 
   // Integrity / proctoring state
-  const [warning, setWarning] = useState<IntegrityEvent | null>(null);
   const [warningCount, setWarningCount] = useState<number>(0);
 
   // Live socket text (used only during report generation)
@@ -116,22 +112,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
   // Live socket text (used during question generation)
   const [questionLiveText, setQuestionLiveText] = useState<string>("");
 
-  // Error state for answer submission resilience
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
-  const transition = useCallback((next: Phase) => {
-    phaseRef.current = next;
-    setPhase(next);
-    setIsGeneratingQuestion(next === "generating");
-    setIsSubmittingAnswer(next === "processing");
-    setIsFinishing(next === "closing");
-    // isAISpeaking is primarily driven by useInterviewAudio's actual playback events;
-    // ensure it is cleared whenever leaving "speaking" phase
-    if (next !== "speaking") {
-      setIsAISpeaking(false);
-    }
-    setIsListening(next === "listening");
-  }, []);
 
   /* ==========================================================================
    * SECTION 3: SHARED REFS
@@ -144,32 +125,6 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
   // Snapshot of text that existed before live transcription started, so we
   // don't wipe user's typed text or duplicate interim results.
   const draftBaseRef = useRef<string>("");
-
-  // Latest answer text (kept in sync with answerText state and cached in sessionStorage)
-  const answerTextRef = useRef<string>("");
-  const setAnswer = useCallback((text: string) => {
-    answerTextRef.current = text;
-    setAnswerText(text);
-    const q = currentQuestionRef.current;
-    if (q?.id && typeof window !== "undefined") {
-      try {
-        if (text.trim()) {
-          sessionStorage.setItem(`interview_draft_${q.id}`, text);
-        } else {
-          sessionStorage.removeItem(`interview_draft_${q.id}`);
-        }
-      } catch { }
-    }
-  }, []);
-
-  // Latest current question (kept in sync with currentQuestion state)
-  const currentQuestionRef = useRef<QuestionItem | null>(null);
-  useEffect(() => {
-    currentQuestionRef.current = currentQuestion;
-  }, [currentQuestion]);
-
-  // Lock to avoid double submission
-  const isSubmittingRef = useRef<boolean>(false);
 
   // Callback fired when Sara finishes reading a question out loud —
   // wired to auto-open the mic when the flow is live.
@@ -225,18 +180,11 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     forceStopRecognition,
     abortRecognition,
   } = useInterviewSpeechRecognition({
-    transition,
-    phaseRef,
-    isSubmittingRef,
-    setIsListening,
-    answerTextRef,
     stopSpeaking,
     submitAnswerRef,
-    setAnswer,
     draftBaseRef,
     interviewLanguage: RoomData?.interviewLanguage,
     setMicEnabled,
-    isAISpeaking,
   });
 
   /* ==========================================================================
@@ -262,14 +210,6 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     interviewId,
     liveConnected,
     emitEvent,
-    transition,
-    phaseRef,
-    isSubmittingRef,
-    currentQuestionRef,
-    setCurrentQuestion,
-    setQuestionList,
-    answerTextRef,
-    setAnswer,
     draftBaseRef,
     setSubmissionError,
     speakDoneRef,
@@ -285,11 +225,10 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     languageRef,
     router,
     stopStream,
-    currentQuestion,
     disconnectSocket,
     setMicEnabled,
     flushViolations,
-    isAISpeaking,
+    pullPendingViolations,
   });
 
   // Wire up the submit answer ref so STT can call it
@@ -325,43 +264,50 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     const offs = [
       onEvent<QuestionNewPayload>("question:new", ({ question }) => {
         console.debug(
-          `[${phaseRef.current}][question:new] received id: ${question.questionId}, current q: ${currentQuestionRef.current?.id}`
+          `[${useInterviewStore.getState().phase}][question:new] received id: ${question.questionId}, current q: ${useInterviewStore.getState().currentQuestion?.id}`
         );
-        if (phaseRef.current === "closing") {
-          console.debug(`[${phaseRef.current}][question:new] ignored (closing) id: ${question.questionId}`);
+        const currentPhase = useInterviewStore.getState().phase;
+        if (currentPhase === "closing") {
+          console.debug(`[${currentPhase}][question:new] ignored (closing) id: ${question.questionId}`);
           return;
         }
-        if (currentQuestionRef.current?.id === String(question.questionId)) {
-          console.debug(`[${phaseRef.current}][question:new] ignored (same as current) id: ${question.questionId}`);
+        if (useInterviewStore.getState().currentQuestion?.id === String(question.questionId)) {
+          console.debug(`[${currentPhase}][question:new] ignored (same as current) id: ${question.questionId}`);
           return;
         }
         if (handledQuestionIdsRef.current.has(question.questionId)) {
-          console.debug(`[${phaseRef.current}][question:new] ignored (already handled) id: ${question.questionId}`);
+          console.debug(`[${currentPhase}][question:new] ignored (already handled) id: ${question.questionId}`);
           return;
         }
         
         handledQuestionIdsRef.current.add(question.questionId);
-        console.debug(`[${phaseRef.current}][question:new] accepted id: ${question.questionId}`);
+        console.debug(`[${useInterviewStore.getState().phase}][question:new] accepted id: ${question.questionId}`);
         setQuestionLiveText(""); // Clear stream text when done
-        onAskQuestion(toQuestionItem(question), true, true);
+        
+        const newQ = toQuestionItem(question);
+        useInterviewStore.getState().addQuestion(newQ);
+        
+        if (useInterviewStore.getState().phase === "generating") {
+          onAskQuestion(newQ, true, true);
+        }
       }),
       onEvent<{ text: string }>("question:stream", ({ text }) => {
         setQuestionLiveText((prev) => prev + text);
       }),
       onEvent<SocketErrorPayload>("question:error", ({ message }) => {
         console.log("[SOCKET] question:error:", message);
-        if (phaseRef.current === "generating") transition("idle");
+        if (useInterviewStore.getState().phase === "generating") useInterviewStore.getState().setPhase("idle");
         toast.error(message || "Failed to generate next question");
       }),
       onEvent<SocketErrorPayload>("answer:error", ({ message }) => {
         console.log("[SOCKET] answer:error:", message);
-        if (phaseRef.current === "processing") transition("idle");
+        if (useInterviewStore.getState().phase === "processing") useInterviewStore.getState().setPhase("idle");
         toast.error(message || "Failed to save answer");
       }),
       onEvent<SocketErrorPayload>("summary:error", ({ message }) => {
         console.log("[SOCKET] summary:error:", message);
         toast.dismiss();
-        transition("idle");
+        useInterviewStore.getState().setPhase("idle");
         toast.error(message || "Error generating report");
       }),
       onEvent<{ text: string }>("summary:stream", ({ text }) => {
@@ -370,7 +316,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
       onEvent<SummaryDonePayload>("summary:done", () => {
         console.log("[SOCKET] summary:done received");
         setReportLiveText("");
-        transition("idle");
+        useInterviewStore.getState().setPhase("idle");
         stopGlobalMediaStream();
         toast.dismiss();
         toast.success("Interview completed! Loading your evaluation report...");
@@ -383,7 +329,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     return () => {
       offs.forEach((off) => off());
     };
-  }, [interviewId, emitEvent, onEvent, transition, router, onAskQuestion, toQuestionItem]);
+  }, [interviewId, emitEvent, onEvent, router, onAskQuestion, toQuestionItem]);
 
   /* ==========================================================================
    * SECTION 8: FINISH / CLOSE INTERVIEW
@@ -415,19 +361,19 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
       questionOrder: q.questionOrder,
       isAnswered: q.isAnswered,
     }));
-    setQuestionList(formatted);
+    useInterviewStore.getState().setQuestionList(formatted);
 
     const pending = formatted.find((q) => !q.isAnswered);
     console.log("[BOOT] status:", RoomData.status, "qs:", formatted.length, "pending:", !!pending);
     if (pending) {
       // Resume: Sara re-reads the unanswered question via TTS, then the mic opens
-      setAnswer("");
+      setAnswerText("");
       onAskQuestion(pending, true, true);
     } else {
       // Fresh interview (or all questions answered) -> start the next one
       requestNextQuestion();
     }
-  }, [RoomData, interviewId, router, setAnswer, onAskQuestion, requestNextQuestion]);
+  }, [RoomData, interviewId, router, setAnswerText, onAskQuestion, requestNextQuestion]);
 
   /* ==========================================================================
    * SECTION 10: INTEGRITY / PROCTORING / TIMER
@@ -436,7 +382,6 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
   useIntegrityMonitor({
     interviewId,
     onViolation: (event: IntegrityEvent) => {
-      setWarning(event);
       setWarningCount((prev) => prev + 1);
       toast.warning(`Integrity Notice: Hardware event detected (${event.type})`);
       
@@ -571,7 +516,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
               isSubmittingAnswer={isSubmittingAnswer}
               toggleListening={toggleListening}
               answerText={answerText}
-              setAnswer={setAnswer}
+              setAnswer={setAnswerText}
               submissionError={submissionError}
               handleSubmitAnswer={handleSubmitAnswer}
               handleSkipQuestion={handleSkipQuestion}
