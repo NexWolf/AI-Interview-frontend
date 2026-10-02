@@ -104,7 +104,7 @@ export default function Signin() {
 
     try {
       setLoading(true);
-      const response = await AxiosAPI.post("/api/auth/login", form);
+      const response = await AxiosAPI.post("/api/v1/auth/login", form);
       toast.success(response?.data?.message || "Login successfully");
       isSuccess = true;
       isOnboardingDone = Boolean(response?.data?.data?.user?.onboardingDone);
