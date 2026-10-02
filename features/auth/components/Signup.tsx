@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, ReactNode, useState } from "react";
-import { User, Mail, Lock, ShieldCheck, Loader2 } from "lucide-react";
+import { User, Mail, Lock, ShieldCheck, Loader2, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
@@ -14,6 +14,7 @@ function AuthField({
   value,
   onChange,
   autoComplete,
+  disabled,
 }: {
   icon: ReactNode;
   type: string;
@@ -21,23 +22,39 @@ function AuthField({
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   autoComplete?: string;
+  disabled?: boolean;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const currentType = isPassword ? (showPassword ? "text" : "password") : type;
+
   return (
     <div
-      className="group relative flex h-11 min-w-0 items-center rounded-2xl border-0 px-3.5 transition-all focus-within:ring-2 focus-within:ring-[#7C3AED]/40"
+      className={`group relative flex h-11 min-w-0 items-center rounded-2xl border-0 px-3.5 transition-all focus-within:ring-2 focus-within:ring-[#7C3AED]/40 ${disabled ? "opacity-60" : ""}`}
       style={{ backgroundColor: "#F0F2F5" }}
     >
       <span className="flex shrink-0 items-center text-[#6B7280] transition-colors group-focus-within:text-[#7C3AED]">
         {icon}
       </span>
       <input
-        type={type}
+        type={currentType}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}
-        className="ml-2.5 min-w-0 w-full bg-transparent text-sm leading-none text-black placeholder:text-gray-500 outline-none"
+        disabled={disabled}
+        className="ml-2.5 min-w-0 w-full bg-transparent text-sm leading-none text-black placeholder:text-gray-500 outline-none disabled:cursor-not-allowed"
       />
+      {isPassword && (
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShowPassword(!showPassword)}
+          className="ml-2 flex shrink-0 items-center text-[#6B7280] transition-colors hover:text-[#7C3AED] focus:outline-none"
+        >
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      )}
     </div>
   );
 }
@@ -162,6 +179,7 @@ export default function Signup() {
             type="text"
             placeholder="First name"
             value={form.firstName}
+            disabled={loading}
             onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
           />
           <AuthField
@@ -169,6 +187,7 @@ export default function Signup() {
             type="text"
             placeholder="Last name"
             value={form.lastName}
+            disabled={loading}
             onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
           />
         </div>
@@ -178,6 +197,7 @@ export default function Signup() {
           placeholder="Email"
           autoComplete="email"
           value={form.email}
+          disabled={loading}
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
         />
         <AuthField
@@ -186,6 +206,7 @@ export default function Signup() {
           placeholder="Password"
           autoComplete="new-password"
           value={form.password}
+          disabled={loading}
           onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
         />
         <AuthField
@@ -194,6 +215,7 @@ export default function Signup() {
           placeholder="Confirm password"
           autoComplete="new-password"
           value={form.confirmPassword}
+          disabled={loading}
           onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}
         />
         {passwordsMismatch && (

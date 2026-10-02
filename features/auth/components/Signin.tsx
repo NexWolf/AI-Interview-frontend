@@ -3,10 +3,11 @@
 import { ChangeEvent, FormEvent, ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Loader2 } from "lucide-react";
-import axios from "axios";
+import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
 import { toast } from "sonner";
 import { API_URL } from "@/constants/routes";
+import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 
 function AuthField({
   icon,
@@ -15,6 +16,7 @@ function AuthField({
   value,
   onChange,
   autoComplete,
+  disabled,
 }: {
   icon: ReactNode;
   type: string;
@@ -22,23 +24,39 @@ function AuthField({
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   autoComplete?: string;
+  disabled?: boolean;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const currentType = isPassword ? (showPassword ? "text" : "password") : type;
+
   return (
     <div
-      className="group relative flex h-11 items-center rounded-2xl border-0 px-4 transition-all focus-within:ring-2 focus-within:ring-[#7C3AED]/40"
+      className={`group relative flex h-11 items-center rounded-2xl border-0 px-4 transition-all focus-within:ring-2 focus-within:ring-[#7C3AED]/40 ${disabled ? "opacity-60" : ""}`}
       style={{ backgroundColor: "#F0F2F5" }}
     >
       <span className="flex shrink-0 items-center text-[#6B7280] transition-colors group-focus-within:text-[#7C3AED]">
         {icon}
       </span>
       <input
-        type={type}
+        type={currentType}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}
-        className="ml-3 w-full bg-transparent text-sm leading-none text-black placeholder:text-gray-500 outline-none"
+        disabled={disabled}
+        className="ml-3 w-full bg-transparent text-sm leading-none text-black placeholder:text-gray-500 outline-none disabled:cursor-not-allowed"
       />
+      {isPassword && (
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShowPassword(!showPassword)}
+          className="ml-2 flex shrink-0 items-center text-[#6B7280] transition-colors hover:text-[#7C3AED] focus:outline-none"
+        >
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      )}
     </div>
   );
 }
@@ -86,13 +104,13 @@ export default function Signin() {
 
     try {
       setLoading(true);
-      const response = await axios.post("/api/auth/login", form);
+      const response = await AxiosAPI.post("/api/auth/login", form);
       toast.success(response?.data?.message || "Login successfully");
       isSuccess = true;
       isOnboardingDone = Boolean(response?.data?.data?.user?.onboardingDone);
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        toast.error(error?.response?.data?.message || "Login failed!");
+    } catch (error: any) {
+      if (error?.response?.data?.message) {
+        toast.error(error.response.data.message);
       } else {
         toast.error("Something went wrong");
       }
@@ -124,6 +142,7 @@ export default function Signin() {
           placeholder="Email"
           autoComplete="email"
           value={form.email}
+          disabled={loading}
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
         />
         <AuthField
@@ -132,6 +151,7 @@ export default function Signin() {
           placeholder="Password"
           autoComplete="current-password"
           value={form.password}
+          disabled={loading}
           onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
         />
         <button
@@ -172,14 +192,13 @@ export default function Signin() {
         >
           <span style={{ color: "#5B21B7", fontWeight: "bold" }}>G</span>
         </SocialIcon>
-        <SocialIcon label="Facebook">
-          <span style={{ color: "#5B21B6", fontWeight: "bold" }}>f</span>
-        </SocialIcon>
-        <SocialIcon label="Twitter">
-          <span style={{ color: "#5B21B6", fontWeight: "bold" }}>t</span>
-        </SocialIcon>
-        <SocialIcon label="LinkedIn">
-          <span style={{ color: "#5B21B6", fontWeight: "bold" }}>in</span>
+        <SocialIcon
+          label="GitHub"
+          onClick={() => {
+            window.location.href = `${API_URL}/api/v1/auth/github`;
+          }}
+        >
+          <FaGithub className="h-5 w-5 text-[#5B21B7]" />
         </SocialIcon>
       </div>
     </div>
