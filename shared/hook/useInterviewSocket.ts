@@ -68,6 +68,12 @@ export interface UseInterviewSocketOptions {
 async function fetchAccessToken(): Promise<string | null> {
   try {
     const res = await fetch("/api/auth/token");
+    if (res.status === 401) {
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth";
+      }
+      return null;
+    }
     if (!res.ok) return null;
     const data = await res.json();
     return data.accessToken || null;
