@@ -130,6 +130,23 @@ export const SetupContainer = () => {
 
   return (
     <div className="relative w-full min-h-screen bg-background text-foreground p-4 sm:p-8 flex flex-col justify-center items-center transition-colors duration-200">
+      
+      {/* Full-screen Loading Overlay for Interview Preparation */}
+      {isPending && (
+        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <div className="bg-card border border-border shadow-2xl rounded-3xl p-8 max-w-md w-full flex flex-col items-center text-center animate-in fade-in zoom-in duration-300">
+            <div className="relative mb-6">
+              <div className="w-20 h-20 border-4 border-primary/20 rounded-full"></div>
+              <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin absolute inset-0"></div>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Preparing Your Interview</h2>
+            <p className="text-sm text-muted-foreground">
+              Please wait while our AI interviewer generates your customized questions...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Theme Toggle in top corner */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-8 z-50">
         <ThemeToggle />
@@ -139,7 +156,7 @@ export const SetupContainer = () => {
         <FormTag
           onSubmit={OnSubmit}
           methods={methods}
-          button_title={isPending ? "Starting Interview..." : "Start Interview"}
+          button_title="Start Interview"
           disabeld={!isReadyToStart}
         >
           {/* Header */}

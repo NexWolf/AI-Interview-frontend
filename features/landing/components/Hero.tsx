@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
+
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, MousePointerClick } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { TextShimmer } from "@/components/ui/text-shimmer";
@@ -27,6 +29,8 @@ const SplineScene = dynamic(
 
 export function Hero() {
   const { t, direction } = useLanguage();
+  const [isInteracting, setIsInteracting] = useState(false);
+
   return (
     <section className="relative h-[100svh] overflow-hidden bg-black">
 
@@ -173,6 +177,7 @@ export function Hero() {
                     src="/images/mohammed.jpg"
                     alt="Customer"
                     fill
+                    priority
                     sizes="28px"
                     className="object-cover"
                   />
@@ -193,6 +198,7 @@ export function Hero() {
                     src="/images/ahmed.jpg"
                     alt="Customer"
                     fill
+                    priority
                     sizes="28px"
                     className="object-cover"
                   />
@@ -213,6 +219,7 @@ export function Hero() {
                     src="/images/adham.jpg"
                     alt="Customer"
                     fill
+                    priority
                     sizes="28px"
                     className="object-cover"
                   />
@@ -266,15 +273,36 @@ export function Hero() {
           />
 
           {/* Spline */}
-          <SplineScene
-            scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-            className="
-              relative
-              z-10
-              h-full
-              w-full
-            "
-          />
+          {isInteracting ? (
+            <SplineScene
+              scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+              className="
+                relative
+                z-10
+                h-full
+                w-full
+                animate-in fade-in duration-1000
+              "
+            />
+          ) : (
+            <div 
+              className="relative z-10 flex h-full w-full items-center justify-center animate-in fade-in duration-500"
+            >
+              <div 
+                className="flex flex-col items-center justify-center gap-4 transition-transform duration-300 hover:scale-105 cursor-pointer"
+                onMouseEnter={() => setIsInteracting(true)}
+                onClick={() => setIsInteracting(true)}
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#6136BF]/20 border border-[#6136BF]/50 text-[#6136BF] shadow-[0_0_30px_rgba(97,54,191,0.3)] backdrop-blur-md">
+                  <MousePointerClick className="w-8 h-8" />
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-sm font-semibold tracking-wide text-white">Interactive 3D AI</span>
+                  <span className="text-xs font-medium tracking-wider text-white/40 uppercase">Hover or click to view</span>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
 

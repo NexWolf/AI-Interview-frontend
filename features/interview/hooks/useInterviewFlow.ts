@@ -291,17 +291,21 @@ export function useInterviewFlow({
       console.log("[SUBMIT] path:", liveConnected ? "socket" : "http", "qid:", q.id, "textLen:", text.length, "violations:", payload.violations?.length || 0);
 
       if (liveConnected) {
+        // Proceed instantly without waiting for the backend (Zero Latency Submission)
+        proceed();
+        
         emitEvent("answer:submit", payload, ({ ok, message }: any) => {
           if (!ok) {
             const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
-            handleFailure(errMsg);
-            return;
+            console.error(errMsg);
+            // We ignore handleFailure here because we already proceeded to the next question
           }
-          proceed();
         });
         return;
       }
 
+      // Same for HTTP
+      proceed();
       AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/answer`, {
         answerText: text,
       })

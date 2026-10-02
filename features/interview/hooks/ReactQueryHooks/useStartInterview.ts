@@ -11,9 +11,10 @@ export const useStartInterview = () => {
         
         onSuccess : (response) => {
             const interviewId = response.interview.id;
-
             if(interviewId) {
-                queryClient.setQueryData(["interview" , interviewId], response)
+                // Do not set query data here because the response shape from startInterview
+                // is different from getInterviewById. Let the interview room fetch it fresh.
+                queryClient.invalidateQueries({ queryKey: ["interview", interviewId] });
             }
         } 
     })

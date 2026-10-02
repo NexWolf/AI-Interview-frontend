@@ -373,7 +373,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
       // Fresh interview (or all questions answered) -> start the next one
       requestNextQuestion();
     }
-  }, [RoomData, interviewId, router, setAnswerText, onAskQuestion, requestNextQuestion]);
+  }, [RoomData, interviewId, router, setAnswerText, onAskQuestion, requestNextQuestion, emitEvent]);
 
   /* ==========================================================================
    * SECTION 10: INTEGRITY / PROCTORING / TIMER
