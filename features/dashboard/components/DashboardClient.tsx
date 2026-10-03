@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useDashboard } from "@/shared/hook/useDashboard";
 import { useGetAllInterviews } from "@/features/interview/hooks/ReactQueryHooks/useGetAllInterviews";
 import { useUserInfo } from "@/shared/hook/useUserInfo";
+import { useLanguage } from "@/shared/context/LanguageContext";
 import { cn } from "@/shared/lib/utils";
 
 const statusStyles: Record<string, string> = {
@@ -38,8 +39,12 @@ const formatDate = (iso?: string | null) => {
   });
 };
 
-const greeting = () => {
+const greeting = (isAr: boolean) => {
   const hour = new Date().getHours();
+  if (isAr) {
+    if (hour < 12) return "صباح الخير";
+    return "مساء الخير";
+  }
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
@@ -79,6 +84,8 @@ function DashboardSkeleton() {
 export default function DashboardClient() {
   const router = useRouter();
   const { data: user } = useUserInfo();
+  const { t, language } = useLanguage();
+  const isAr = language === "ar";
   const {
     data: dashboard,
     isLoading: dashboardLoading,
@@ -100,9 +107,13 @@ export default function DashboardClient() {
     return (
       <div className="max-w-md mx-auto my-20 rounded-2xl border border-border bg-card/60 p-8 text-center">
         <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-        <h2 className="text-lg font-bold">Profile setup required</h2>
+        <h2 className="text-lg font-bold">
+          {isAr ? "يلزم إعداد الملف الشخصي" : "Profile setup required"}
+        </h2>
         <p className="text-sm text-muted-foreground mt-2">
-          Complete your profile setup to unlock your dashboard, skills tracking and interview reports.
+          {isAr
+            ? "أكمل إعداد ملفك الشخصي لتفعيل لوحة التحكم، ومتابعة المهارات، وتقارير المقابلات."
+            : "Complete your profile setup to unlock your dashboard, skills tracking and interview reports."}
         </p>
         <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
@@ -110,13 +121,13 @@ export default function DashboardClient() {
             className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
           >
             <Sparkles className="w-4 h-4" />
-            Complete Profile Setup
+            {isAr ? "إكمال إعداد الملف الشخصي" : "Complete Profile Setup"}
           </Link>
           <Link
             href="/dashboard/profile"
             className="inline-flex items-center justify-center gap-2 border border-border px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-muted/50 transition-colors"
           >
-            View My Profile
+            {isAr ? "عرض ملفي الشخصي" : "View My Profile"}
           </Link>
         </div>
       </div>
@@ -125,13 +136,13 @@ export default function DashboardClient() {
 
   const stats = [
     {
-      label: "Total Interviews",
+      label: t("dashboard.stats.total"),
       value: dashboard?.totalInterviews ?? 0,
       icon: Briefcase,
       accent: "from-indigo-500 to-violet-500",
     },
     {
-      label: "Average Score",
+      label: t("dashboard.stats.avgScore"),
       value:
         averageScore !== null && averageScore !== undefined
           ? `${Math.round(toNumber(averageScore))}%`
@@ -140,7 +151,7 @@ export default function DashboardClient() {
       accent: "from-emerald-500 to-teal-500",
     },
     {
-      label: "Assessed Skills",
+      label: isAr ? "المهارات المقيمة" : "Assessed Skills",
       value: dashboard?.skillProgress?.length ?? 0,
       icon: Trophy,
       accent: "from-amber-500 to-orange-500",
@@ -153,10 +164,10 @@ export default function DashboardClient() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {greeting()}, {user?.firstName || "Candidate"} 👋
+            {greeting(isAr)}, {user?.firstName || (isAr ? "المرشح" : "Candidate")} 👋
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Track your progress, review reports, and sharpen your interview skills with AI.
+            {t("dashboard.subtitle")}
           </p>
         </div>
         <Link
@@ -164,7 +175,7 @@ export default function DashboardClient() {
           className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98]"
         >
           <Plus className="w-4 h-4" />
-          Start New Interview
+          {t("dashboard.nav.newInterview")}
         </Link>
       </div>
 
@@ -189,15 +200,17 @@ export default function DashboardClient() {
         {/* Skill progress */}
         <div className="lg:col-span-1 rounded-2xl border border-border/70 bg-card/70 p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-sm">Skill Progress</h2>
+            <h2 className="font-bold text-sm">{isAr ? "تطور المهارات" : "Skill Progress"}</h2>
             <Link href="/dashboard/profile" className="text-xs text-primary hover:underline">
-              Manage
+              {isAr ? "إدارة" : "Manage"}
             </Link>
           </div>
 
           {!dashboard?.skillProgress?.length ? (
             <p className="text-xs text-muted-foreground italic">
-              No assessed skills yet. Complete an AI interview to build your skill profile.
+              {isAr
+                ? "لم يتم تقييم أي مهارات بعد. أكمل مقابلة بالذكاء الاصطناعي لبناء ملف مهاراتك."
+                : "No assessed skills yet. Complete an AI interview to build your skill profile."}
             </p>
           ) : (
             <div className="space-y-4">
@@ -238,31 +251,36 @@ export default function DashboardClient() {
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-sm flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" />
-              Recent Interviews
+              {t("dashboard.recent.title")}
             </h2>
           </div>
 
           {interviewsLoading && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground py-6">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading interviews...
+              <Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري تحميل المقابلات..." : "Loading interviews..."}
             </div>
           )}
 
           {interviewsError && (
-            <p className="text-xs text-red-400 italic py-6">Failed to load interviews.</p>
+            <p className="text-xs text-red-400 italic py-6">
+              {isAr ? "فشل تحميل المقابلات." : "Failed to load interviews."}
+            </p>
           )}
 
           {!interviewsLoading && !interviewsError && interviews?.length === 0 && (
             <div className="py-10 text-center space-y-3">
               <Briefcase className="w-10 h-10 text-muted-foreground/50 mx-auto" />
               <p className="text-sm text-muted-foreground">
-                No interviews yet — take your first AI interview!
+                {isAr
+                  ? "لا توجد مقابلات بعد — ابدأ أول مقابلة تجريبية بالذكاء الاصطناعي!"
+                  : "No interviews yet — take your first AI interview!"}
               </p>
               <Link
                 href="/interview/setup"
                 className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline"
               >
-                Start now <ArrowRight className="w-4 h-4" />
+                {t("dashboard.recent.startNow")}{" "}
+                <ArrowRight className={cn("w-4 h-4", isAr && "rotate-180")} />
               </Link>
             </div>
           )}
@@ -280,7 +298,7 @@ export default function DashboardClient() {
                         : `/dashboard/interviewDetails?id=${interview.id}`,
                     )
                   }
-                  className="w-full flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/40 hover:border-border px-4 py-3.5 text-left transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/40 hover:border-border px-4 py-3.5 text-left rtl:text-right transition-colors cursor-pointer"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -300,18 +318,21 @@ export default function DashboardClient() {
                       </span>
                     </div>
                     <p className="text-sm font-medium mt-1.5 truncate">
-                      {interview.skills?.map((s) => s.name).join(", ") || "General Technical Evaluation"}
+                      {interview.skills?.map((s) => s.name).join(", ") ||
+                        (isAr ? "تقييم تقني عام" : "General Technical Evaluation")}
                     </p>
                   </div>
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-right rtl:text-left">
                     {inProgress ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Resume
+                        {isAr ? "متابعة" : "Resume"}
                       </span>
                     ) : (
                       <>
-                        <p className="text-xs font-semibold">{interview.totalQuestions} Qs</p>
+                        <p className="text-xs font-semibold">
+                          {interview.totalQuestions} {isAr ? "أسئلة" : "Qs"}
+                        </p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {formatDate(interview.createdAt)}
                         </p>

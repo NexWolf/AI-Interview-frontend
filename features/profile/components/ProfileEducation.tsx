@@ -5,6 +5,7 @@ import Educations from "@/features/onboarding/components/Educations";
 import { useForm } from "react-hook-form";
 import { EducationData } from "../types/profileEducation.types";
 import FormDialog from "@/shared/components/form/FormDialog";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 type EducationProps = {
   editable: boolean;
@@ -83,12 +84,19 @@ export const ProfileEducation = ({
   };
 
   const [openForm, setOpenForm] = useState<boolean>(false);
+  const { language } = useLanguage();
+  const isAr = language === "ar";
+
   return (
     <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-xs space-y-4">
       {openForm && (
         <FormDialog
-          title="Edit Education Data"
-          description="Update your Education information below."
+          title={isAr ? "تعديل بيانات التعليم" : "Edit Education Data"}
+          description={
+            isAr
+              ? "قم بتحديث معلوماتك الأكاديمية والجامعية أدناه."
+              : "Update your Education information below."
+          }
           onOpen={openForm}
           onClose={() => {
             setOpenForm(false);
@@ -96,24 +104,24 @@ export const ProfileEducation = ({
           }}
           onSubmit={handleFormSubmit}
           methods={methods}
-          form_button_title="Save"
-          loading_title="Saving..."
+          form_button_title={isAr ? "حفظ" : "Save"}
+          loading_title={isAr ? "جاري الحفظ..." : "Saving..."}
         >
           <Educations name="educations" />
         </FormDialog>
       )}
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground border-b border-border/40 pb-3">
-          Education
+      <div className="flex items-center justify-between border-b border-border/40 pb-3">
+        <h2 className="text-lg font-bold text-foreground">
+          {isAr ? "التعليم والمؤهلات الأكاديمية" : "Education"}
         </h2>
 
         {editable && <ActionIcons onEdit={() => setOpenForm(true)} />}
       </div>
 
       {!educationData || educationData.length === 0 ? (
-        <p className="text-xs text-muted-foreground italic">
-          No education entries added yet.
+        <p className="text-xs text-muted-foreground italic py-2">
+          {isAr ? "لم تتم إضافة أي مؤهلات تعليمية بعد." : "No education entries added yet."}
         </p>
       ) : (
         <div className="space-y-6">
@@ -131,7 +139,7 @@ export const ProfileEducation = ({
                   {edu.degree ? `• Degree Code: ${edu.degree}` : ""}
                 </p>
                 <p className="text-xs text-muted-foreground/80">
-                  {edu.startDate} — {edu.isCurrent ? "Present" : edu.endDate}
+                  {edu.startDate} — {edu.isCurrent ? (isAr ? "حتى الآن" : "Present") : edu.endDate}
                 </p>
                 {edu.description && (
                   <p className="text-xs text-foreground/80 pt-1 leading-normal">

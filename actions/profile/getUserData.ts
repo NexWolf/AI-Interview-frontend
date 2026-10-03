@@ -14,7 +14,7 @@ export async function getUserData() {
     try {
         const { AxiosServerAPI } = await import("@/shared/lib/AxiosServerAPI");
 
-        const response = await AxiosServerAPI.get(`${API_URL}/api/v1/users/me/`, {
+        const response = await AxiosServerAPI.get(`${API_URL}/api/v1/users/me`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }

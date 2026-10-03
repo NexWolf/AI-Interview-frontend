@@ -18,9 +18,10 @@ export const useStartInterview = () => {
       }
 
       const isArabic = response?.interview?.interviewLanguage === "Arabic";
+      const candidateName = response?.user?.firstName || response?.user?.userName || "";
       const defaultIntroText = isArabic
-        ? "تحدث عن نفسك وخلفيتك المهنية."
-        : "Tell me about yourself.";
+        ? `أهلاً بك${candidateName ? ` يا ${candidateName}` : ""}! كبداية لمقابلتنا، هل يمكنك أن تعرفنا عن نفسك وعن خلفيتك المهنية، وتحدثنا عن أبرز خبراتك العملية والمشاريع الواقعية التي عملت عليها؟`
+        : `Welcome${candidateName ? `, ${candidateName}` : ""}! To kick off our interview, could you please introduce yourself, share an overview of your background, and tell me about your practical experience and key projects?`;
 
       const currentQ = formatToQuestionItem(response?.introductionQuestion, {
         defaultOrder: 1,

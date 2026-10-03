@@ -210,14 +210,13 @@ export function useInterviewAudio({
         }
       };
 
-      if (audioUrl) {
+      const playWithAudioUrl = (url: string, onFail: () => void) => {
         try {
-          const audio = new Audio(audioUrl);
+          const audio = new Audio(url);
           audioPlayerRef.current = audio;
 
           audio.onplaying = () => {
             if (mySession !== speechSessionRef.current) return;
-            // Real start of audio playback
             setIsAISpeaking(true);
           };
 
@@ -229,7 +228,7 @@ export function useInterviewAudio({
           audio.onerror = (e) => {
             if (mySession !== speechSessionRef.current) return;
             console.warn(`[speaking][session:${mySession}] audio onerror:`, e);
-            runFallbackTTS();
+            onFail();
           };
 
           const playPromise = audio.play();
@@ -237,22 +236,30 @@ export function useInterviewAudio({
             playPromise.catch((err) => {
               if (mySession !== speechSessionRef.current) return;
               if (err?.name === "AbortError") {
-                // AbortError is normal when playback is interrupted or superseded
                 return;
               }
               console.warn(`[speaking][session:${mySession}] audio.play() rejected:`, err);
-              runFallbackTTS();
+              onFail();
             });
           }
-          return;
         } catch (err) {
           console.warn(`[speaking][session:${mySession}] Audio instantiation failed:`, err);
-          runFallbackTTS();
-          return;
+          onFail();
         }
+      };
+
+      if (audioUrl) {
+        playWithAudioUrl(audioUrl, () => {
+          // If backend audio fails, try frontend edge tts before robotic browser voice
+          const edgeTtsUrl = `/api/tts?text=${encodeURIComponent(text)}`;
+          playWithAudioUrl(edgeTtsUrl, runFallbackTTS);
+        });
+        return;
       }
 
-      runFallbackTTS();
+      // If no backend audioUrl, use frontend Edge TTS route
+      const edgeTtsUrl = `/api/tts?text=${encodeURIComponent(text)}`;
+      playWithAudioUrl(edgeTtsUrl, runFallbackTTS);
     },
     [clearAllTimers, selectedVoice, setIsAISpeaking, speakDoneRef]
   );

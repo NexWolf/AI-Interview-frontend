@@ -4,7 +4,7 @@ import { UserSkillItem } from "../types/userSkills";
 
 export const userService = {
     getMe: async (): Promise<UserInfoApi> => {
-        const response = await AxiosAPI.get("/api/v1/users/me/");
+        const response = await AxiosAPI.get("/api/v1/users/me");
         return response.data.data.user;
     },
     getUserSkills: async (): Promise<UserSkillItem[]> => {

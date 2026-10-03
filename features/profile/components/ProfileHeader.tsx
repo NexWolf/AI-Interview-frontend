@@ -30,6 +30,7 @@ import CameraCaptureModal from "./CameraCaptureModal";
 import ImageCropModal from "./ImageCropModal";
 import "react-phone-number-input/style.css";
 import { ProfileApi } from "../types/profile.types";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 type PropsPropfile = {
   onSave: (data: ProfileHeaderData) => void;
@@ -44,6 +45,8 @@ export const ProfileHeader = ({
   data,
   editable,
 }: PropsPropfile) => {
+  const { language } = useLanguage();
+  const isAr = language === "ar";
   const [openForm, setOpenForm] = useState<boolean>(false);
   const [openImageForm, setOpenImageForm] = useState<boolean>(false);
   const [previewImageOpen, setPreviewImageOpen] = useState<boolean>(false);
@@ -251,8 +254,12 @@ export const ProfileHeader = ({
       {/* OPEN PROFILE UPDATE FORM */}
       {openForm && (
         <FormDialog
-          title="Edit Bio Data"
-          description="Update your bio and personal information below."
+          title={isAr ? "تعديل البيانات الشخصية" : "Edit Bio Data"}
+          description={
+            isAr
+              ? "قم بتحديث معلوماتك الشخصية وروابط التواصل أدناه."
+              : "Update your bio and personal information below."
+          }
           onOpen={openForm}
           onClose={() => {
             setOpenForm(false);
@@ -260,7 +267,7 @@ export const ProfileHeader = ({
           }}
           onSubmit={handleFormSubmit}
           methods={methods}
-          form_button_title="Edit"
+          form_button_title={isAr ? "حفظ التغييرات" : "Save Changes"}
         >
           <div className="space-y-4 py-1">
             <FileUploadInput name="avatarUpload" label="" multiple={false} />
@@ -350,10 +357,10 @@ export const ProfileHeader = ({
                 type="button"
                 onClick={handleRemoveCover}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white/90 hover:text-white text-xs font-medium backdrop-blur-md border border-white/20 transition-all shadow-md active:scale-95 cursor-pointer"
-                title="Remove cover"
+                title={isAr ? "إزالة الغلاف" : "Remove cover"}
               >
                 <X className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Remove</span>
+                <span className="hidden sm:inline">{isAr ? "إزالة الغلاف" : "Remove"}</span>
               </button>
             )}
             <button
@@ -362,7 +369,11 @@ export const ProfileHeader = ({
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-medium backdrop-blur-md border border-white/20 transition-all shadow-md active:scale-95 cursor-pointer"
             >
               <Camera className="w-3.5 h-3.5" />
-              <span>{coverImage ? "Change Cover" : "Add Cover Photo"}</span>
+              <span>
+                {coverImage
+                  ? (isAr ? "تغيير الغلاف" : "Change Cover")
+                  : (isAr ? "إضافة غلاف" : "Add Cover Photo")}
+              </span>
             </button>
           </div>
         )}
@@ -414,7 +425,9 @@ export const ProfileHeader = ({
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col items-center justify-center gap-1.5 text-white z-20">
                   <Camera className="w-6 h-6 text-white animate-in zoom-in-75 duration-150" />
                   <span className="text-[11px] font-semibold tracking-wide">
-                    {data?.avatarUrl ? "Change Photo" : "Add Photo"}
+                    {data?.avatarUrl
+                      ? (isAr ? "تغيير الصورة" : "Change Photo")
+                      : (isAr ? "إضافة صورة" : "Add Photo")}
                   </span>
                 </div>
               )}
@@ -448,7 +461,7 @@ export const ProfileHeader = ({
               {data?.isVerified && (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Verified</span>
+                  <span>{isAr ? "مرشح موثق" : "Verified"}</span>
                 </span>
               )}
             </div>

@@ -21,7 +21,7 @@ export const AIAvatarStage: React.FC<AIAvatarStageProps> = ({
   isSubmittingAnswer,
 }) => {
   return (
-    <div className="relative flex flex-col items-center justify-end w-full h-full min-h-[320px] overflow-hidden rounded-[2rem] group">
+    <div className="relative flex flex-col items-center justify-end w-full h-full min-h-0 overflow-hidden rounded-2xl md:rounded-3xl group">
       
       {/* Background Full-bleed Image */}
       <div className="absolute inset-0 z-0">

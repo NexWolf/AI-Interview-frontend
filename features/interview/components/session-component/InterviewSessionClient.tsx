@@ -63,6 +63,20 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     }
   }, [RoomData?.interviewLanguage]);
 
+  // Suppress and hide any toasts while inside the active interview session
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.id = "hide-interview-toasts";
+    style.innerHTML = `[data-sonner-toaster], [data-sonner-toast] { display: none !important; }`;
+    document.head.appendChild(style);
+    toast.dismiss();
+
+    return () => {
+      const el = document.getElementById("hide-interview-toasts");
+      if (el) el.remove();
+    };
+  }, []);
+
   const [selectedVoice, setSelectedVoice] = useState<string>("Kore");
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -419,7 +433,6 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     interviewId,
     onViolation: (event: IntegrityEvent) => {
       setWarningCount((prev) => prev + 1);
-      toast.warning(`Integrity Notice: Hardware event detected (${event.type})`);
       
       const mappedViolation = event.type.startsWith("camera")
         ? ("CAMERA_DISCONNECTED" as const)
@@ -430,7 +443,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
         category: "System_Issue",
         details: `Integrity monitor triggered: ${event.type}`,
         description: "Hardware or system integrity event detected.",
-        systemResponse: "Warned user and logged event.",
+        systemResponse: "Logged hardware integrity event.",
       });
     },
   });
@@ -445,14 +458,13 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     isEnabled: true,
     onTabSwitch: () => {
       setWarningCount((prev) => prev + 1);
-      toast.error("Proctoring Warning: Please do not switch tabs or minimize the browser during the interview!");
       
       addViolation({
         violationType: "TAB_SWITCH",
         category: "Intentional",
         details: "User switched browser tabs or minimized the window.",
         description: "Tab switch detected during active interview.",
-        systemResponse: "Displayed error toast to user.",
+        systemResponse: "Recorded tab switch event.",
         isCheating: true,
       });
     },
@@ -499,7 +511,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
    * ======================================================================== */
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans w-full">
+    <div className="min-h-screen lg:h-screen lg:max-h-screen bg-background text-foreground flex flex-col font-sans w-full lg:overflow-hidden">
       {/* 12a. Top Header Bar */}
       <InterviewHeader
         RoomData={RoomData}
@@ -511,21 +523,20 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
       />
 
       {/* 2. Main Workspace (Dual Column / Split-Screen Layout) */}
-      <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 h-full">
+      <div className="flex-1 w-full max-w-7xl mx-auto p-3 sm:p-4 lg:p-5 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 min-h-0 lg:overflow-hidden">
         
         {/* =========================================================
             LEFT COLUMN: CANDIDATE (YOU)
             ========================================================= */}
-        <div className="flex flex-col gap-6 w-full h-full">
-          {/* Candidate Webcam (Top) */}
-          <div className="h-[320px] w-full flex items-center justify-center relative bg-muted/20 rounded-[2rem] shadow-inner overflow-hidden border border-border/30">
+        <div className="flex flex-col gap-3 sm:gap-3.5 w-full h-full min-h-0 justify-between">
+          {/* Candidate Webcam (Top) - scaled to ~half page and matched with AI avatar */}
+          <div className="h-[270px] sm:h-[310px] lg:h-[45vh] max-h-[390px] w-full flex items-center justify-center relative bg-muted/20 rounded-2xl md:rounded-3xl shadow-md overflow-hidden border border-border/40 shrink-0">
             {!isFinishing && (
               <div className="absolute inset-0 w-full h-full">
                 <CameraPreview
                   isRoomInterview={true}
                   onCameraViolation={(v) => {
                     setWarningCount((prev) => prev + 1);
-                    toast.warning(`Proctoring Notice: ${v.message}`);
                     
                     let mappedType: any = "SYSTEM_ISSUE";
                     if (v.message.toLowerCase().includes("multiple faces")) mappedType = "MULTIPLE_FACES_DETECTED";
@@ -536,7 +547,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
                       category: mappedType === "MULTIPLE_FACES_DETECTED" ? "Intentional" : "Unintentional",
                       details: v.message,
                       description: "Camera violation detected by model.",
-                      systemResponse: "Displayed warning toast.",
+                      systemResponse: "Recorded camera proctoring violation.",
                       isCheating: mappedType === "MULTIPLE_FACES_DETECTED",
                     });
                   }}
@@ -546,7 +557,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
           </div>
 
           {/* Candidate Workspace / Text (Bottom) */}
-          <div className="flex-1 min-h-[250px] flex flex-col justify-start">
+          <div className="flex-1 min-h-0 flex flex-col justify-start">
             <CandidateResponseWorkspace
               isListening={isListening}
               isSubmittingAnswer={isSubmittingAnswer}
@@ -564,9 +575,9 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
         {/* =========================================================
             RIGHT COLUMN: AI INTERVIEWER (SARA)
             ========================================================= */}
-        <div className="flex flex-col gap-6 w-full h-full">
-          {/* AI Avatar (Top) */}
-          <div className="h-[320px] w-full flex items-center justify-center relative bg-muted/20 rounded-[2rem] border border-border/30 shadow-inner overflow-hidden">
+        <div className="flex flex-col gap-3 sm:gap-3.5 w-full h-full min-h-0 justify-between">
+          {/* AI Avatar (Top) - scaled to ~half page and matched with Candidate Webcam */}
+          <div className="h-[270px] sm:h-[310px] lg:h-[45vh] max-h-[390px] w-full flex items-center justify-center relative bg-muted/20 rounded-2xl md:rounded-3xl border border-border/40 shadow-md overflow-hidden shrink-0">
             <AIAvatarStage
               aiPersonaName={aiPersonaName}
               selectedVoice={selectedVoice}
@@ -581,7 +592,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
           </div>
 
           {/* AI Speech Bubble (Bottom) */}
-          <div className="flex-1 min-h-[250px] flex flex-col justify-start">
+          <div className="flex-1 min-h-0 flex flex-col justify-start">
             <QuestionDisplayCard
               currentQuestion={currentQuestion}
               questionList={questionList}
