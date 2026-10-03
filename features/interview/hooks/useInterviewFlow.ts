@@ -3,22 +3,16 @@ import { toast } from "sonner";
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Phase, QuestionItem } from "../types";
+import { useInterviewStore } from "../store/useInterviewStore";
+import { formatToQuestionItem } from "../utils/questionMapper";
 import { stopGlobalMediaStream } from "@/shared/components/provider/MediaStermProvider";
 
 interface UseInterviewFlowProps {
   interviewId: string;
   liveConnected: boolean;
   emitEvent: (event: string, payload: any, callback?: any) => void;
-  transition: (phase: Phase) => void;
-  phaseRef: MutableRefObject<Phase>;
-  isSubmittingRef: MutableRefObject<boolean>;
-  currentQuestionRef: MutableRefObject<QuestionItem | null>;
-  setCurrentQuestion: React.Dispatch<React.SetStateAction<QuestionItem | null>>;
-  setQuestionList: React.Dispatch<React.SetStateAction<QuestionItem[]>>;
-  answerTextRef: MutableRefObject<string>;
-  setAnswer: (text: string) => void;
   draftBaseRef: MutableRefObject<string>;
-  setSubmissionError: React.Dispatch<React.SetStateAction<string | null>>;
+  setSubmissionError: (err: string | null) => void;
   speakDoneRef: MutableRefObject<(() => void) | null>;
   startListening: () => void;
   stopSpeaking: () => void;
@@ -37,25 +31,16 @@ interface UseInterviewFlowProps {
   languageRef: MutableRefObject<string>;
   router: AppRouterInstance;
   stopStream: () => void;
-  currentQuestion: QuestionItem | null;
-  flushViolations?: () => Promise<void> | void;
-  setMicEnabled?: (enabled: boolean, caller?: string) => void;
   disconnectSocket?: () => void;
-  isAISpeaking?: boolean;
+  setMicEnabled?: (enabled: boolean, caller?: string) => void;
+  pullPendingViolations?: () => any[];
+  flushViolations?: () => Promise<void> | void;
 }
 
 export function useInterviewFlow({
   interviewId,
   liveConnected,
   emitEvent,
-  transition,
-  phaseRef,
-  isSubmittingRef,
-  currentQuestionRef,
-  setCurrentQuestion,
-  setQuestionList,
-  answerTextRef,
-  setAnswer,
   draftBaseRef,
   setSubmissionError,
   speakDoneRef,
@@ -71,11 +56,10 @@ export function useInterviewFlow({
   languageRef,
   router,
   stopStream,
-  currentQuestion,
-  flushViolations,
   setMicEnabled,
   disconnectSocket,
-  isAISpeaking,
+  pullPendingViolations,
+  flushViolations,
 }: UseInterviewFlowProps) {
   const [displayedQuestion, setDisplayedQuestion] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
@@ -91,22 +75,12 @@ export function useInterviewFlow({
     }
   }, []);
 
-  // Model a freshly generated question from the socket/HTTP payload
+  // Model a freshly generated question from any payload uniformly
   const toQuestionItem = useCallback(
     (qd: any): QuestionItem => {
-      const audio = qd.questionAudio
-        ? makeAudioUrl(qd.questionAudio.audioBase64, qd.questionAudio.mimeType)
-        : null;
-      return {
-        id: String(qd.questionId),
-        question: qd.question,
-        questionOrder: qd.questionOrder,
-        keyTopics: qd.keyTopics || [],
-        questionAudio: audio,
-        isAnswered: false,
-      };
+      return formatToQuestionItem(qd) as QuestionItem;
     },
-    [makeAudioUrl]
+    []
   );
 
   // Ask a question: speak it, then open the mic so the user can answer
@@ -118,11 +92,20 @@ export function useInterviewFlow({
       setMicEnabled?.(false, "onAskQuestion");
 
       const currentToken = ++questionTokenRef.current;
-      isSubmittingRef.current = false;
-      currentQuestionRef.current = q;
-      setCurrentQuestion(q);
-      setQuestionList((prev) =>
-        prev.some((x) => x.id === q.id) ? prev : [...prev, q]
+      useInterviewStore.getState().setCurrentQuestion(q);
+      useInterviewStore.getState().addQuestion(q);
+
+      console.log(
+        "%c🗣️ [STEP 1: onAskQuestion] Displaying question as currentQuestion:",
+        "background: #2563eb; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+        {
+          id: q.id,
+          order: q.questionOrder,
+          question: q.question,
+          hasAudio: !!q.questionAudio,
+          shouldSpeak,
+          autoListen,
+        }
       );
 
       let existingDraft = "";
@@ -131,10 +114,10 @@ export function useInterviewFlow({
           existingDraft = sessionStorage.getItem(`interview_draft_${q.id}`) || "";
         } catch {}
       }
-      setAnswer(existingDraft);
+      useInterviewStore.getState().setAnswerText(existingDraft);
       draftBaseRef.current = existingDraft;
       setSubmissionError(null);
-      transition("speaking");
+      useInterviewStore.getState().setPhase("speaking");
 
       const onTTSDone = () => {
         clearListenTimer();
@@ -142,38 +125,46 @@ export function useInterviewFlow({
         setDisplayedQuestion(q.question);
         setIsTyping(false);
 
+        console.log(
+          "%c🔊 [TTS DONE] AI voice finished speaking. Preparing microphone...",
+          "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+          { questionId: q.id, autoListen }
+        );
+
         // Verify ALL required conditions before enabling microphone
+        const state = useInterviewStore.getState();
         if (
           questionTokenRef.current !== currentToken ||
-          phaseRef.current !== "speaking" ||
-          isSubmittingRef.current ||
-          currentQuestionRef.current?.id !== q.id ||
-          currentQuestionRef.current?.isAnswered
+          state.phase !== "speaking" ||
+          state.isSubmittingAnswer ||
+          state.currentQuestion?.id !== q.id ||
+          state.currentQuestion?.isAnswered
         ) {
           console.debug(
-            `[${phaseRef.current}][qToken:${currentToken}] speakDone ignored: phase=${phaseRef.current}, submitting=${isSubmittingRef.current}, qid=${currentQuestionRef.current?.id}`
+            `[${state.phase}][qToken:${currentToken}] speakDone ignored: phase=${state.phase}, submitting=${state.isSubmittingAnswer}, qid=${state.currentQuestion?.id}`
           );
           return;
         }
 
         if (autoListen) {
-          console.debug(`[${phaseRef.current}][qToken:${currentToken}] speakDone -> scheduling startListening`);
+          console.debug(`[${state.phase}][qToken:${currentToken}] speakDone -> scheduling startListening`);
           // 300ms buffer prevents candidate mic from picking up residual room echo of AI voice
           listenTimerRef.current = setTimeout(() => {
             listenTimerRef.current = null;
+            const currentState = useInterviewStore.getState();
             if (
               questionTokenRef.current === currentToken &&
-              phaseRef.current === "speaking" &&
-              !isSubmittingRef.current &&
-              currentQuestionRef.current?.id === q.id &&
-              !currentQuestionRef.current?.isAnswered
+              currentState.phase === "speaking" &&
+              !currentState.isSubmittingAnswer &&
+              currentState.currentQuestion?.id === q.id &&
+              !currentState.currentQuestion?.isAnswered
             ) {
               startListening();
             }
           }, 300);
         } else {
-          console.debug(`[${phaseRef.current}][qToken:${currentToken}] speakDone -> transition to idle (autoListen=false)`);
-          transition("idle");
+          console.debug(`[${state.phase}][qToken:${currentToken}] speakDone -> transition to idle (autoListen=false)`);
+          useInterviewStore.getState().setPhase("idle");
         }
       };
 
@@ -184,20 +175,13 @@ export function useInterviewFlow({
     [
       abortRecognition,
       clearListenTimer,
-      currentQuestionRef,
       draftBaseRef,
       languageRef,
-      phaseRef,
-      setCurrentQuestion,
-      setQuestionList,
-      setAnswer,
       setMicEnabled,
       setSubmissionError,
       speakDoneRef,
       speakQuestion,
       startListening,
-      transition,
-      isSubmittingRef,
     ]
   );
 
@@ -205,14 +189,66 @@ export function useInterviewFlow({
   onAskQuestionRef.current = onAskQuestion;
 
   const requestNextQuestion = useCallback(() => {
-    if (phaseRef.current === "generating" || phaseRef.current === "closing") return;
-    clearListenTimer();
-    abortRecognition();
-    setMicEnabled?.(false, "requestNextQuestion");
-    stopSpeaking();
-    transition("generating");
+    const state = useInterviewStore.getState();
+    const currentPhase = state.phase;
+
+    console.log(
+      "%c🔍 [REQUEST NEXT] Checking next question availability in buffer:",
+      "background: #6366f1; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      {
+        currentQuestionId: state.currentQuestion?.id,
+        currentPhase,
+        bufferedNextQuestion: state.nextQuestion
+          ? { id: state.nextQuestion.id, order: state.nextQuestion.questionOrder }
+          : null,
+        questionListLength: state.questionList.length,
+        unansweredInList: state.questionList
+          .filter((x) => !x.isAnswered)
+          .map((x) => ({ id: x.id, order: x.questionOrder })),
+      }
+    );
+
+    if (currentPhase === "generating" || currentPhase === "closing") {
+      console.log(`[REQUEST NEXT] Aborting because phase is already '${currentPhase}'`);
+      return;
+    }
+
+    // 1. Check if there is an upcoming question ready (Prefetch hit!)
+    // Prioritize nextQuestion, then fallback to any unanswered question in questionList
+    const currentQId = state.currentQuestion?.id;
+    const targetNext =
+      state.nextQuestion ||
+      state.questionList.find((q) => !q.isAnswered && q.id !== currentQId);
+
+    if (targetNext) {
+      // PREFETCH HIT: Ask immediately, zero latency!
+      console.log(
+        "%c🎉 [PREFETCH HIT] Found target question ready! Moving to currentQuestion with ZERO wait:",
+        "background: #059669; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+        {
+          targetQuestionId: targetNext.id,
+          order: targetNext.questionOrder,
+          source: state.nextQuestion?.id === targetNext.id ? "nextQuestion buffer" : "questionList fallback",
+        }
+      );
+      useInterviewStore.getState().setNextQuestion(null);
+      onAskQuestionRef.current(targetNext, true, true);
+    } else {
+      // PREFETCH MISS: (e.g. initial load without buffer, or backend is slow)
+      console.log(
+        "%c⏳ [PREFETCH MISS] No target question found in buffer! Setting phase to 'generating'...",
+        "background: #d97706; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+      );
+      clearListenTimer();
+      abortRecognition();
+      setMicEnabled?.(false, "requestNextQuestion");
+      stopSpeaking();
+      useInterviewStore.getState().setPhase("generating");
+    }
+
     setQuestionLiveText("");
 
+    // 2. ALWAYS request the backend to generate the NEXT question (to keep the buffer full)
     const voiceToSend =
       (typeof window !== "undefined"
         ? sessionStorage.getItem("interview_ai_voice")
@@ -220,7 +256,12 @@ export function useInterviewFlow({
       selectedVoice ||
       "Kore";
 
-    console.log("[REQUEST-NEXT] path:", liveConnected ? "socket" : "http", "voice:", voiceToSend);
+    console.log(
+      "%c📡 [PREFETCH BUFFERING] Requesting backend to generate upcoming question:",
+      "background: #0284c7; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      { voiceToSend, path: liveConnected ? "SOCKET" : "HTTP" }
+    );
+
     if (liveConnected) {
       emitEvent("question:generate", { interviewId, speakQuestion: true, voice: voiceToSend });
       return;
@@ -231,11 +272,17 @@ export function useInterviewFlow({
       voice: voiceToSend,
     })
       .then((res) => {
-        onAskQuestionRef.current(toQuestionItem(res.data.data), true, true);
+        const newQ = toQuestionItem(res.data.data);
+        console.log("📥 [HTTP GENERATE RESPONSE] Received generated question:", newQ?.id);
+        useInterviewStore.getState().addQuestion(newQ);
+        // If we were starving, ask it immediately!
+        if (useInterviewStore.getState().phase === "generating") {
+          onAskQuestionRef.current(newQ, true, true);
+        }
       })
       .catch((e: any) => {
         console.error("Generate question error:", e);
-        transition("idle");
+        useInterviewStore.getState().setPhase("idle");
         toast.error(e?.response?.data?.message || "Failed to generate next question");
       });
   }, [
@@ -244,13 +291,11 @@ export function useInterviewFlow({
     emitEvent,
     interviewId,
     liveConnected,
-    phaseRef,
     selectedVoice,
     setMicEnabled,
     setQuestionLiveText,
     stopSpeaking,
     toQuestionItem,
-    transition,
   ]);
 
   const requestNextQuestionRef = useRef(requestNextQuestion);
@@ -258,57 +303,103 @@ export function useInterviewFlow({
 
   const submitAnswerWithText = useCallback(
     (text: string) => {
-      if (isSubmittingRef.current) return;
-      const q = currentQuestionRef.current;
-      if (!q || q.isAnswered) return;
+      const state = useInterviewStore.getState();
+      if (state.isSubmittingAnswer) {
+        console.warn("[SUBMIT BLOCKED] Already submitting answer.");
+        return;
+      }
+      const q = state.currentQuestion;
+      if (!q || q.isAnswered) {
+        console.warn("[SUBMIT BLOCKED] No active question or already answered:", q?.id);
+        return;
+      }
+
+      console.log(
+        "%c🚀 [STEP 2: submitAnswerWithText] Submitting Answer:",
+        "background: #f59e0b; color: black; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+        {
+          questionId: q.id,
+          questionOrder: q.questionOrder,
+          answerLength: text.length,
+          answerPreview: text.length > 60 ? text.substring(0, 60) + "..." : text,
+          transport: liveConnected ? "SOCKET" : "HTTP",
+        }
+      );
 
       // Invariant: Stop STT & disable hardware mic BEFORE network call
       clearListenTimer();
       abortRecognition();
       setMicEnabled?.(false, "submitAnswerWithText");
       stopSpeaking();
-      transition("processing");
-
-      isSubmittingRef.current = true;
+      useInterviewStore.getState().setPhase("processing");
 
       const proceed = () => {
-        isSubmittingRef.current = false;
+        console.log(
+          "%c⚡ [STEP 3: proceed()] Optimistic local update -> marking question as answered:",
+          "background: #8b5cf6; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+          {
+            answeredQuestionId: q.id,
+          }
+        );
         setSubmissionError(null);
         if (typeof window !== "undefined" && q?.id) {
           try {
             sessionStorage.removeItem(`interview_draft_${q.id}`);
           } catch {}
         }
-        setAnswer("");
-        setCurrentQuestion((prev) => (prev ? { ...prev, isAnswered: true } : null));
+        useInterviewStore.getState().setAnswerText("");
+        useInterviewStore.getState().setCurrentQuestion({ ...q, isAnswered: true });
+
+        console.log(
+          "%c⏩ [STEP 4: proceed() -> requestNextQuestion] Calling requestNextQuestion()...",
+          "background: #8b5cf6; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+        );
         requestNextQuestionRef.current();
       };
 
       const handleFailure = (errMsg: string) => {
-        isSubmittingRef.current = false;
         // Invariant: On failure, restore answer text, transition to idle, mic stays OFF
-        setAnswer(text);
+        console.error("❌ [SUBMIT FAILURE]:", errMsg);
+        useInterviewStore.getState().setAnswerText(text);
         setMicEnabled?.(false, "submitAnswerWithText failure");
-        transition("idle");
+        useInterviewStore.getState().setPhase("idle");
         setSubmissionError(errMsg);
         toast.error(errMsg);
       };
 
-      const payload = { interviewId, questionId: q.id, answerText: text };
-      console.log("[SUBMIT] path:", liveConnected ? "socket" : "http", "qid:", q.id, "textLen:", text.length);
+      const payload: any = { interviewId, questionId: q.id, answerText: text };
+      if (pullPendingViolations) {
+        payload.violations = pullPendingViolations();
+      }
 
       if (liveConnected) {
-        emitEvent("answer:submit", payload, ({ ok, message }: any) => {
+        // Proceed instantly without waiting for the backend (Zero Latency Submission)
+        proceed();
+
+        console.log(
+          "%c📡 [STEP 5: BACKGROUND SOCKET] Emitting 'answer:submit' event in background...",
+          "background: #0284c7; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+          payload
+        );
+        
+        emitEvent("answer:submit", payload, ({ ok, message, data }: any) => {
+          console.log(
+            "%c📥 [STEP 6: SOCKET ACK] Backend answer:submit acknowledgment received:",
+            ok
+              ? "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+              : "background: #ef4444; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+            { ok, message, data }
+          );
           if (!ok) {
             const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
-            handleFailure(errMsg);
-            return;
+            console.error(errMsg);
           }
-          proceed();
         });
         return;
       }
 
+      // Same for HTTP
+      proceed();
       AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/answer`, {
         answerText: text,
       })
@@ -324,22 +415,18 @@ export function useInterviewFlow({
     [
       abortRecognition,
       clearListenTimer,
-      currentQuestionRef,
       emitEvent,
       interviewId,
-      isSubmittingRef,
       liveConnected,
-      setAnswer,
-      setCurrentQuestion,
       setMicEnabled,
       setSubmissionError,
       stopSpeaking,
-      transition,
     ]
   );
 
   const replayQuestion = useCallback(() => {
-    const q = currentQuestionRef.current;
+    const state = useInterviewStore.getState();
+    const q = state.currentQuestion;
     if (!q) return;
 
     clearListenTimer();
@@ -348,18 +435,19 @@ export function useInterviewFlow({
     stopSpeaking();
 
     const currentToken = ++questionTokenRef.current;
-    transition("speaking");
+    useInterviewStore.getState().setPhase("speaking");
 
     const onTTSDone = () => {
       clearListenTimer();
       setDisplayedQuestion(q.question);
       setIsTyping(false);
-
+      
+      const currentState = useInterviewStore.getState();
       if (
         questionTokenRef.current !== currentToken ||
-        phaseRef.current !== "speaking" ||
-        isSubmittingRef.current ||
-        currentQuestionRef.current?.id !== q.id
+        currentState.phase !== "speaking" ||
+        currentState.isSubmittingAnswer ||
+        currentState.currentQuestion?.id !== q.id
       ) {
         return;
       }
@@ -367,17 +455,18 @@ export function useInterviewFlow({
       if (!q.isAnswered) {
         listenTimerRef.current = setTimeout(() => {
           listenTimerRef.current = null;
+          const freshState = useInterviewStore.getState();
           if (
             questionTokenRef.current === currentToken &&
-            phaseRef.current === "speaking" &&
-            !isSubmittingRef.current &&
-            !currentQuestionRef.current?.isAnswered
+            freshState.phase === "speaking" &&
+            !freshState.isSubmittingAnswer &&
+            !freshState.currentQuestion?.isAnswered
           ) {
             startListening();
           }
         }, 300);
       } else {
-        transition("idle");
+        useInterviewStore.getState().setPhase("idle");
       }
     };
 
@@ -386,20 +475,16 @@ export function useInterviewFlow({
   }, [
     abortRecognition,
     clearListenTimer,
-    currentQuestionRef,
-    isSubmittingRef,
     languageRef,
-    phaseRef,
     setMicEnabled,
     speakDoneRef,
     speakQuestion,
     startListening,
     stopSpeaking,
-    transition,
   ]);
 
   const handleSubmitAnswer = useCallback(() => {
-    const text = answerTextRef.current.trim();
+    const text = useInterviewStore.getState().answerText.trim();
     if (!text) {
       toast.error("Please provide or speak an answer before submitting.");
       return;
@@ -410,7 +495,7 @@ export function useInterviewFlow({
     stopSpeaking();
     setSubmissionError(null);
     submitAnswerWithText(text);
-  }, [abortRecognition, answerTextRef, clearListenTimer, setMicEnabled, setSubmissionError, stopSpeaking, submitAnswerWithText]);
+  }, [abortRecognition, clearListenTimer, setMicEnabled, setSubmissionError, stopSpeaking, submitAnswerWithText]);
 
   const handleSkipQuestion = useCallback(() => {
     clearListenTimer();
@@ -419,7 +504,7 @@ export function useInterviewFlow({
     stopSpeaking();
     setSubmissionError(null);
     toast.info("Question skipped");
-    const q = currentQuestionRef.current;
+    const q = useInterviewStore.getState().currentQuestion;
     if (q) {
       if (typeof window !== "undefined") {
         try {
@@ -431,10 +516,10 @@ export function useInterviewFlow({
       });
     }
     requestNextQuestionRef.current();
-  }, [abortRecognition, clearListenTimer, currentQuestionRef, interviewId, setMicEnabled, setSubmissionError, stopSpeaking]);
+  }, [abortRecognition, clearListenTimer, interviewId, setMicEnabled, setSubmissionError, stopSpeaking]);
 
   const handleFinishInterview = useCallback(async () => {
-    if (phaseRef.current === "closing") return;
+    if (useInterviewStore.getState().phase === "closing") return;
 
     const confirmed = typeof window !== "undefined"
       ? window.confirm("Are you sure you want to end the interview now?")
@@ -442,7 +527,7 @@ export function useInterviewFlow({
     if (!confirmed) return;
 
     clearListenTimer();
-    transition("closing");
+    useInterviewStore.getState().setPhase("closing");
     stopSpeaking();
     abortRecognition();
     setMicEnabled?.(false, "handleFinishInterview");
@@ -488,17 +573,16 @@ export function useInterviewFlow({
     flushViolations,
     interviewId,
     liveConnected,
-    phaseRef,
     router,
     setMicEnabled,
     setReportLiveText,
     stopSpeaking,
     stopStream,
-    transition,
   ]);
 
   // Typewriter effect for displaying the generated question smoothly
   useEffect(() => {
+    const currentQuestion = useInterviewStore.getState().currentQuestion;
     if (!currentQuestion?.question) {
       setDisplayedQuestion("");
       setIsTyping(false);
@@ -517,7 +601,8 @@ export function useInterviewFlow({
         clearInterval(interval);
         setIsTyping(false);
         // If AI is not actively speaking sound and speechDone is still pending, trigger it
-        if (!isAISpeaking && phaseRef.current === "speaking" && speakDoneRef.current) {
+        const state = useInterviewStore.getState();
+        if (!state.isAISpeaking && state.phase === "speaking" && speakDoneRef.current) {
           const cb = speakDoneRef.current;
           speakDoneRef.current = null;
           cb();
@@ -525,7 +610,7 @@ export function useInterviewFlow({
       }
     }, speed);
     return () => clearInterval(interval);
-  }, [currentQuestion?.question]);
+  }, [useInterviewStore().currentQuestion?.question, speakDoneRef]);
 
   // Cleanup timers on unmount
   useEffect(() => {

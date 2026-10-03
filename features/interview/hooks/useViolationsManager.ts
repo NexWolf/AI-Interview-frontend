@@ -114,8 +114,20 @@ export const useViolationsManager = (interviewId: string | number) => {
     return () => window.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [interviewId]);
 
+  // 5. Pull and clear pending violations without sending (for socket piggybacking)
+  const pullPendingViolations = useCallback((): InterviewViolation[] => {
+    const currentViolations = [...violationsRef.current];
+    if (currentViolations.length === 0) return [];
+    
+    // Clear local storage and ref immediately
+    violationsRef.current = [];
+    localStorage.removeItem(storageKey);
+    return currentViolations;
+  }, [storageKey]);
+
   return {
     addViolation,
     flushViolations,
+    pullPendingViolations,
   };
 };

@@ -83,7 +83,7 @@ export default function AuthSwitch({
           --foreground: #111827;
           --muted-foreground: #9CA3AF;
           --card: #FFFFFF;
-          --shadow-elegant: 0 25px 60px -15px rgba(124, 58, 237, 0.25);
+          --shadow-elegant: 0 25px 60px -15px rgba(97, 54, 191, 0.25);
         }
         .font-display { font-family: "Sora", ui-sans-serif, system-ui, sans-serif; }
 
@@ -151,7 +151,7 @@ export default function AuthSwitch({
             style={{
               clipPath: RIGHT_TINT_PATH,
               background:
-                "linear-gradient(135deg, color-mix(in oklab, var(--primary) 55%, transparent) 0%, color-mix(in oklab, var(--accent) 70%, transparent) 100%)",
+                "linear-gradient(135deg, rgba(20, 10, 40, 0.7) 0%, rgba(97, 54, 191, 0.55) 100%)",
             }}
           />
         </div>
@@ -176,7 +176,7 @@ export default function AuthSwitch({
             style={{
               clipPath: LEFT_TINT_PATH,
               background:
-                "linear-gradient(135deg, color-mix(in oklab, var(--primary) 55%, transparent) 0%, color-mix(in oklab, var(--accent) 70%, transparent) 100%)",
+                "linear-gradient(135deg, rgba(20, 10, 40, 0.7) 0%, rgba(97, 54, 191, 0.55) 100%)",
             }}
           />
         </div>
@@ -259,7 +259,7 @@ export default function AuthSwitch({
               <button
                 type="button"
                 onClick={() => handleSwitch(false)}
-                className="rounded-full border-2 border-white px-8 py-2 text-xs font-semibold tracking-wider text-white transition-all hover:bg-white hover:text-[var(--primary)] uppercase cursor-pointer"
+                className="rounded-full border-2 border-white px-8 py-2 text-xs font-semibold tracking-wider text-white transition-all hover:bg-[var(--primary)] hover:border-[var(--primary)] hover:text-white uppercase cursor-pointer"
               >
                 SIGN UP
               </button>
@@ -286,7 +286,7 @@ export default function AuthSwitch({
               <button
                 type="button"
                 onClick={() => handleSwitch(true)}
-                className="rounded-full border-2 border-white px-8 py-2 text-xs font-semibold tracking-wider text-white transition-all hover:bg-white hover:text-[var(--primary)] uppercase cursor-pointer"
+                className="rounded-full border-2 border-white px-8 py-2 text-xs font-semibold tracking-wider text-white transition-all hover:bg-[var(--primary)] hover:border-[var(--primary)] hover:text-white uppercase cursor-pointer"
               >
                 SIGN IN
               </button>
@@ -303,7 +303,7 @@ export default function AuthSwitch({
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(-45deg, color-mix(in oklab, var(--primary) 55%, transparent) 0%, color-mix(in oklab, var(--accent) 45%, transparent) 100%)",
+                "linear-gradient(-45deg, rgba(20, 10, 40, 0.7) 0%, rgba(97, 54, 191, 0.55) 100%)",
             }}
           />
         </div>

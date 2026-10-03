@@ -2,6 +2,7 @@
 
 import { Mic, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/shared/context/LanguageContext";
 
@@ -38,10 +39,16 @@ export const CtaFooter = () => {
 
         <div className="mt-16 flex flex-col items-center justify-between gap-6 border-t border-border/60 pt-8 sm:flex-row">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#6136BF] text-white">
-              <Mic className="h-3.5 w-3.5" />
-            </span>
-            <span className="font-semibold tracking-tight text-heading">AI INTERVIEW</span>
+            <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-border shadow-sm">
+              <Image
+                src="/nexwolf.jpeg"
+                alt="NexWolf Logo"
+                fill
+                className="object-cover"
+                sizes="32px"
+              />
+            </div>
+            <span className="font-semibold tracking-tight text-heading">NEXWOLF</span>
           </div>
           <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground">{t("nav.features")}</a>
@@ -50,7 +57,7 @@ export const CtaFooter = () => {
             <a href="#pricing" className="hover:text-foreground">{t("nav.pricing")}</a>
           </nav>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} AI INTERVIEW. {t("footer.rights")}
+            &copy; {new Date().getFullYear()} NEXWOLF. {t("footer.rights")}
           </p>
         </div>
       </section>

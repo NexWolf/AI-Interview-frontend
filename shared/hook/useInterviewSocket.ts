@@ -68,6 +68,12 @@ export interface UseInterviewSocketOptions {
 async function fetchAccessToken(): Promise<string | null> {
   try {
     const res = await fetch("/api/auth/token");
+    if (res.status === 401) {
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth";
+      }
+      return null;
+    }
     if (!res.ok) return null;
     const data = await res.json();
     return data.accessToken || null;
@@ -120,6 +126,9 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       auth: {
         token,
       },
+      query: {
+        token,
+      },
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1500,
@@ -152,7 +161,22 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       setIsConnecting(false);
     });
 
-    socket.on("connect_error", (err) => {
+    socket.on("connect_error", async (err) => {
+      console.warn("[useInterviewSocket] Connection error:", err.message);
+
+      if (err.message === "Unauthorized") {
+        // Try refreshing token once in case accessToken just expired
+        const freshToken = await fetchAccessToken();
+        if (freshToken && freshToken !== token) {
+          socket.auth = { token: freshToken };
+          if (socket.io?.opts) {
+            socket.io.opts.query = { token: freshToken };
+          }
+          socket.connect();
+          return;
+        }
+      }
+
       setConnected(false);
       setIsConnecting(false);
       setError(err?.message || "Socket connection failed");
@@ -175,6 +199,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
 
   useEffect(() => {
     if (autoConnect) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       connect();
     }
 
@@ -268,6 +293,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       interviewId: string | number;
       questionId: string | number;
       answerText: string;
+      violations?: any[];
     }) => {
       return new Promise<SocketAckResponse>((resolve) => {
         if (!socketRef.current) {
@@ -279,6 +305,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
             interviewId: String(params.interviewId),
             questionId: String(params.questionId),
             answerText: params.answerText,
+            violations: params.violations,
           },
           (response: SocketAckResponse) => resolve(response || { ok: true }),
         );
@@ -308,6 +335,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
     connected,
     isConnecting,
     error,
+    // eslint-disable-next-line react-hooks/refs
     socket: socketRef.current,
     emitEvent,
     onEvent,
