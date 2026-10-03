@@ -1,35 +1,35 @@
 import { useFormContext } from "react-hook-form";
 import { Sparkles, Briefcase, Award } from "lucide-react";
-
-
-
-const interviewLevel = [
-  {
-    id: 1,
-    title: "Junior",
-    subTitle: "0 - 2 years",
-    value: "Beginner",
-    icon: Sparkles,
-  },
-  {
-    id: 2,
-    title: "Mid-level",
-    subTitle: "2 - 5 years",
-    value: "Intermediate",
-    icon: Briefcase,
-  },
-  {
-    id: 3,
-    title: "Senior",
-    subTitle: "5+ years",
-    value: "Advanced",
-    icon: Award,
-  },
-];
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 export const InterviewLevelSelect = () => {
+  const { register } = useFormContext();
+  const { language } = useLanguage();
+  const isAr = language === "ar";
 
-    const {register} = useFormContext();
+  const interviewLevel = [
+    {
+      id: 1,
+      title: isAr ? "مبتدئ (Junior)" : "Junior",
+      subTitle: isAr ? "0 - 2 سنوات خبرة" : "0 - 2 years",
+      value: "Beginner",
+      icon: Sparkles,
+    },
+    {
+      id: 2,
+      title: isAr ? "متوسط (Mid-level)" : "Mid-level",
+      subTitle: isAr ? "2 - 5 سنوات خبرة" : "2 - 5 years",
+      value: "Intermediate",
+      icon: Briefcase,
+    },
+    {
+      id: 3,
+      title: isAr ? "متقدم (Senior)" : "Senior",
+      subTitle: isAr ? "+5 سنوات خبرة" : "5+ years",
+      value: "Advanced",
+      icon: Award,
+    },
+  ];
   
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">

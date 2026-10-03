@@ -24,6 +24,7 @@ import {
   Mic,
   Play,
   Plus,
+  SkipForward,
   Sparkles,
   Star,
   Target,
@@ -308,6 +309,14 @@ function MyInterviewsList() {
                       <Play className="w-4 h-4 fill-white" />
                       Resume Interview
                     </button>
+                  ) : interview.status === "Completed" && !interview.report ? (
+                    <button
+                      disabled
+                      className="inline-flex items-center justify-center gap-2 bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-not-allowed"
+                    >
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing Report...
+                    </button>
                   ) : (
                     <button
                       onClick={() => router.push(`/dashboard/interviewDetails?id=${interview.id}`)}
@@ -531,10 +540,78 @@ function InterviewReportView({ interviewId }: { interviewId: string }) {
   const detailedEvaluation = useMemo(() => parseDetailedAnalysis(report), [report]);
   const recommendations = useMemo(() => parseRecommendations(report), [report]);
 
+  const questionsWithEvaluation = useMemo(() => {
+    const questions = interview?.questions ?? [];
+    if (!questions.length) {
+      return detailedEvaluation.map((item, idx) => ({
+        id: item.questionId ?? String(idx + 1),
+        questionOrder: item.questionOrder ?? idx + 1,
+        questionText:
+          (typeof item.question === "string" && item.question) || `Question ${idx + 1}`,
+        answerText: item.answer || null,
+        isAnswered: Boolean(item.answer),
+        isSkipped: !item.answer && !item.score,
+        score:
+          item.score !== undefined && item.score !== null
+            ? toNumber(item.score as number | string)
+            : null,
+        feedback: item.feedback,
+        improvement: item.improvement as string | undefined,
+      }));
+    }
+
+    return questions.map((q) => {
+      const evalItem = detailedEvaluation.find(
+        (item) =>
+          String(item.questionId) === String(q.id) ||
+          Number(item.questionOrder) === Number(q.questionOrder)
+      );
+
+      const latestAnswer = q.answers?.length
+        ? q.answers[q.answers.length - 1].answerText
+        : null;
+
+      return {
+        id: q.id,
+        questionOrder: q.questionOrder,
+        questionText:
+          q.questionText || (evalItem?.question as string) || `Question ${q.questionOrder}`,
+        answerText: latestAnswer || (evalItem?.answer as string) || null,
+        isAnswered: q.isAnswered,
+        isSkipped: q.isSkipped,
+        score:
+          evalItem?.score !== undefined && evalItem?.score !== null
+            ? toNumber(evalItem.score as number | string)
+            : null,
+        feedback: evalItem?.feedback,
+        improvement: evalItem?.improvement as string | undefined,
+      };
+    });
+  }, [interview?.questions, detailedEvaluation]);
+
   const answeredQuestions = (interview?.questions ?? []).filter((q) => q.isAnswered);
 
-  if (isLoading) {
-    return <ReportSkeleton />;
+  const isGeneratingReport = interview?.status === "Completed" && !report;
+
+  if (isLoading || isGeneratingReport) {
+    return (
+      <div className="space-y-4">
+        {isGeneratingReport && (
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col items-center justify-center gap-3 text-center">
+            <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
+            <div>
+              <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                جاري تحليل إجاباتك وإنشاء التقرير المدعوم بالذكاء الاصطناعي...
+              </p>
+              <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-1">
+                الرجاء الانتظار، سيتم عرض التقرير فور جهوزه.
+              </p>
+            </div>
+          </div>
+        )}
+        <ReportSkeleton />
+      </div>
+    );
   }
 
   if (isError || !interview) {
@@ -807,75 +884,107 @@ function InterviewReportView({ interviewId }: { interviewId: string }) {
             </div>
           )}
 
-          {/* Detailed question evaluation */}
-          {detailedEvaluation.length > 0 && (
-            <div className="rounded-2xl border border-border/70 bg-card/70 p-6 space-y-4">
-              <h2 className="font-bold text-sm flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-400" />
-                Question-by-Question Evaluation
-              </h2>
-              <div className="space-y-3">
-                {detailedEvaluation.map((item, idx) => {
-                  const score = toNumber(item.score as number | string | null | undefined);
+          {/* Question-by-Question Analysis & Responses */}
+          {questionsWithEvaluation.length > 0 && (
+            <div className="rounded-2xl border border-border/70 bg-card/70 p-6 space-y-5">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h2 className="font-bold text-base sm:text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-400" />
+                  Question-by-Question Analysis & Responses
+                </h2>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {questionsWithEvaluation.filter((q) => q.isAnswered || q.answerText).length} of{" "}
+                  {questionsWithEvaluation.length} Answered
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {questionsWithEvaluation.map((item, idx) => {
+                  const hasAnswer = Boolean(item.answerText);
+                  const isSkipped = item.isSkipped || (!hasAnswer && item.score === 0);
+                  const score = item.score;
+
                   return (
                     <div
-                      key={item.questionId ?? idx}
-                      className="rounded-xl border border-border/50 bg-background/40 p-4 space-y-2.5"
+                      key={item.id ?? idx}
+                      className="rounded-2xl border border-border/60 bg-background/50 p-5 sm:p-6 space-y-4 transition-all hover:border-primary/30"
                     >
-                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <span className="text-xs font-semibold text-indigo-400">
-                          Q{item.questionOrder ?? idx + 1}
-                          {item.skill ? ` • ${item.skill}` : ""}
-                        </span>
-                        <span className={cn("text-xs font-bold", scoreColor(score))}>
-                          {score > 0 ? `${Math.round(score)}%` : "—"}
-                        </span>
+                      {/* Question Header & Score */}
+                      <div className="flex items-center justify-between gap-3 flex-wrap border-b border-border/40 pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold">
+                            Question {item.questionOrder ?? idx + 1}
+                          </span>
+                          {isSkipped && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[11px] font-medium flex items-center gap-1">
+                              <SkipForward className="w-3 h-3" />
+                              Skipped
+                            </span>
+                          )}
+                        </div>
+
+                        {score !== null && score !== undefined && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground font-medium">Evaluation:</span>
+                            <span className={cn("text-xs font-bold px-2 py-0.5 rounded-md border", scoreColor(score))}>
+                              {score > 0 ? `${Math.round(score)}%` : "0%"}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm leading-relaxed">
-                        {typeof item.question === "string" && item.question
-                          ? item.question
-                          : "Question"}
-                      </p>
-                      {item.answer && (
-                        <p className="text-xs text-muted-foreground leading-relaxed border-l-2 border-border pl-3">
-                          <span className="font-semibold text-foreground">Your answer: </span>
-                          {item.answer}
+
+                      {/* AI Question Text */}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          AI Question
+                        </span>
+                        <p className="text-sm sm:text-base font-medium leading-relaxed text-foreground">
+                          {item.questionText}
                         </p>
-                      )}
+                      </div>
+
+                      {/* Candidate Answer */}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                          <Mic className="w-3.5 h-3.5 text-indigo-400" />
+                          Your Answer
+                        </span>
+                        {hasAnswer ? (
+                          <div className="rounded-xl bg-muted/40 border border-border/60 p-4 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                            {item.answerText}
+                          </div>
+                        ) : (
+                          <div className="rounded-xl bg-muted/20 border border-dashed border-border/60 p-3.5 text-xs text-muted-foreground italic flex items-center gap-2">
+                            <SkipForward className="w-3.5 h-3.5 text-muted-foreground/70" />
+                            This question was skipped without an answer.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI Evaluation & Feedback */}
                       {item.feedback && (
-                        <p className="text-xs leading-relaxed text-foreground/85">{item.feedback}</p>
+                        <div className="rounded-xl bg-primary/5 border border-primary/15 p-4 space-y-1.5">
+                          <span className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                            <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                            AI Feedback & Assessment
+                          </span>
+                          <p className="text-xs sm:text-sm leading-relaxed text-foreground/85">
+                            {item.feedback}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Improvement Suggestion */}
+                      {item.improvement && (
+                        <div className="text-xs text-muted-foreground flex items-start gap-2 pt-2 border-t border-border/30">
+                          <span className="font-semibold text-foreground shrink-0">Recommendation:</span>
+                          <span className="text-foreground/80 leading-relaxed">{item.improvement}</span>
+                        </div>
                       )}
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          )}
-
-          {/* Transcript fallback: answered Q&A */}
-          {detailedEvaluation.length === 0 && answeredQuestions.length > 0 && (
-            <div className="rounded-2xl border border-border/70 bg-card/70 p-6 space-y-4">
-              <h2 className="font-bold text-sm flex items-center gap-2">
-                <Mic className="w-4 h-4 text-indigo-400" />
-                Interview Transcript
-              </h2>
-              <div className="space-y-3">
-                {answeredQuestions.map((q) => (
-                  <div key={q.id} className="rounded-xl border border-border/50 bg-background/40 p-4 space-y-2">
-                    <p className="text-sm font-medium leading-relaxed">{q.questionText}</p>
-                    {q.answers?.map((a) => (
-                      <p key={a.id} className="text-xs text-muted-foreground leading-relaxed border-l-2 border-border pl-3">
-                        <span className="font-semibold text-foreground">Answer: </span>
-                        {a.answerText}
-                        {a.score !== null && a.score !== undefined && (
-                          <span className="ml-2 text-indigo-400 font-semibold">
-                            Score: {Math.round(toNumber(a.score))}%
-                          </span>
-                        )}
-                      </p>
-                    ))}
-                  </div>
-                ))}
               </div>
             </div>
           )}

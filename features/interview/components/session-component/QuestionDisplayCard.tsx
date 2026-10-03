@@ -21,18 +21,18 @@ export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
   isTyping,
 }) => {
   return (
-    <div className="relative bg-background/40 backdrop-blur-2xl border border-border/50 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.12)] space-y-6 text-foreground overflow-hidden">
+    <div className="relative bg-card border border-border rounded-2xl p-3.5 sm:p-4 shadow-lg space-y-3 flex-1 flex flex-col justify-between min-h-0 text-foreground overflow-hidden">
       {/* Subtle glow effect behind the card */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
-      <div className="flex items-center justify-between border-b border-border pb-3">
+      <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
+          <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
             Question {currentQuestion?.questionOrder || questionList.length || 1}
           </span>
           {currentQuestion?.keyTopics && currentQuestion.keyTopics.length > 0 && (
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5">
               {currentQuestion.keyTopics.map((topic: string, i: number) => (
-                <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-muted/50 text-muted-foreground border border-border/50">
+                <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground border border-border/50">
                   {topic}
                 </span>
               ))}
@@ -42,21 +42,21 @@ export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
 
         <button
           onClick={replayQuestion}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-primary/10 text-xs font-medium text-primary transition-all duration-200 cursor-pointer"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-primary/10 text-xs font-medium text-primary transition-all duration-200 cursor-pointer"
         >
-          <Volume2 className="w-4 h-4" />
+          <Volume2 className="w-3.5 h-3.5" />
           <span>Listen Again</span>
         </button>
       </div>
 
-      <div className="min-h-[100px] flex items-center relative z-10">
+      <div className="flex-1 min-h-[90px] max-h-[150px] sm:max-h-[170px] overflow-y-auto flex items-start relative z-10 pr-1">
         {isGeneratingQuestion && !questionLiveText ? (
-          <div className="flex items-center gap-4 text-muted-foreground py-4 animate-pulse">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-base font-medium">Sara is preparing your next question...</span>
+          <div className="flex items-center gap-3 text-muted-foreground py-2 animate-pulse">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <span className="text-sm font-medium">Sara is preparing your next question...</span>
           </div>
         ) : (
-          <p className="text-lg sm:text-xl font-medium text-foreground leading-relaxed tracking-wide">
+          <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed tracking-wide">
             {isGeneratingQuestion ? (
               <>
                 {questionLiveText}

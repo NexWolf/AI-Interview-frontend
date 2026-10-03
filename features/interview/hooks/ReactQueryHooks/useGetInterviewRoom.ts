@@ -14,5 +14,12 @@ export const useGetInterveiwRoom = (interviewId: string | number) => {
     queryFn: () => interviewService.getById(cleanId),
     enabled: isValidId,
     retry: defaultAuthRetry,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data && data.status === "Completed" && !data.report) {
+        return 5000;
+      }
+      return false;
+    },
   });
 };

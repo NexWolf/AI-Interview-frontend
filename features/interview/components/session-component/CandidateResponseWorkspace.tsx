@@ -1,6 +1,7 @@
 import React from 'react';
 import { MicOff, AlertTriangle, Loader2, SkipForward, Send, Clock } from 'lucide-react';
 import { useInterviewStore } from '../../store/useInterviewStore';
+import { cn } from '@/shared/lib/utils';
 
 interface CandidateResponseWorkspaceProps {
   isListening: boolean;
@@ -26,9 +27,19 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
   isGeneratingQuestion,
 }) => {
   const autoSubmitCountdown = useInterviewStore(state => state.autoSubmitCountdown);
+  const trimmed = answerText.trim();
+  const hasText = trimmed.length > 0;
+  const wordCount = hasText ? trimmed.split(/\s+/).filter(Boolean).length : 0;
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+    }
+  }, [answerText]);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 shadow-xl space-y-4">
+    <div className="bg-card border border-border rounded-2xl p-3.5 sm:p-4 shadow-lg space-y-3 flex-1 flex flex-col justify-between min-h-0">
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-card-foreground uppercase tracking-wider flex items-center gap-2">
           <span>Your Answer</span>
@@ -80,13 +91,13 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
         )}
       </div>
 
-      {/* Answer Textarea */}
+      {/* Answer Textarea with internal scroll and responsive bounded height */}
       <textarea
+        ref={textareaRef}
         value={answerText}
         onChange={(e) => setAnswer(e.target.value)}
         placeholder="Speak using the microphone or type your detailed response here..."
-        rows={5}
-        className="w-full p-4 rounded-xl border border-input bg-background/70 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none placeholder:text-muted-foreground"
+        className="w-full flex-1 min-h-[90px] max-h-[130px] sm:max-h-[145px] overflow-y-auto p-3.5 rounded-xl border border-input bg-background/70 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none placeholder:text-muted-foreground leading-relaxed"
       />
 
       {/* Submission Error Banner & Retry Button */}
@@ -114,33 +125,50 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
           type="button"
           onClick={handleSkipQuestion}
           disabled={isGeneratingQuestion || isSubmittingAnswer}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted border border-border transition cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted border border-border/80 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <SkipForward className="w-3.5 h-3.5" />
           <span>تخطي السؤال</span>
         </button>
 
-        <div className="flex items-center gap-2">
-          {!isListening && (
-            <button
-              type="button"
-              onClick={handleSubmitAnswer}
-              disabled={isSubmittingAnswer || isGeneratingQuestion || !answerText.trim()}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 active:scale-95 text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/25 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmittingAnswer ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>جاري الإرسال...</span>
-                </>
-              ) : (
-                <>
-                  <span>إرسال نصي</span>
-                  <Send className="w-3.5 h-3.5" />
-                </>
-              )}
-            </button>
+        <div className="flex items-center gap-3">
+          {hasText && (
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-lg bg-muted/60 border border-border/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                {wordCount} {wordCount === 1 ? "كلمة" : "كلمات"}
+              </span>
+            </div>
           )}
+
+          <button
+            type="button"
+            onClick={handleSubmitAnswer}
+            disabled={isSubmittingAnswer || isGeneratingQuestion || !hasText}
+            className={cn(
+              "group relative inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 select-none shadow-md",
+              hasText && !isSubmittingAnswer && !isGeneratingQuestion
+                ? "bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/95 hover:to-indigo-500 text-primary-foreground shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 active:scale-[0.98] cursor-pointer"
+                : "bg-muted text-muted-foreground border border-border/60 opacity-60 cursor-not-allowed shadow-none"
+            )}
+            title={
+              !hasText
+                ? "قم بالتحدث أو كتابة الإجابة أولاً لتتمكن من الإرسال"
+                : "إرسال الإجابة فوراً"
+            }
+          >
+            {isSubmittingAnswer ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-foreground" />
+                <span>جاري إرسال الإجابة...</span>
+              </>
+            ) : (
+              <>
+                <span>إرسال الإجابة</span>
+                <Send className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:group-hover:-translate-x-0.5" />
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

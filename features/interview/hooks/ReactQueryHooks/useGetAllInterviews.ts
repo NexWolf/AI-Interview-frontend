@@ -10,5 +10,12 @@ export const useGetAllInterviews = () => {
     queryFn: interviewService.getAll,
     staleTime: 2 * 60 * 1000,
     retry: defaultAuthRetry,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      const isAnyGenerating = data?.some(
+        (inv: any) => inv.status === "Completed" && !inv.report
+      );
+      return isAnyGenerating ? 5000 : false;
+    },
   });
 };

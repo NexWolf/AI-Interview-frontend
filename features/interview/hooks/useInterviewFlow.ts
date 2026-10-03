@@ -521,11 +521,6 @@ export function useInterviewFlow({
   const handleFinishInterview = useCallback(async () => {
     if (useInterviewStore.getState().phase === "closing") return;
 
-    const confirmed = typeof window !== "undefined"
-      ? window.confirm("Are you sure you want to end the interview now?")
-      : true;
-    if (!confirmed) return;
-
     clearListenTimer();
     useInterviewStore.getState().setPhase("closing");
     stopSpeaking();
@@ -539,33 +534,32 @@ export function useInterviewFlow({
       await flushViolations();
     }
 
-    toast.loading("Generating your comprehensive AI interview report...");
+    toast.loading("Ending interview...");
 
     const navigateToReport = () => {
       stopGlobalMediaStream();
       toast.dismiss();
-      toast.success("Interview completed! Loading your evaluation report...");
-      router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
+      toast.success("Interview completed! Redirecting to report...");
+      router.replace(`/dashboard/interviewDetails`);
     };
 
-    if (liveConnected) {
-      setReportLiveText("");
-      emitEvent("interview:finish", { interviewId });
-      return;
-    }
+    try {
+      // 1. Mark interview as completed immediately
+      await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`);
 
-    AxiosAPI.post(`/api/interviews/${interviewId}/summary`)
-      .then(() => navigateToReport())
-      .catch(async (e: any) => {
-        stopGlobalMediaStream();
-        console.warn("Finish interview summary error, executing direct completion fallback:", e);
-        try {
-          await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`);
-        } catch (completeErr) {
-          console.error("Direct completion error:", completeErr);
-        }
-        navigateToReport();
+      // 2. Trigger report generation (backend now handles it asynchronously in background and responds instantly)
+      await AxiosAPI.post(`/api/interviews/${interviewId}/summary`).catch((err) => {
+        console.error("Background summary generation error:", err);
       });
+
+      // 3. Navigate immediately
+      navigateToReport();
+    } catch (error) {
+      console.error("Error ending interview:", error);
+      toast.error("Failed to end interview properly.");
+      // Navigate anyway to avoid being stuck if there's an error
+      navigateToReport();
+    }
   }, [
     abortRecognition,
     clearListenTimer,

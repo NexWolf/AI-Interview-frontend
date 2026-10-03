@@ -5,6 +5,7 @@ import ActionIcons from "@/shared/components/ui/ActionIcons";
 import { SkillsApiData } from "../types/profile.types";
 import { ProficiencyLevel } from "@/shared/types/userSkills";
 import ProfileSkillsDialog from "./ProfileSkillsDialog";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 type PropsSkills = {
   skillsData: SkillsApiData[];
@@ -15,10 +16,10 @@ type PropsSkills = {
   isLoading?: boolean;
 };
 
-const getSkillBadge = (skill: SkillsApiData) => {
+const getSkillBadge = (skill: SkillsApiData, isAr: boolean) => {
   if (!skill.assessedByAi || skill.aiAssessmentScore === null || skill.aiAssessmentScore === undefined) {
     return {
-      label: "Not Assessed",
+      label: isAr ? "غير مقيّم" : "Not Assessed",
       score: null,
       className:
         "bg-muted/60 text-muted-foreground border-border/60 border-dashed",
@@ -30,21 +31,21 @@ const getSkillBadge = (skill: SkillsApiData) => {
   switch (skill.proficiencyLevel) {
     case "Expert":
       return {
-        label: "Expert",
+        label: isAr ? "خبير" : "Expert",
         score: scoreNum,
         className:
           "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
       };
     case "Advanced":
       return {
-        label: "Advanced",
+        label: isAr ? "متقدم" : "Advanced",
         score: scoreNum,
         className:
           "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
       };
     case "Intermediate":
       return {
-        label: "Intermediate",
+        label: isAr ? "متوسط" : "Intermediate",
         score: scoreNum,
         className:
           "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
@@ -52,7 +53,7 @@ const getSkillBadge = (skill: SkillsApiData) => {
     case "Beginner":
     default:
       return {
-        label: "Beginner",
+        label: isAr ? "مبتدئ" : "Beginner",
         score: scoreNum,
         className:
           "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
@@ -68,6 +69,8 @@ export const ProfileSkills = ({
   editable,
   isLoading = false,
 }: PropsSkills) => {
+  const { language } = useLanguage();
+  const isAr = language === "ar";
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
 
   const handleOpenDialog = () => {
@@ -100,10 +103,10 @@ export const ProfileSkills = ({
       <div className="flex items-center justify-between border-b border-border/40 pb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-foreground">
-            Skills & Expertise
+            {isAr ? "المهارات والخبرات التقنية" : "Skills & Expertise"}
           </h2>
           <span className="text-xs text-muted-foreground">
-            {skillsData?.length || 0} Skills
+            {skillsData?.length || 0} {isAr ? "مهارات" : "Skills"}
           </span>
         </div>
 
@@ -116,7 +119,7 @@ export const ProfileSkills = ({
       {!skillsData || skillsData.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <p className="text-xs text-muted-foreground italic mb-2">
-            No skills added yet.
+            {isAr ? "لم تتم إضافة مهارات بعد." : "No skills added yet."}
           </p>
           {editable && (
             <button
@@ -124,14 +127,14 @@ export const ProfileSkills = ({
               onClick={handleOpenDialog}
               className="text-xs text-primary font-medium hover:underline cursor-pointer"
             >
-              + Add your skills
+              {isAr ? "+ أضف مهاراتك الآن" : "+ Add your skills"}
             </button>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {skillsData.map((skill) => {
-            const badge = getSkillBadge(skill);
+            const badge = getSkillBadge(skill, isAr);
             return (
               <div
                 key={skill.skillId}

@@ -101,6 +101,7 @@ export interface InterviewListItem {
   createdAt: string;
   updatedAt: string;
   skills: InterviewRoomSkill[];
+  report?: ReportApi | null;
 }
 
 /* StartInterview response → data */
