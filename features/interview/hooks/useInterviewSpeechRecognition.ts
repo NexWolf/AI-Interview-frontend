@@ -123,7 +123,6 @@ export function useInterviewSpeechRecognition({
         console.debug(`[${currentPhase}][recognition onend] submit (answer length: ${text.length})`);
         setMicEnabled?.(false, "recognition onend submit");
         useInterviewStore.getState().setIsListening(false);
-        useInterviewStore.getState().setPhase("processing");
         stopSpeaking();
         submitAnswerRef.current(text);
       } else {

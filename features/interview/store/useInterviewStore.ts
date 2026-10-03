@@ -4,6 +4,7 @@ import { Phase, QuestionItem } from '../types';
 interface InterviewState {
   phase: Phase;
   currentQuestion: QuestionItem | null;
+  nextQuestion: QuestionItem | null;
   questionList: QuestionItem[];
   answerText: string;
   
@@ -17,6 +18,7 @@ interface InterviewState {
 
   setPhase: (phase: Phase) => void;
   setCurrentQuestion: (q: QuestionItem | null) => void;
+  setNextQuestion: (q: QuestionItem | null) => void;
   setQuestionList: (list: QuestionItem[]) => void;
   addQuestion: (q: QuestionItem) => void;
   setAnswerText: (text: string) => void;
@@ -29,6 +31,7 @@ interface InterviewState {
 export const useInterviewStore = create<InterviewState>((set) => ({
   phase: "idle",
   currentQuestion: null,
+  nextQuestion: null,
   questionList: [],
   answerText: "",
   
@@ -50,6 +53,7 @@ export const useInterviewStore = create<InterviewState>((set) => ({
   })),
   
   setCurrentQuestion: (currentQuestion) => set({ currentQuestion }),
+  setNextQuestion: (nextQuestion) => set({ nextQuestion }),
   setQuestionList: (questionList) => set({ questionList }),
   addQuestion: (q) => set((state) => ({ 
     questionList: state.questionList.some(x => x.id === q.id) ? state.questionList : [...state.questionList, q] 

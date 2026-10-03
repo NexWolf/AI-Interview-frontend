@@ -61,27 +61,41 @@ export async function GET() {
       return response;
     }
 
-    // Parse the new cookies from the backend response
-    let newAccessToken: string | null = null;
-    const setCookies = backendResponse.headers.getSetCookie();
+    const data = await backendResponse.json().catch(() => ({}));
+    let newAccessToken: string | null = data?.data?.accessToken || null;
+    let newRefreshToken: string | null = data?.data?.refreshToken || null;
+
     const nextCookies: Array<{ name: string; value: string; maxAge: number }> = [];
 
-    for (const cookie of setCookies) {
-      const [cookiePair] = cookie.split(";");
-      const separatorIndex = cookiePair.indexOf("=");
-      if (separatorIndex === -1) continue;
-      
-      const name = cookiePair.slice(0, separatorIndex).trim();
-      const value = cookiePair.slice(separatorIndex + 1).trim();
+    if (newAccessToken) {
+      nextCookies.push({ name: "accessToken", value: newAccessToken, maxAge: 60 * 15 });
+    }
+    if (newRefreshToken) {
+      nextCookies.push({ name: "refreshToken", value: newRefreshToken, maxAge: 60 * 60 * 24 * 7 });
+    }
 
-      if (name === "accessToken") {
-        newAccessToken = value;
-        nextCookies.push({ name, value, maxAge: 60 * 15 });
-      }
+    // Parse any headers as fallback if not present in JSON
+    try {
+      const setCookies = backendResponse.headers.getSetCookie?.() || [];
+      for (const cookie of setCookies) {
+        const [cookiePair] = cookie.split(";");
+        const separatorIndex = cookiePair.indexOf("=");
+        if (separatorIndex === -1) continue;
+        
+        const name = cookiePair.slice(0, separatorIndex).trim();
+        const value = cookiePair.slice(separatorIndex + 1).trim();
 
-      if (name === "refreshToken") {
-        nextCookies.push({ name, value, maxAge: 60 * 60 * 24 * 7 });
+        if (name === "accessToken" && !newAccessToken) {
+          newAccessToken = value;
+          nextCookies.push({ name, value, maxAge: 60 * 15 });
+        }
+
+        if (name === "refreshToken" && !newRefreshToken) {
+          nextCookies.push({ name, value, maxAge: 60 * 60 * 24 * 7 });
+        }
       }
+    } catch (e) {
+      console.warn("Could not parse set-cookie headers:", e);
     }
 
     // If backend somehow returned ok but no access token was set in cookies

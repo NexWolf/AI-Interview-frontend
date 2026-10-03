@@ -21,6 +21,7 @@ import { useInterviewAudio } from "@/features/interview/hooks/useInterviewAudio"
 import { useInterviewSpeechRecognition } from "@/features/interview/hooks/useInterviewSpeechRecognition";
 import { useInterviewFlow } from "@/features/interview/hooks/useInterviewFlow";
 import { useInterviewStore } from "@/features/interview/store/useInterviewStore";
+import { formatToQuestionItem } from "@/features/interview/utils/questionMapper";
 import { Phase, QuestionItem } from "@/features/interview/types";
 import { useIntegrityMonitor, IntegrityEvent } from "@/shared/hook/useIntegrityMonitor";
 import {
@@ -281,13 +282,26 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
         }
         
         handledQuestionIdsRef.current.add(question.questionId);
-        console.debug(`[${useInterviewStore.getState().phase}][question:new] accepted id: ${question.questionId}`);
         setQuestionLiveText(""); // Clear stream text when done
         
         const newQ = toQuestionItem(question);
         useInterviewStore.getState().addQuestion(newQ);
+        useInterviewStore.getState().setNextQuestion(newQ);
+
+        console.log(
+          "%c📥 [SOCKET question:new] Buffered new incoming question into nextQuestion:",
+          "background: #0d9488; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+          {
+            newQuestionId: newQ.id,
+            order: newQ.questionOrder,
+            questionText: newQ.question,
+            hasAudio: !!newQ.questionAudio,
+            currentPhase: useInterviewStore.getState().phase,
+          }
+        );
         
         if (useInterviewStore.getState().phase === "generating") {
+          console.log("⚡ [RECOVER FROM GENERATING] Asking newly arrived question immediately!");
           onAskQuestion(newQ, true, true);
         }
       }),
@@ -354,17 +368,39 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     }
     bootedRef.current = true;
 
+    const storeState = useInterviewStore.getState();
     const qs: any[] = RoomData.questions ?? [];
-    const formatted: QuestionItem[] = qs.map((q: any) => ({
-      id: String(q.id),
-      question: q.questionText,
-      questionOrder: q.questionOrder,
-      isAnswered: q.isAnswered,
-    }));
+    const formatted: QuestionItem[] = qs
+      .map((q: any) => {
+        const existing =
+          storeState.questionList.find((x) => x.id === String(q.id)) ||
+          (storeState.currentQuestion?.id === String(q.id) ? storeState.currentQuestion : null) ||
+          (storeState.nextQuestion?.id === String(q.id) ? storeState.nextQuestion : null);
+
+        return formatToQuestionItem(q, {
+          existingAudio: existing?.questionAudio,
+        });
+      })
+      .filter((q): q is QuestionItem => q !== null);
+
     useInterviewStore.getState().setQuestionList(formatted);
 
     const pending = formatted.find((q) => !q.isAnswered);
-    console.log("[BOOT] status:", RoomData.status, "qs:", formatted.length, "pending:", !!pending);
+    console.log(
+      "%c🚪 [ROOM BOOT] Initializing room from RoomData:",
+      "background: #475569; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      {
+        roomStatus: RoomData.status,
+        dbQuestionsCount: qs.length,
+        storeCurrentQuestion: storeState.currentQuestion
+          ? { id: storeState.currentQuestion.id, order: storeState.currentQuestion.questionOrder }
+          : null,
+        storeNextQuestion: storeState.nextQuestion
+          ? { id: storeState.nextQuestion.id, order: storeState.nextQuestion.questionOrder }
+          : null,
+        pendingQuestionToAsk: pending ? { id: pending.id, order: pending.questionOrder } : null,
+      }
+    );
     if (pending) {
       // Resume: Sara re-reads the unanswered question via TTS, then the mic opens
       setAnswerText("");

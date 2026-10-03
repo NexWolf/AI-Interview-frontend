@@ -126,6 +126,9 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       auth: {
         token,
       },
+      query: {
+        token,
+      },
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1500,
@@ -158,7 +161,22 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       setIsConnecting(false);
     });
 
-    socket.on("connect_error", (err) => {
+    socket.on("connect_error", async (err) => {
+      console.warn("[useInterviewSocket] Connection error:", err.message);
+
+      if (err.message === "Unauthorized") {
+        // Try refreshing token once in case accessToken just expired
+        const freshToken = await fetchAccessToken();
+        if (freshToken && freshToken !== token) {
+          socket.auth = { token: freshToken };
+          if (socket.io?.opts) {
+            socket.io.opts.query = { token: freshToken };
+          }
+          socket.connect();
+          return;
+        }
+      }
+
       setConnected(false);
       setIsConnecting(false);
       setError(err?.message || "Socket connection failed");

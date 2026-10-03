@@ -136,6 +136,24 @@ export interface StartInterviewResponse {
     nameEn: string;
     difficultyLevel: DifficultyLevelType;
   }>;
+  introductionQuestion?: {
+    questionId?: string;
+    interviewQuestionId?: string;
+    questionOrder?: number;
+    question?: string;
+    keyTopics?: string[];
+    questionAudio?: { audioBase64: string; mimeType: string } | string | null;
+  };
+  firstTechnicalQuestion?: {
+    questionId?: string;
+    interviewQuestionId?: string;
+    questionOrder?: number;
+    question?: string;
+    keyTopics?: string[];
+    interactionId?: string;
+    questionAudio?: { audioBase64: string; mimeType: string } | string | null;
+    usage?: any;
+  };
 }
 
 /* GET /api/interviews/:id/questions/generate → data */

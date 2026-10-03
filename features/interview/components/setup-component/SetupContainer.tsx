@@ -1,5 +1,6 @@
 "use client";
 import CameraPreview from "@/features/interview/components/setup-component/CameraPreview";
+import { SplashScreen } from "@/components/ui/splash-screen";
 import MicorphoneTest from "@/features/interview/components/setup-component/MicorphoneTest";
 import { useForm } from "react-hook-form";
 import { setupInterview, StartInterviewPayload } from "@/features/interview/types/setup";
@@ -14,6 +15,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useUserInfo } from "@/shared/hook/useUserInfo";
 import { useAllSkills } from "@/shared/hook/useAllSkills";
 import { useStartInterview } from "../../hooks/ReactQueryHooks/useStartInterview";
+import { useInterviewStore } from "../../store/useInterviewStore";
 
 const setupDefaultData: setupInterview = {
   interviewLanguage: "Arabic",
@@ -115,6 +117,11 @@ export const SetupContainer = () => {
         if (typeof window !== "undefined") {
           sessionStorage.setItem("interview_ai_voice", data.aiVoice || "Kore");
         }
+        const store = useInterviewStore.getState();
+        console.log("🚀 [SetupContainer] Starting Interview Room with Zustand Store:");
+        console.log("👉 currentQuestion:", store.currentQuestion);
+        console.log("👉 nextQuestion:", store.nextQuestion);
+
         const interviewId = response?.interview?.id;
         if (interviewId) {
           router.push(`/interview/${interviewId}`);
@@ -133,18 +140,11 @@ export const SetupContainer = () => {
       
       {/* Full-screen Loading Overlay for Interview Preparation */}
       {isPending && (
-        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
-          <div className="bg-card border border-border shadow-2xl rounded-3xl p-8 max-w-md w-full flex flex-col items-center text-center animate-in fade-in zoom-in duration-300">
-            <div className="relative mb-6">
-              <div className="w-20 h-20 border-4 border-primary/20 rounded-full"></div>
-              <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin absolute inset-0"></div>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Preparing Your Interview</h2>
-            <p className="text-sm text-muted-foreground">
-              Please wait while our AI interviewer generates your customized questions...
-            </p>
-          </div>
-        </div>
+        <SplashScreen 
+          message="Preparing Interview..." 
+          subMessage="Our AI is crafting your customized questions"
+          showStatusPill={true} 
+        />
       )}
 
       {/* Theme Toggle in top corner */}

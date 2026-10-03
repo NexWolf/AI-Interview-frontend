@@ -3,8 +3,9 @@ import { toast } from "sonner";
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Phase, QuestionItem } from "../types";
-import { stopGlobalMediaStream } from "@/shared/components/provider/MediaStermProvider";
 import { useInterviewStore } from "../store/useInterviewStore";
+import { formatToQuestionItem } from "../utils/questionMapper";
+import { stopGlobalMediaStream } from "@/shared/components/provider/MediaStermProvider";
 
 interface UseInterviewFlowProps {
   interviewId: string;
@@ -74,22 +75,12 @@ export function useInterviewFlow({
     }
   }, []);
 
-  // Model a freshly generated question from the socket/HTTP payload
+  // Model a freshly generated question from any payload uniformly
   const toQuestionItem = useCallback(
     (qd: any): QuestionItem => {
-      const audio = qd.questionAudio
-        ? makeAudioUrl(qd.questionAudio.audioBase64, qd.questionAudio.mimeType)
-        : null;
-      return {
-        id: String(qd.questionId),
-        question: qd.question,
-        questionOrder: qd.questionOrder,
-        keyTopics: qd.keyTopics || [],
-        questionAudio: audio,
-        isAnswered: false,
-      };
+      return formatToQuestionItem(qd) as QuestionItem;
     },
-    [makeAudioUrl]
+    []
   );
 
   // Ask a question: speak it, then open the mic so the user can answer
@@ -103,6 +94,19 @@ export function useInterviewFlow({
       const currentToken = ++questionTokenRef.current;
       useInterviewStore.getState().setCurrentQuestion(q);
       useInterviewStore.getState().addQuestion(q);
+
+      console.log(
+        "%c🗣️ [STEP 1: onAskQuestion] Displaying question as currentQuestion:",
+        "background: #2563eb; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+        {
+          id: q.id,
+          order: q.questionOrder,
+          question: q.question,
+          hasAudio: !!q.questionAudio,
+          shouldSpeak,
+          autoListen,
+        }
+      );
 
       let existingDraft = "";
       if (typeof window !== "undefined" && q?.id) {
@@ -120,6 +124,12 @@ export function useInterviewFlow({
         // Immediately ensure full text is displayed
         setDisplayedQuestion(q.question);
         setIsTyping(false);
+
+        console.log(
+          "%c🔊 [TTS DONE] AI voice finished speaking. Preparing microphone...",
+          "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+          { questionId: q.id, autoListen }
+        );
 
         // Verify ALL required conditions before enabling microphone
         const state = useInterviewStore.getState();
@@ -181,18 +191,54 @@ export function useInterviewFlow({
   const requestNextQuestion = useCallback(() => {
     const state = useInterviewStore.getState();
     const currentPhase = state.phase;
-    if (currentPhase === "generating" || currentPhase === "closing") return;
 
-    // 1. Check if there is an unanswered question already in the queue (Prefetch hit!)
-    // We ignore the currently answered question if it's still somehow the current one.
+    console.log(
+      "%c🔍 [REQUEST NEXT] Checking next question availability in buffer:",
+      "background: #6366f1; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      {
+        currentQuestionId: state.currentQuestion?.id,
+        currentPhase,
+        bufferedNextQuestion: state.nextQuestion
+          ? { id: state.nextQuestion.id, order: state.nextQuestion.questionOrder }
+          : null,
+        questionListLength: state.questionList.length,
+        unansweredInList: state.questionList
+          .filter((x) => !x.isAnswered)
+          .map((x) => ({ id: x.id, order: x.questionOrder })),
+      }
+    );
+
+    if (currentPhase === "generating" || currentPhase === "closing") {
+      console.log(`[REQUEST NEXT] Aborting because phase is already '${currentPhase}'`);
+      return;
+    }
+
+    // 1. Check if there is an upcoming question ready (Prefetch hit!)
+    // Prioritize nextQuestion, then fallback to any unanswered question in questionList
     const currentQId = state.currentQuestion?.id;
-    const nextPrefetchedQ = state.questionList.find(q => !q.isAnswered && q.id !== currentQId);
+    const targetNext =
+      state.nextQuestion ||
+      state.questionList.find((q) => !q.isAnswered && q.id !== currentQId);
 
-    if (nextPrefetchedQ) {
+    if (targetNext) {
       // PREFETCH HIT: Ask immediately, zero latency!
-      onAskQuestionRef.current(nextPrefetchedQ, true, true);
+      console.log(
+        "%c🎉 [PREFETCH HIT] Found target question ready! Moving to currentQuestion with ZERO wait:",
+        "background: #059669; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+        {
+          targetQuestionId: targetNext.id,
+          order: targetNext.questionOrder,
+          source: state.nextQuestion?.id === targetNext.id ? "nextQuestion buffer" : "questionList fallback",
+        }
+      );
+      useInterviewStore.getState().setNextQuestion(null);
+      onAskQuestionRef.current(targetNext, true, true);
     } else {
       // PREFETCH MISS: (e.g. initial load without buffer, or backend is slow)
+      console.log(
+        "%c⏳ [PREFETCH MISS] No target question found in buffer! Setting phase to 'generating'...",
+        "background: #d97706; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+      );
       clearListenTimer();
       abortRecognition();
       setMicEnabled?.(false, "requestNextQuestion");
@@ -210,7 +256,12 @@ export function useInterviewFlow({
       selectedVoice ||
       "Kore";
 
-    console.log("[REQUEST-NEXT] path:", liveConnected ? "socket" : "http", "voice:", voiceToSend);
+    console.log(
+      "%c📡 [PREFETCH BUFFERING] Requesting backend to generate upcoming question:",
+      "background: #0284c7; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      { voiceToSend, path: liveConnected ? "SOCKET" : "HTTP" }
+    );
+
     if (liveConnected) {
       emitEvent("question:generate", { interviewId, speakQuestion: true, voice: voiceToSend });
       return;
@@ -222,6 +273,7 @@ export function useInterviewFlow({
     })
       .then((res) => {
         const newQ = toQuestionItem(res.data.data);
+        console.log("📥 [HTTP GENERATE RESPONSE] Received generated question:", newQ?.id);
         useInterviewStore.getState().addQuestion(newQ);
         // If we were starving, ask it immediately!
         if (useInterviewStore.getState().phase === "generating") {
@@ -252,9 +304,27 @@ export function useInterviewFlow({
   const submitAnswerWithText = useCallback(
     (text: string) => {
       const state = useInterviewStore.getState();
-      if (state.isSubmittingAnswer) return;
+      if (state.isSubmittingAnswer) {
+        console.warn("[SUBMIT BLOCKED] Already submitting answer.");
+        return;
+      }
       const q = state.currentQuestion;
-      if (!q || q.isAnswered) return;
+      if (!q || q.isAnswered) {
+        console.warn("[SUBMIT BLOCKED] No active question or already answered:", q?.id);
+        return;
+      }
+
+      console.log(
+        "%c🚀 [STEP 2: submitAnswerWithText] Submitting Answer:",
+        "background: #f59e0b; color: black; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+        {
+          questionId: q.id,
+          questionOrder: q.questionOrder,
+          answerLength: text.length,
+          answerPreview: text.length > 60 ? text.substring(0, 60) + "..." : text,
+          transport: liveConnected ? "SOCKET" : "HTTP",
+        }
+      );
 
       // Invariant: Stop STT & disable hardware mic BEFORE network call
       clearListenTimer();
@@ -264,6 +334,13 @@ export function useInterviewFlow({
       useInterviewStore.getState().setPhase("processing");
 
       const proceed = () => {
+        console.log(
+          "%c⚡ [STEP 3: proceed()] Optimistic local update -> marking question as answered:",
+          "background: #8b5cf6; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+          {
+            answeredQuestionId: q.id,
+          }
+        );
         setSubmissionError(null);
         if (typeof window !== "undefined" && q?.id) {
           try {
@@ -272,11 +349,17 @@ export function useInterviewFlow({
         }
         useInterviewStore.getState().setAnswerText("");
         useInterviewStore.getState().setCurrentQuestion({ ...q, isAnswered: true });
+
+        console.log(
+          "%c⏩ [STEP 4: proceed() -> requestNextQuestion] Calling requestNextQuestion()...",
+          "background: #8b5cf6; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+        );
         requestNextQuestionRef.current();
       };
 
       const handleFailure = (errMsg: string) => {
         // Invariant: On failure, restore answer text, transition to idle, mic stays OFF
+        console.error("❌ [SUBMIT FAILURE]:", errMsg);
         useInterviewStore.getState().setAnswerText(text);
         setMicEnabled?.(false, "submitAnswerWithText failure");
         useInterviewStore.getState().setPhase("idle");
@@ -288,17 +371,28 @@ export function useInterviewFlow({
       if (pullPendingViolations) {
         payload.violations = pullPendingViolations();
       }
-      console.log("[SUBMIT] path:", liveConnected ? "socket" : "http", "qid:", q.id, "textLen:", text.length, "violations:", payload.violations?.length || 0);
 
       if (liveConnected) {
         // Proceed instantly without waiting for the backend (Zero Latency Submission)
         proceed();
+
+        console.log(
+          "%c📡 [STEP 5: BACKGROUND SOCKET] Emitting 'answer:submit' event in background...",
+          "background: #0284c7; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+          payload
+        );
         
-        emitEvent("answer:submit", payload, ({ ok, message }: any) => {
+        emitEvent("answer:submit", payload, ({ ok, message, data }: any) => {
+          console.log(
+            "%c📥 [STEP 6: SOCKET ACK] Backend answer:submit acknowledgment received:",
+            ok
+              ? "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+              : "background: #ef4444; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+            { ok, message, data }
+          );
           if (!ok) {
             const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
             console.error(errMsg);
-            // We ignore handleFailure here because we already proceeded to the next question
           }
         });
         return;
