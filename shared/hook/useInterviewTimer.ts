@@ -11,7 +11,10 @@ export const useInterviewTimer = ({ endTimeIso, durationMinutes, onExpire }: Use
     const [secondsLeft, setSecondsLeft] = useState<number>(fallbackSeconds);
     const hasExpiredRef = useRef(false);
     const onExpireRef = useRef(onExpire);
-    onExpireRef.current = onExpire;
+    
+    useEffect(() => {
+      onExpireRef.current = onExpire;
+    }, [onExpire]);
 
     useEffect(() => {
         let initialRemaining = fallbackSeconds;
@@ -27,6 +30,8 @@ export const useInterviewTimer = ({ endTimeIso, durationMinutes, onExpire }: Use
             }
         }
 
+        // Disable linter for synchronous setState as this is meant to reset timer logic
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSecondsLeft(initialRemaining);
         hasExpiredRef.current = false;
 

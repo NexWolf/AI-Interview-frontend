@@ -32,41 +32,71 @@ export async function POST(request: NextRequest) {
     // 3. Create Next.js response
     const response = NextResponse.json(data);
 
-    // 4. Get cookies from backend
-    const setCookies = backendResponse.headers.getSetCookie();
+    // 4. Extract tokens directly from response payload (Guaranteed source)
+    const accessToken = data?.data?.accessToken;
+    const refreshToken = data?.data?.refreshToken;
 
-    // 5. Put cookies on localhost
-    for (const cookie of setCookies) {
-      const [cookiePair] = cookie.split(";");
+    if (accessToken) {
+      response.cookies.set({
+        name: "accessToken",
+        value: accessToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 15, // 15 minutes
+      });
+    }
 
-      const separatorIndex = cookiePair.indexOf("=");
+    if (refreshToken) {
+      response.cookies.set({
+        name: "refreshToken",
+        value: refreshToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+    }
 
-      const name = cookiePair.slice(0, separatorIndex);
-      const value = cookiePair.slice(separatorIndex + 1);
+    // 5. Fallback: Also parse backend cookies if any were returned in headers
+    try {
+      const setCookies = backendResponse.headers.getSetCookie?.() || [];
+      for (const cookie of setCookies) {
+        const [cookiePair] = cookie.split(";");
+        const separatorIndex = cookiePair.indexOf("=");
+        if (separatorIndex === -1) continue;
 
-      if (name === "accessToken") {
-        response.cookies.set({
-          name: "accessToken",
-          value,
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 15,
-        });
+        const name = cookiePair.slice(0, separatorIndex).trim();
+        const value = cookiePair.slice(separatorIndex + 1).trim();
+
+        if (name === "accessToken" && !accessToken) {
+          response.cookies.set({
+            name: "accessToken",
+            value,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 15,
+          });
+        }
+
+        if (name === "refreshToken" && !refreshToken) {
+          response.cookies.set({
+            name: "refreshToken",
+            value,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7,
+          });
+        }
       }
-
-      if (name === "refreshToken") {
-        response.cookies.set({
-          name: "refreshToken",
-          value,
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7,
-        });
-      }
+    } catch (e) {
+      console.warn("Could not parse set-cookie headers:", e);
     }
 
     response.cookies.set({

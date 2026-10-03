@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight, Globe, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/shared/context/LanguageContext";
@@ -23,15 +24,18 @@ const Navbar = () => {
         <nav className="flex h-[64px] items-center justify-between">
           {/* ================= Logo ================= */}
           <Link href="#home" className="group flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] shadow-[0_0_20px_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all duration-300 group-hover:bg-white/[0.1]">
-              <div className="relative h-5 w-5">
-                <span className="absolute left-[3px] top-[1px] h-2.5 w-2.5 rotate-45 rounded-[3px] bg-white" />
-                <span className="absolute bottom-[1px] right-[3px] h-2.5 w-2.5 rotate-45 rounded-[3px] bg-white/60" />
-              </div>
+            <div className="relative h-11 w-11 overflow-hidden rounded-xl border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-transform duration-300 group-hover:scale-105">
+              <Image
+                src="/nexwolf.jpeg"
+                alt="NexWolf Logo"
+                fill
+                className="object-cover"
+                sizes="44px"
+              />
             </div>
 
             <span className="text-[18px] font-medium tracking-tight text-white">
-              AI INTERVIEW
+              NEXWOLF
             </span>
           </Link>
 
