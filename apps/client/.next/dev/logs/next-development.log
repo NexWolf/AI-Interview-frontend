@@ -1,0 +1,3 @@
+{"timestamp":"00:00:30.107","source":"Server","level":"LOG","message":"○ Compiling middleware ..."}
+{"timestamp":"00:00:30.782","source":"Server","level":"WARN","message":"⚠ The \"middleware\" file convention is deprecated. Please use \"proxy\" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy"}
+{"timestamp":"00:00:36.051","source":"Server","level":"LOG","message":""}
