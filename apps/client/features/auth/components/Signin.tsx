@@ -88,7 +88,11 @@ function SocialIcon({
   );
 }
 
-export default function Signin() {
+export default function Signin({
+  onSwitchToSignup,
+}: {
+  onSwitchToSignup?: () => void;
+}) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -202,6 +206,19 @@ export default function Signin() {
           <FaGithub className="h-5 w-5 text-[#5B21B7]" />
         </SocialIcon>
       </div>
+
+      {onSwitchToSignup && (
+        <div className="mt-4 text-center text-xs text-[#6B7280]">
+          <span>Don't have an account? </span>
+          <button
+            type="button"
+            onClick={onSwitchToSignup}
+            className="font-semibold text-[#7C3AED] hover:underline cursor-pointer"
+          >
+            Sign up
+          </button>
+        </div>
+      )}
     </div>
   );
 }

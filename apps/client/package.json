@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@repo/shared": "*",
     "@hookform/resolvers": "^5.4.0",
     "@mediapipe/tasks-vision": "^1.0.1",
     "@tanstack/react-query": "^5.102.8",

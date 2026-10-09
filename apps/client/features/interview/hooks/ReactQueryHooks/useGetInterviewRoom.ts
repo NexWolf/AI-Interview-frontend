@@ -17,6 +17,14 @@ export const useGetInterveiwRoom = (interviewId: string | number) => {
     refetchInterval: (query) => {
       const data = query.state.data;
       if (data && data.status === "Completed" && !data.report) {
+        const timeStr = data.endTime || data.updatedAt || data.startTime;
+        if (timeStr) {
+          const time = new Date(timeStr).getTime();
+          // If interview completed more than 5 minutes ago, stop polling
+          if (!isNaN(time) && Date.now() - time > 5 * 60 * 1000) {
+            return false;
+          }
+        }
         return 5000;
       }
       return false;

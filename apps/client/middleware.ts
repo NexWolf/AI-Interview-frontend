@@ -7,7 +7,7 @@ const TOKEN_COOKIE_NAME = "accessToken";
 const publicRoutes = ["/", "/auth", "/verify-email", "/forgot-password", "/reset-password"];
 
 // المسارات التي تتطلب إكمال البروفايل (onboarding)
-const onboardingRequiredRoutes = ["/dashboard", "/interview", "/admin", "/profile"];
+const onboardingRequiredRoutes = ["/dashboard", "/interview", "/profile"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

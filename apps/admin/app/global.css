@@ -1,0 +1,211 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    /* ================= 1. خلفية الصفحة العامة (Light Brand Neutral: #F2F2F2) ================= */
+    --background: 0 0% 95%;
+    /* #F2F2F2 */
+    --background-gradient: linear-gradient(180deg, #F2F2F2 0%, #FFFFFF 100%);
+    --foreground: 259 45% 12%;
+
+    /* النصوص والعناوين */
+    --heading: 259 50% 12%;
+    --subheading: 259 20% 38%;
+
+    /* ================= 2. الكارد الزجاجي (Frosted Glass Card) ================= */
+    --card: 0 0% 100%;
+    --card-gradient: linear-gradient(160deg, hsl(0 0% 100% / 0.9) 0%, hsl(259 30% 98% / 0.8) 100%);
+    --card-opacity: 0.9;
+    --card-border: 259 40% 90%;
+    --card-foreground: 259 45% 12%;
+
+    /* الحدود العامة (Border Token) */
+    --border: 259 35% 88%;
+
+    /* ================= 3. حقول الإدخال (Inputs) ================= */
+    --input: 0 0% 100%;
+    --input-border: 259 25% 86%;
+    --input-foreground: 259 45% 12%;
+    --input-focus-border: 259 56% 48%;
+    /* #6136BF */
+    --input-focus-ring: 259 70% 83%;
+    /* #C7B3F2 */
+
+    /* ================= 4. الأزرار الأساسية والثانوية (Priority 1: #6136BF, Priority 2: #724EBF) ================= */
+    --primary: 259 56% 48%;
+    /* #6136BF */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 259 48% 53%;
+    /* #724EBF */
+
+    --button: var(--primary);
+    --button-foreground: var(--primary-foreground);
+    --button-border: var(--primary);
+    --button-hover: var(--primary-hover);
+    --button-border-hover: var(--primary-hover);
+
+    --secondary: 259 45% 94%;
+    --secondary-foreground: 259 56% 38%;
+
+    --button-secondary: 259 45% 94%;
+    --button-secondary-foreground: 259 56% 38%;
+    --button-secondary-border: 259 35% 86%;
+    --button-secondary-hover: 259 45% 90%;
+    --button-secondary-border-hover: 259 35% 80%;
+
+    /* ================= 5. عناصر ثانوية وتنبيهات (Priority 3: #9F84D9, Priority 4: #C7B3F2) ================= */
+    --muted: 259 20% 94%;
+    --muted-foreground: 259 18% 46%;
+
+    --accent: 259 52% 69%;
+    /* #9F84D9 */
+    --accent-foreground: 259 56% 25%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    /* ================= 1. خلفية الصفحة العامة (Dark Cosmic Violet) ================= */
+    --background: 265 48% 6%;
+    --background-gradient: linear-gradient(180deg, hsl(265 48% 7%) 0%, hsl(265 45% 5%) 50%, hsl(265 48% 4%) 100%);
+    --foreground: 0 0% 96%;
+
+    /* النصوص والعناوين */
+    --heading: 0 0% 98%;
+    --subheading: 259 25% 72%;
+
+    /* ================= 2. الكارد الزجاجي ================= */
+    --card: 265 32% 9%;
+    --card-gradient: linear-gradient(160deg, hsl(265 32% 12% / 0.85) 0%, hsl(265 30% 8% / 0.75) 100%);
+    --card-opacity: 0.8;
+    --card-border: 259 28% 20%;
+    --card-foreground: 0 0% 96%;
+
+    /* الحدود العامة (Border Token) */
+    --border: 259 28% 19%;
+
+    /* ================= 3. حقول الإدخال (Inputs) ================= */
+    --input: 265 26% 12%;
+    --input-border: 259 24% 22%;
+    --input-foreground: 0 0% 96%;
+    --input-focus-border: 259 56% 48%;
+    /* #6136BF */
+    --input-focus-ring: 259 48% 53%;
+    /* #724EBF */
+
+    /* ================= 4. الأزرار الأساسية والثانوية (Priority 1: #6136BF, Priority 2: #724EBF) ================= */
+    --primary: 259 56% 48%;
+    /* #6136BF */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 259 48% 53%;
+    /* #724EBF */
+
+    --button: var(--primary);
+    --button-foreground: var(--primary-foreground);
+    --button-border: var(--primary);
+    --button-hover: var(--primary-hover);
+    --button-border-hover: var(--primary-hover);
+
+    --secondary: 265 24% 15%;
+    --secondary-foreground: 259 52% 85%;
+
+    --button-secondary: 265 24% 15%;
+    --button-secondary-foreground: 0 0% 95%;
+    --button-secondary-border: 259 22% 24%;
+    --button-secondary-hover: 265 24% 19%;
+    --button-secondary-border-hover: 259 22% 28%;
+
+    /* ================= 5. عناصر ثانوية وتنبيهات ================= */
+    --muted: 265 22% 13%;
+    --muted-foreground: 259 15% 65%;
+
+    --accent: 259 52% 69%;
+    /* #9F84D9 */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+  }
+}
+
+/* ربط المتغيرات بنظام Tailwind v4 */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-heading: hsl(var(--heading));
+  --color-subheading: hsl(var(--subheading));
+
+  --color-card: hsl(var(--card) / var(--card-opacity));
+  --color-card-border: hsl(var(--card-border));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-border: hsl(var(--border));
+
+  --color-input: hsl(var(--input));
+  --color-input-border: hsl(var(--input-border));
+  --color-input-foreground: hsl(var(--input-foreground));
+  --color-input-focus-border: hsl(var(--input-focus-border));
+  --color-input-focus-ring: hsl(var(--input-focus-ring));
+
+  --color-button: hsl(var(--button));
+  --color-button-foreground: hsl(var(--button-foreground));
+  --color-button-border: hsl(var(--button-border));
+  --color-button-hover: hsl(var(--button-hover));
+  --color-button-border-hover: hsl(var(--button-border-hover));
+
+  --color-button-secondary: hsl(var(--button-secondary));
+  --color-button-secondary-foreground: hsl(var(--button-secondary-foreground));
+  --color-button-secondary-border: hsl(var(--button-secondary-border));
+  --color-button-secondary-hover: hsl(var(--button-secondary-hover));
+  --color-button-secondary-border-hover: hsl(var(--button-secondary-border-hover));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-hover: hsl(var(--primary-hover));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  /* Brand Palette from User Reference Image */
+  --color-brand-1: #6136BF;
+  --color-brand-2: #724EBF;
+  --color-brand-3: #9F84D9;
+  --color-brand-4: #C7B3F2;
+  --color-brand-5: #F2F2F2;
+
+  --radius: var(--radius);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-none;
+  }
+
+  body {
+    @apply text-foreground;
+    background: var(--background-gradient);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .bg-card-gradient {
+    background: var(--card-gradient);
+  }
+}

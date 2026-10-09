@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import SetupContainer from "@/features/interview/components/setup-component/SetupContainer";
 import { skillsKey } from "@/shared/constants/query-key";
 import { USER_INFO_QUERY_KEY } from "@/shared/hook/useUserInfo";
@@ -37,7 +38,9 @@ const page = async () => {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <SetupContainer />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading setup...</div>}>
+        <SetupContainer />
+      </Suspense>
     </HydrationBoundary>
   );
 };

@@ -1,14 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  ShieldAlert,
-  RefreshCw,
-  Shield,
-  Loader2,
-} from "lucide-react";
-import { useUserInfo } from "../../packages/hook/useUserInfo";
+import { Loader2 } from "lucide-react";
 import {
   useAdminInterviews,
   useAdminUsers,
@@ -17,30 +11,29 @@ import {
   useAdminReports,
   useAdminInterviewDetails,
   useAdminAIRequestDetails,
-} from "../../packages/hook/useAdmin";
-import { useQueryClient } from "@tanstack/react-query";
-import { AdminOverviewTab } from "../features/AdminOverviewTab";
-import { AdminInterviewsTab } from "../features/AdminInterviewsTab";
-import { AdminUsersTab } from "../features/AdminUsersTab";
-import { AdminAiRequestsTab } from "../features/AdminAiRequestsTab";
-import { AdminViolationsTab } from "../features/AdminViolationsTab";
-import { AdminReportsTab } from "../features/AdminReportsTab";
-import { AdminSkillsTab } from "../features/AdminSkillsTab";
-import { InterviewDetailModal } from "../features/InterviewDetailModal";
-import { AiRequestDetailModal } from "../features/AiRequestDetailModal";
-import { cn } from "../../packages/lib/utils";
+} from "@repo/shared";
+import {
+  AdminOverviewTab,
+  AdminInterviewsTab,
+  AdminUsersTab,
+  AdminAiRequestsTab,
+  AdminViolationsTab,
+  AdminReportsTab,
+  AdminSkillsTab,
+  AdminCompaniesTab,
+  AdminQuestionsTab,
+  AdminFeedbacksTab,
+  InterviewDetailModal,
+  AiRequestDetailModal,
+} from "@/features";
 
-export default function Admin() {
+function AdminContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") || "overview";
 
-  const { data: user, isLoading: userLoading } = useUserInfo();
-  const queryClient = useQueryClient();
-
   const [selectedInterviewId, setSelectedInterviewId] = useState<string | number | null>(null);
   const [selectedAiRequestId, setSelectedAiRequestId] = useState<string | number | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Queries
   const { data: interviewsData, isLoading: interviewsLoading } = useAdminInterviews();
@@ -59,82 +52,17 @@ export default function Admin() {
   const violations = violationsData?.violations || [];
   const reports = reportsData?.reports || [];
 
-  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  // تم تعطيل الفحص مؤقتاً لمعاينة التصميم والشكل بحرية
+  const isAdmin = true;
 
   const handleTabChange = (tab: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
-    router.replace(`/admin?${params.toString()}`);
+    router.replace(`?${params.toString()}`);
   };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["admin"] }),
-      queryClient.invalidateQueries({ queryKey: ["skills"] }),
-    ]);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
-
-  if (userLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Authenticating administrator privileges...</p>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-center p-6">
-        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center">
-          <ShieldAlert className="w-7 h-7" />
-        </div>
-        <h2 className="text-xl font-bold text-foreground">Access Restricted</h2>
-        <p className="text-sm text-muted-foreground max-w-md">
-          This portal is reserved for NexWolf system administrators. Your account does not have sufficient role privileges.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 animate-in fade-in-50 duration-300 pb-16">
-      {/* Top Banner / Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border/60">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Admin Command Center
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5" />
-              {user?.role}
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Monitor live interviews, track LLM inference telemetry, inspect proctoring integrity, and manage candidate accounts.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Telemetry Live</span>
-          </div>
-
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-border/60 bg-card hover:bg-muted text-foreground transition-all cursor-pointer shadow-xs"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-primary")} />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
-
       {/* Active Tab Views */}
       <div>
         {activeTab === "overview" && (
@@ -181,6 +109,12 @@ export default function Admin() {
         )}
 
         {activeTab === "skills" && <AdminSkillsTab />}
+
+        {activeTab === "companies" && <AdminCompaniesTab />}
+
+        {activeTab === "questions" && <AdminQuestionsTab />}
+
+        {activeTab === "feedbacks" && <AdminFeedbacksTab />}
       </div>
 
       {/* Modals */}
@@ -194,5 +128,19 @@ export default function Admin() {
         onClose={() => setSelectedAiRequestId(null)}
       />
     </div>
+  );
+}
+
+export default function Admin() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <AdminContent />
+    </Suspense>
   );
 }

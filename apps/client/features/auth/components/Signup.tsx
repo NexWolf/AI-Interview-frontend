@@ -59,7 +59,11 @@ function AuthField({
   );
 }
 
-export default function Signup() {
+export default function Signup({
+  onSwitchToSignin,
+}: {
+  onSwitchToSignin?: () => void;
+}) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -240,6 +244,19 @@ export default function Signup() {
           )}
         </button>
       </form>
+
+      {onSwitchToSignin && (
+        <div className="mt-3.5 text-center text-xs text-[#6B7280]">
+          <span>Already have an account? </span>
+          <button
+            type="button"
+            onClick={onSwitchToSignin}
+            className="font-semibold text-[#7C3AED] hover:underline cursor-pointer"
+          >
+            Sign in
+          </button>
+        </div>
+      )}
     </div>
   );
 }

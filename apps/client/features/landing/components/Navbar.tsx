@@ -67,12 +67,20 @@ const Navbar = () => {
               <span>{t("nav.switchLang")}</span>
             </button>
 
+            {/* Log In */}
+            <Link
+              href="/auth?mode=signin"
+              className="text-xs font-semibold text-white/80 hover:text-white transition-colors duration-200 px-3 py-2 cursor-pointer"
+            >
+              {t("nav.login")}
+            </Link>
+
             {/* Sign Up */}
             <Button
               asChild
               className="rounded-full border border-[#6136BF] bg-[#6136BF] px-6 text-white shadow-lg shadow-[#6136BF]/25 transition-all duration-300 hover:bg-[#724EBF] hover:shadow-[#724EBF]/35"
             >
-              <Link href="/auth" className="flex items-center gap-2">
+              <Link href="/auth?mode=signup" className="flex items-center gap-2">
                 <span>{t("nav.signup")}</span>
                 <ArrowUpRight className="h-4 w-4 rtl:rotate-[-90deg] transition-transform" />
               </Link>
@@ -123,7 +131,16 @@ const Navbar = () => {
               {/* Mobile Actions */}
               <div className="mt-3 flex flex-col gap-3 border-t border-white/10 pt-4">
                 <Link
-                  href="/auth"
+                  href="/auth?mode=signin"
+                  prefetch={false}
+                  onClick={() => setOpen(false)}
+                  className="flex h-11 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-sm font-medium text-white transition hover:bg-white/[0.1]"
+                >
+                  {t("nav.login")}
+                </Link>
+                <Link
+                  href="/auth?mode=signup"
+                  prefetch={false}
                   onClick={() => setOpen(false)}
                   className="group flex h-11 items-center justify-center gap-2 rounded-full border border-[#6136BF] bg-[#6136BF] text-sm font-medium text-white transition hover:bg-[#724EBF]"
                 >

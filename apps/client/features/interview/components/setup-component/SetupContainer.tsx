@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
@@ -19,6 +19,7 @@ import {
   Briefcase,
   Zap,
   Layers,
+  FolderGit2,
 } from "lucide-react";
 
 import CameraPreview from "@/features/interview/components/setup-component/CameraPreview";
@@ -102,6 +103,12 @@ export const SetupContainer = () => {
   const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
   const [isAudioReady, setIsAudioReady] = useState<boolean>(false);
 
+  // Search parameters for project-based interview
+  const searchParams = useSearchParams();
+  const urlProjectId = searchParams.get("projectId");
+
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(urlProjectId);
+
   // Anti-cheating and guidelines acceptance checklist
   const [rulesAgreed, setRulesAgreed] = useState<{
     quietPlace: boolean;
@@ -126,6 +133,13 @@ export const SetupContainer = () => {
 
   const { register, watch, setValue } = methods;
 
+  useEffect(() => {
+    if (urlProjectId) {
+      setActiveProjectId(urlProjectId);
+      setValue("projectId", urlProjectId);
+    }
+  }, [urlProjectId, setValue]);
+
   const currentSkillsIds = watch("skillsIds") || [];
   const currentLanguage = watch("interviewLanguage");
   const currentDifficulty = watch("difficultyLevel");
@@ -133,10 +147,15 @@ export const SetupContainer = () => {
 
   // Determine available skills list for presets and summary
   const availableSkills = useMemo(() => {
+    if (allSkills && allSkills.length > 0) {
+      return allSkills
+        .filter((s) => s.isActive !== false)
+        .map((skill) => ({ id: skill.id, name: skill.name }));
+    }
     if (userSkills && userSkills.length > 0) {
       return userSkills.map((item) => ({ id: item.skill.id, name: item.skill.name }));
     }
-    return (allSkills || []).map((skill) => ({ id: skill.id, name: skill.name }));
+    return [];
   }, [userSkills, allSkills]);
 
   // Names of currently selected skills for summary card
@@ -241,6 +260,7 @@ export const SetupContainer = () => {
       job_description: hasJobDescription ? data.job_description : undefined,
       duration: 20,
       skillIds: data.skillsIds,
+      projectId: activeProjectId || undefined,
     };
 
     startInterview(payload, {
@@ -378,6 +398,50 @@ export const SetupContainer = () => {
           {/* STEP 1: INTERVIEW SCOPE & CUSTOMIZATION */}
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in-50 duration-200">
+              {/* Linked Project Banner */}
+              {activeProjectId && (
+                <div className="relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-card p-4 sm:p-5 shadow-xs transition-all">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 sm:gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-md shadow-primary/20 shrink-0 mt-0.5">
+                        <FolderGit2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                            {isAr ? "مقابلة مبنية على المشروع" : "Project-Based Technical Interview"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            {isAr ? "كود المشروع متصل" : "Codebase Linked"}
+                          </span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-bold text-foreground mt-1">
+                          {isAr ? `مشروع برمجي مرتبط (#${activeProjectId})` : `Linked Project Codebase (#${activeProjectId})`}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-xl leading-relaxed">
+                          {isAr
+                            ? "سيقوم المحاور الذكي بسؤالك عن معمارية هذا المشروع، اتخاذ القرارات الهندسية، وفحص الكود الحقيقي مباشرة."
+                            : "The AI interviewer will evaluate you on this project's real codebase architecture, design patterns, and source code."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveProjectId(null);
+                        setValue("projectId", undefined);
+                        toast.info(isAr ? "تم التحويل إلى مقابلة عامة" : "Switched to standard interview");
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg border border-border/60 hover:bg-muted transition-colors shrink-0 cursor-pointer"
+                    >
+                      {isAr ? "التبديل لوضع عام" : "Switch to General"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Quick Presets Section */}
               <div className="p-4 sm:p-5 rounded-2xl border border-primary/20 bg-gradient-to-br from-card via-card to-primary/5 shadow-xs space-y-3">
                 <div className="flex items-center gap-2">
@@ -706,6 +770,18 @@ export const SetupContainer = () => {
                       {isVideoReady && isAudioReady ? (isAr ? "جاهز تماماً ✓" : "All Ready ✓") : (isAr ? "بانتظار الفحص" : "Pending Check")}
                     </span>
                   </div>
+
+                  {activeProjectId && (
+                    <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 space-y-1 col-span-2 sm:col-span-4">
+                      <span className="text-[11px] text-primary font-bold flex items-center gap-1.5">
+                        <FolderGit2 className="w-3.5 h-3.5" />
+                        {isAr ? "المشروع المتصل بالمقابلة:" : "Linked Codebase Project:"}
+                      </span>
+                      <span className="font-semibold text-foreground text-sm">
+                        {isAr ? `مشروع برمجي (#${activeProjectId})` : `Codebase Project (#${activeProjectId})`}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Selected skills badges in summary */}

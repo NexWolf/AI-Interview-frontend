@@ -1,0 +1,113 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    --background: 0 0% 95%;
+    --background-gradient: linear-gradient(180deg, #F2F2F2 0%, #FFFFFF 100%);
+    --foreground: 259 45% 12%;
+
+    --heading: 259 50% 12%;
+    --subheading: 259 20% 38%;
+
+    --card: 0 0% 100%;
+    --card-gradient: linear-gradient(160deg, hsl(0 0% 100% / 0.9) 0%, hsl(259 30% 98% / 0.8) 100%);
+    --card-opacity: 0.9;
+    --card-border: 259 40% 90%;
+    --card-foreground: 259 45% 12%;
+
+    --border: 259 35% 88%;
+
+    --input: 0 0% 100%;
+    --input-border: 259 25% 86%;
+    --input-foreground: 259 45% 12%;
+    --input-focus-border: 259 56% 48%;
+    --input-focus-ring: 259 70% 83%;
+
+    --primary: 259 56% 48%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 259 48% 53%;
+
+    --button: var(--primary);
+    --button-foreground: var(--primary-foreground);
+    --button-border: var(--primary);
+    --button-hover: var(--primary-hover);
+    --button-border-hover: var(--primary-hover);
+
+    --secondary: 259 45% 94%;
+    --secondary-foreground: 259 56% 38%;
+
+    --button-secondary: 259 45% 94%;
+    --button-secondary-foreground: 259 56% 38%;
+    --button-secondary-border: 259 35% 86%;
+    --button-secondary-hover: 259 45% 90%;
+    --button-secondary-border-hover: 259 35% 80%;
+
+    --muted: 259 30% 92%;
+    --muted-foreground: 259 20% 45%;
+
+    --accent: 259 56% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --ring: 259 56% 48%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 260 40% 6%;
+    --background-gradient: linear-gradient(180deg, hsl(260 40% 6%) 0%, hsl(260 45% 4%) 100%);
+    --foreground: 260 20% 95%;
+
+    --heading: 260 25% 98%;
+    --subheading: 260 15% 70%;
+
+    --card: 260 35% 10%;
+    --card-gradient: linear-gradient(160deg, hsl(260 35% 11% / 0.8) 0%, hsl(260 40% 8% / 0.8) 100%);
+    --card-border: 260 25% 18%;
+    --card-foreground: 260 20% 95%;
+
+    --border: 260 25% 18%;
+
+    --input: 260 30% 12%;
+    --input-border: 260 25% 22%;
+    --input-foreground: 260 20% 95%;
+    --input-focus-border: 259 56% 58%;
+    --input-focus-ring: 259 56% 48%;
+
+    --primary: 259 65% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 259 60% 65%;
+
+    --button: var(--primary);
+    --button-foreground: var(--primary-foreground);
+    --button-border: var(--primary);
+    --button-hover: var(--primary-hover);
+    --button-border-hover: var(--primary-hover);
+
+    --secondary: 260 30% 16%;
+    --secondary-foreground: 260 20% 90%;
+
+    --button-secondary: 260 30% 16%;
+    --button-secondary-foreground: 260 20% 90%;
+    --button-secondary-border: 260 25% 24%;
+    --button-secondary-hover: 260 30% 22%;
+    --button-secondary-border-hover: 260 25% 30%;
+
+    --muted: 260 30% 14%;
+    --muted-foreground: 260 15% 65%;
+
+    --accent: 259 65% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --ring: 259 65% 58%;
+  }
+}

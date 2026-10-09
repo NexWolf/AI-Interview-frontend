@@ -21,6 +21,7 @@ export interface setupInterview {
   difficultyLevel: InterviewLevel;
   duration: number;
   aiVoice: VoiceName;
+  projectId?: string;
 }
 
 /**********************************/
@@ -32,5 +33,6 @@ export interface StartInterviewPayload {
   duration: number;
   job_description?: string;
   skillIds: string[];
+  projectId?: string;
 }
 /**********************************/

@@ -534,6 +534,46 @@ export function useInterviewFlow({
       await flushViolations();
     }
 
+    // Check if nextQuestion exists and was not presented to the user
+    const state = useInterviewStore.getState();
+    const bufferedNextQuestion = state.nextQuestion;
+    const currentQ = state.currentQuestion;
+
+    const unviewedQuestionIds: string[] = [];
+    if (bufferedNextQuestion?.id) {
+      unviewedQuestionIds.push(String(bufferedNextQuestion.id));
+      console.log(
+        "%c🛑 [FINISH INTERVIEW] Detected unviewed buffered nextQuestion. Cancelling it and notifying backend:",
+        "background: #dc2626; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+        bufferedNextQuestion
+      );
+    }
+
+    // Also check questionList for any trailing prefetched question generated after currentQuestion
+    if (currentQ?.questionOrder) {
+      state.questionList.forEach((q) => {
+        if (!q.isAnswered && q.questionOrder > currentQ.questionOrder && q.id !== currentQ.id) {
+          if (!unviewedQuestionIds.includes(String(q.id))) {
+            unviewedQuestionIds.push(String(q.id));
+          }
+        }
+      });
+    }
+
+    // Discard unviewed questions from frontend store immediately so they are never displayed
+    useInterviewStore.getState().setNextQuestion(null);
+    if (unviewedQuestionIds.length > 0) {
+      useInterviewStore.getState().setQuestionList(
+        state.questionList.filter((q) => !unviewedQuestionIds.includes(String(q.id)))
+      );
+    }
+
+    const finishPayload = {
+      unviewedQuestionIds,
+      unviewedQuestionId: bufferedNextQuestion?.id ? String(bufferedNextQuestion.id) : undefined,
+      lastDisplayedQuestionOrder: currentQ?.questionOrder,
+    };
+
     toast.loading("Ending interview...");
 
     const navigateToReport = () => {
@@ -544,11 +584,11 @@ export function useInterviewFlow({
     };
 
     try {
-      // 1. Mark interview as completed immediately
-      await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`);
+      // 1. Mark interview as completed immediately with unviewed question metadata
+      await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`, finishPayload);
 
       // 2. Trigger report generation (backend now handles it asynchronously in background and responds instantly)
-      await AxiosAPI.post(`/api/interviews/${interviewId}/summary`).catch((err) => {
+      await AxiosAPI.post(`/api/interviews/${interviewId}/summary`, finishPayload).catch((err) => {
         console.error("Background summary generation error:", err);
       });
 

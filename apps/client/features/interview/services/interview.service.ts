@@ -1,6 +1,8 @@
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 import { StandardApiResponse } from "@/shared/types/api";
 import {
+  GetAllInterviewsParams,
+  GetAllInterviewsResponse,
   InterviewListItem,
   InterviewRoom,
   InterviewRoomResponse,
@@ -32,11 +34,36 @@ export const interviewService = {
     return response.data.data.interview;
   },
 
-  getAll: async (): Promise<InterviewListItem[]> => {
-    const response = await AxiosAPI.get<StandardApiResponse<{ interviews: InterviewListItem[] }>>(
-      `/api/interviews/`,
-    );
-    return response.data.data.interviews;
+  getAll: async (
+    params?: GetAllInterviewsParams,
+  ): Promise<GetAllInterviewsResponse> => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.limit) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    const url = `/api/interviews/${qs ? `?${qs}` : ""}`;
+
+    const response = await AxiosAPI.get<
+      StandardApiResponse<{
+        interviews: InterviewListItem[];
+        pagination?: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }>
+    >(url);
+
+    const rawData = response?.data?.data as any;
+    if (Array.isArray(rawData)) {
+      return { interviews: rawData };
+    }
+
+    return {
+      interviews: rawData?.interviews || [],
+      pagination: rawData?.pagination || (response?.data as any)?.pagination,
+    };
   },
 
   generateSummary: async (interviewId: string | number) => {

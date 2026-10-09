@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useUserSkills } from "@/shared/hook/useUserSkills";
 import { useAllSkills } from "@/shared/hook/useAllSkills";
 import { useFormContext } from "react-hook-form";
@@ -7,10 +8,25 @@ export const TecnologiesSelect = () => {
   const { data: allSkills } = useAllSkills();
   const { register } = useFormContext();
 
-  const skillsList =
-    userSkills && userSkills.length > 0
-      ? userSkills.map((item) => ({ id: item.skill.id, name: item.skill.name }))
-      : (allSkills || []).map((skill) => ({ id: skill.id, name: skill.name }));
+  const skillsList = useMemo(() => {
+    if (!allSkills || allSkills.length === 0) {
+      if (userSkills && userSkills.length > 0) {
+        return userSkills.map((item) => ({ id: item.skill.id, name: item.skill.name }));
+      }
+      return [];
+    }
+
+    const userSkillIdSet = new Set((userSkills || []).map((us) => String(us.skill?.id || us.skillId)));
+    const active = allSkills.filter((s) => s.isActive !== false);
+
+    return [...active].sort((a, b) => {
+      const aIsUser = userSkillIdSet.has(String(a.id));
+      const bIsUser = userSkillIdSet.has(String(b.id));
+      if (aIsUser && !bIsUser) return -1;
+      if (!aIsUser && bIsUser) return 1;
+      return (a.name || a.nameEn || "").localeCompare(b.name || b.nameEn || "");
+    });
+  }, [allSkills, userSkills]);
 
   if (!skillsList || skillsList.length === 0) {
     return (

@@ -102,6 +102,28 @@ export interface InterviewListItem {
   updatedAt: string;
   skills: InterviewRoomSkill[];
   report?: ReportApi | null;
+  codebaseProjectId?: string | null;
+  codebaseProject?: {
+    id: string;
+    repositoryUrl?: string | null;
+    repositoryName?: string | null;
+    repositoryOwner?: string | null;
+  } | null;
+}
+
+export interface GetAllInterviewsParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface GetAllInterviewsResponse {
+  interviews: InterviewListItem[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 /* StartInterview response → data */

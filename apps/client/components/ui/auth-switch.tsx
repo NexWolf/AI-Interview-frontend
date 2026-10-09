@@ -70,6 +70,7 @@ export default function AuthSwitch({
 
   return (
     <div
+      dir="ltr"
       className={`min-h-screen w-full flex items-center justify-center p-4 ${className ?? ""}`}
       style={{
         background:
@@ -119,6 +120,7 @@ export default function AuthSwitch({
 
       {/* ===================== سطح المكتب (900×550) ===================== */}
       <div
+        dir="ltr"
         className="relative hidden overflow-hidden rounded-[32px] bg-card shadow-[var(--shadow-elegant)] md:block"
         style={{ width: CARD_W, height: CARD_H, isolation: "isolate" }}
       >
@@ -237,7 +239,7 @@ export default function AuthSwitch({
         </div>
 
         {/* نصوص + أزرار التبديل */}
-        <div className="absolute inset-0 grid grid-cols-2">
+        <div dir="ltr" className="absolute inset-0 grid grid-cols-2">
           <div
             className="flex flex-col justify-center text-center"
             style={{ alignItems: "flex-end", padding: "3rem 14% 2rem 8%", zIndex: 6, pointerEvents: isSigninActive ? "auto" : "none" }}
