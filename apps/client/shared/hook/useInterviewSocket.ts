@@ -48,6 +48,8 @@ export interface SummaryDonePayload {
   result: Record<string, unknown>;
 }
 
+import { getCandidateToken } from "@/shared/lib/AxiosAPI";
+
 export interface SocketErrorPayload {
   interviewId?: string | number;
   message: string;
@@ -66,11 +68,19 @@ export interface UseInterviewSocketOptions {
 
 // Fetch the current user JWT access token from the Next.js internal auth route
 async function fetchAccessToken(): Promise<string | null> {
+  const candidateToken = getCandidateToken();
+  if (candidateToken) {
+    return candidateToken;
+  }
+
   try {
     const res = await fetch("/api/auth/token");
     if (res.status === 401) {
       if (typeof window !== "undefined") {
-        window.location.href = "/auth";
+        const isInterview = window.location.pathname.startsWith("/interview/");
+        if (!isInterview) {
+          window.location.href = "/auth";
+        }
       }
       return null;
     }

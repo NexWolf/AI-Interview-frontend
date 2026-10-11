@@ -76,6 +76,7 @@ export interface InterviewRoom {
   createdAt: string;
   updatedAt: string;
   report: ReportApi | null;
+  jobDescription?: string | null;
   questions: InterviewRoomQuestion[];
   skills: InterviewRoomSkill[];
 }
@@ -102,6 +103,7 @@ export interface InterviewListItem {
   updatedAt: string;
   skills: InterviewRoomSkill[];
   report?: ReportApi | null;
+  jobDescription?: string | null;
   codebaseProjectId?: string | null;
   codebaseProject?: {
     id: string;

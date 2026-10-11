@@ -171,10 +171,12 @@ export function AdminAiRequestsTab({ onInspect }: AdminAiRequestsTabProps) {
                     </td>
 
                     <td className="px-5 py-4">
-                      {item.interview?.user ? (
+                      {item.interview ? (
                         <div>
                           <div className="text-xs font-medium text-foreground">
-                            {item.interview.user.firstName ? `${item.interview.user.firstName} ${item.interview.user.lastName || ""}` : item.interview.user.email}
+                            {item.interview.user?.firstName
+                              ? `${item.interview.user.firstName} ${item.interview.user.lastName || ""}`.trim()
+                              : item.interview.user?.email || "Candidate"}
                           </div>
                           <div className="text-[11px] text-muted-foreground font-mono">
                             Interview #{item.interview.id}

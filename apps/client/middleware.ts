@@ -12,6 +12,15 @@ const onboardingRequiredRoutes = ["/dashboard", "/interview", "/profile"];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // استثناء غرف المقابلات المباشرة (مثل /interview/153 أو روابط الدعوة)
+  const isInterviewSession =
+    (pathname.startsWith("/interview/") && pathname !== "/interview/setup") ||
+    request.nextUrl.searchParams.has("token");
+
+  if (isInterviewSession) {
+    return NextResponse.next();
+  }
+
   // 1. هل هاد المسار من الصفحات العامة؟
   const isPublicRoute = publicRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),

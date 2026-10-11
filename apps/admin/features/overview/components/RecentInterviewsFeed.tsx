@@ -2,6 +2,10 @@
 
 import { Briefcase, ExternalLink } from "lucide-react";
 import { AdminInterview, cn } from "@repo/shared";
+import {
+  getCandidateDisplayName,
+  getCandidateInitials,
+} from "../../interviews/utils/interviewHelpers";
 
 interface RecentInterviewsFeedProps {
   interviews: AdminInterview[];
@@ -34,6 +38,9 @@ export function RecentInterviewsFeed({
       <div className="divide-y divide-border/40">
         {interviews.slice(0, 5).map((interview) => {
           const score = interview.reports?.[0]?.overallScore;
+          const candidateName = getCandidateDisplayName(interview.user, interview.candidate);
+          const candidateInitials = getCandidateInitials(interview.user, interview.candidate);
+
           return (
             <div
               key={interview.id}
@@ -42,14 +49,12 @@ export function RecentInterviewsFeed({
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center shrink-0 text-sm">
-                  {interview.user.firstName?.[0] || interview.user.email[0].toUpperCase()}
+                  {candidateInitials}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm text-foreground truncate">
-                      {interview.user.firstName
-                        ? `${interview.user.firstName} ${interview.user.lastName || ""}`
-                        : interview.user.email}
+                      {candidateName}
                     </span>
                     <span
                       className={cn(

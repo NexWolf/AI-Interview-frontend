@@ -26,3 +26,13 @@ export const adminQueryKeys = {
   feedbacks: (params?: any) => ["admin", "feedbacks", params] as const,
   feedback: (id: string | number) => ["admin", "feedback", id] as const,
 };
+
+export const companyQueryKeys = {
+  profile: ["company", "profile"] as const,
+  overview: ["company", "overview"] as const,
+  candidates: () => ["company", "candidates"] as const,
+  interviews: () => ["company", "interviews"] as const,
+  interview: (id: string | number) => ["company", "interview", id] as const,
+  interviewResult: (id: string | number) => ["company", "interview", id, "result"] as const,
+  apiKeys: () => ["company", "api-keys"] as const,
+};

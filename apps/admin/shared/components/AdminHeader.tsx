@@ -13,6 +13,7 @@ import {
 import {
   useUserInfo,
   clearCachedAccessToken,
+  ThemeToggle,
   cn,
 } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
@@ -144,6 +145,8 @@ function AdminHeaderContent({ onOpenMobileMenu }: AdminHeaderProps) {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>Telemetry Live</span>
           </div>
+
+          <ThemeToggle />
 
           <button
             onClick={handleRefresh}

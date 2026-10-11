@@ -19,7 +19,8 @@ export function InterviewDetailModal({
 
   const report = interview.reports?.[0];
   const score = report?.overallScore;
-  const candidateName = getCandidateDisplayName(interview.user);
+  const candidateName = getCandidateDisplayName(interview.user, interview.candidate);
+  const candidateEmail = interview.user?.email || interview.candidate?.email || "";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in-50">
@@ -41,7 +42,7 @@ export function InterviewDetailModal({
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Candidate: {candidateName} · {interview.user?.email || ""}
+              Candidate: {candidateName} {candidateEmail ? `· ${candidateEmail}` : ""}
             </p>
           </div>
 

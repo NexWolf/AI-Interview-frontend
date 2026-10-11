@@ -1,56 +1,63 @@
 "use client";
 
-import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
   Briefcase,
   KeyRound,
   Settings,
-  Sparkles,
 } from "lucide-react";
-import { cn } from "@repo/shared";
+import { cn, useCompanyOverview } from "@repo/shared";
+import { useLanguage } from "../context/LanguageContext";
 
 interface CompanySidebarNavProps {
   onItemClick?: () => void;
 }
 
-function CompanySidebarNavContent({ onItemClick }: CompanySidebarNavProps) {
-  const searchParams = useSearchParams();
-  const activeTab = searchParams?.get("tab") || "overview";
+export function CompanySidebarNav({ onItemClick }: CompanySidebarNavProps) {
+  const pathname = usePathname();
+  const { t } = useLanguage();
+  const { data: overview } = useCompanyOverview();
 
   const navItems = [
     {
       id: "overview",
-      label: "Dashboard",
+      href: "/",
+      label: t("nav.overview"),
       icon: LayoutDashboard,
-      description: "Hiring analytics & overview",
+      isActive: pathname === "/" || pathname === "/overview",
     },
     {
       id: "candidates",
-      label: "Candidates",
+      href: "/candidates",
+      label: t("nav.candidates"),
       icon: Users,
-      description: "Candidate pipeline & tests",
+      count: overview?.totalCandidates,
+      isActive: pathname.startsWith("/candidates"),
     },
     {
       id: "assessments",
-      label: "Assessments",
+      href: "/assessments",
+      label: t("nav.assessments"),
       icon: Briefcase,
-      description: "Interviews & score reports",
+      count: overview?.completedInterviews ?? overview?.totalInterviews,
+      isActive: pathname.startsWith("/assessments"),
     },
     {
       id: "integrations",
-      label: "API & Integrations",
+      href: "/integrations",
+      label: t("nav.integrations"),
       icon: KeyRound,
-      description: "API keys & ATS connection",
+      isActive: pathname.startsWith("/integrations"),
     },
     {
       id: "settings",
-      label: "Settings",
+      href: "/settings",
+      label: t("nav.settings"),
       icon: Settings,
-      description: "Company profile & team",
+      isActive: pathname.startsWith("/settings"),
     },
   ];
 
@@ -58,41 +65,44 @@ function CompanySidebarNavContent({ onItemClick }: CompanySidebarNavProps) {
     <div className="space-y-1">
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = activeTab === item.id;
-        const href = `?tab=${item.id}`;
 
         return (
           <Link
             key={item.id}
-            href={href}
+            href={item.href}
             onClick={onItemClick}
             className={cn(
-              "group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer",
-              isActive
-                ? "bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/25"
-                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              "group flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer",
+              item.isActive
+                ? "bg-primary/10 text-primary border border-primary/20 shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
               <Icon
                 className={cn(
-                  "w-4 h-4 transition-transform group-hover:scale-110",
-                  isActive ? "text-primary-foreground" : "text-muted-foreground"
+                  "w-4 h-4 shrink-0 transition-colors",
+                  item.isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
                 )}
               />
-              <span>{item.label}</span>
+              <span className="truncate">{item.label}</span>
             </div>
+
+            {item.count !== undefined && (
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 transition-colors",
+                  item.isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground group-hover:bg-card",
+                )}
+              >
+                {item.count}
+              </span>
+            )}
           </Link>
         );
       })}
     </div>
-  );
-}
-
-export function CompanySidebarNav(props: CompanySidebarNavProps) {
-  return (
-    <Suspense fallback={<div className="h-40 animate-pulse bg-muted/40 rounded-xl" />}>
-      <CompanySidebarNavContent {...props} />
-    </Suspense>
   );
 }

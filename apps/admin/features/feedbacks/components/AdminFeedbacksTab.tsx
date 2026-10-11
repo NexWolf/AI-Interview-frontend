@@ -52,7 +52,7 @@ export function AdminFeedbacksTab() {
         (f.commentEn && f.commentEn.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
         (f.commentAr && f.commentAr.includes(debouncedSearch)) ||
         (f.user &&
-          (f.user.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          ((f.user.email && f.user.email.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
             (f.user.firstName && f.user.firstName.toLowerCase().includes(debouncedSearch.toLowerCase()))));
 
       const matchRating = ratingFilter === "ALL" ? true : f.rating === Number(ratingFilter);

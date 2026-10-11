@@ -56,7 +56,13 @@ export function SecurityLogFeed({ violations, onSelectTab }: SecurityLogFeedProp
               <div className="text-xs font-medium text-foreground">{violation.violationType}</div>
               <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1">
                 <span>
-                  User: {violation.user.firstName ? `${violation.user.firstName}` : violation.user.email}
+                  User:{" "}
+                  {violation.user?.firstName
+                    ? `${violation.user.firstName} ${violation.user.lastName || ""}`.trim()
+                    : violation.user?.email ||
+                      violation.candidate?.fullName ||
+                      violation.candidate?.email ||
+                      "Candidate"}
                 </span>
                 <span className="font-mono text-[10px]">#{violation.interviewId}</span>
               </div>

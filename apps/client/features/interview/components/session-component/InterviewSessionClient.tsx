@@ -6,7 +6,8 @@
 
 import { useGetInterveiwRoom } from "@/features/interview/hooks/ReactQueryHooks/useGetInterviewRoom";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { setCandidateToken, getCandidateToken } from "@/shared/lib/AxiosAPI";
 import { useInterviewTimer } from "@/shared/hook/useInterviewTimer";
 import { useInterviewProtection } from "@/features/interview/hooks/useInterviewProtection";
 import { useViolationsManager } from "@/features/interview/hooks/useViolationsManager";
@@ -55,6 +56,31 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     error,
     refetch,
   } = useGetInterveiwRoom(interviewId);
+
+  // Extract and store candidate token from URL query params if present
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get("token");
+      if (tokenFromUrl) {
+        setCandidateToken(tokenFromUrl);
+      }
+    }
+  }, []);
+
+  // Sync candidateToken from RoomData payload if provided
+  useEffect(() => {
+    const candidateTok = (RoomData as any)?.candidateToken;
+    if (candidateTok) {
+      setCandidateToken(candidateTok);
+    }
+  }, [RoomData]);
+
+  const isCandidateSession = Boolean(
+    getCandidateToken() ||
+      (RoomData as any)?.isCandidateInterview ||
+      (RoomData as any)?.candidateId,
+  );
 
   const languageRef = useRef<string>("English");
   useEffect(() => {
@@ -495,6 +521,33 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
         >
           Try Again
         </button>
+      </div>
+    );
+  }
+
+  if (RoomData?.status === "Completed" && isCandidateSession) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-4 shadow-sm animate-in zoom-in-75 duration-300">
+          <CheckCircle2 className="w-9 h-9" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          تم الانتهاء من المقابلة بنجاح
+        </h2>
+        <p className="text-sm text-muted-foreground max-w-md mt-2 leading-relaxed">
+          شكراً لك! تم استلام جميع إجاباتك وإرسال تقرير المقابلة مباشرة إلى الشركة. يمكنك إغلاق هذه الصفحة بأمان الآن.
+        </p>
+        <p className="text-xs text-muted-foreground/80 max-w-md mt-1">
+          Thank you! Your interview has been submitted directly to the hiring team. You can safely close this page.
+        </p>
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => window.close()}
+            className="px-5 py-2.5 rounded-xl border border-border/80 hover:bg-muted text-xs font-semibold transition-all cursor-pointer shadow-sm"
+          >
+            إغلاق الصفحة (Close Tab)
+          </button>
+        </div>
       </div>
     );
   }

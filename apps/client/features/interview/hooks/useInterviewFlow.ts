@@ -579,6 +579,18 @@ export function useInterviewFlow({
     const navigateToReport = () => {
       stopGlobalMediaStream();
       toast.dismiss();
+
+      const candidateTok =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("candidate_access_token")
+          : null;
+
+      if (candidateTok) {
+        toast.success("Interview completed successfully! Thank you.");
+        window.location.reload();
+        return;
+      }
+
       toast.success("Interview completed! Redirecting to report...");
       router.replace(`/dashboard/interviewDetails`);
     };

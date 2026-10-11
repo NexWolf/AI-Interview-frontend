@@ -102,7 +102,19 @@ export interface AdminInterview {
   endTime: string | null;
   duration: number | null;
   createdAt: string;
-  user: AdminUserRef;
+  user?: AdminUserRef | null;
+  candidateId?: string | null;
+  candidate?: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
+  companyId?: string | null;
+  company?: {
+    id: string;
+    name: string;
+    slug?: string;
+  } | null;
   interviewSkills?: AdminSkillRef[];
   reports?: Array<{
     id: string | number;
@@ -176,7 +188,8 @@ export interface AdminAIRequest {
 
 export interface AdminViolation {
   id: string | number;
-  userId: string;
+  userId?: string | null;
+  candidateId?: string | null;
   interviewId: string | number;
   category: "TAB_SWITCH" | "MULTIPLE_FACES" | "NO_FACE" | "AUDIO_ANOMALY" | "FULLSCREEN_EXIT" | string;
   violationType: string;
@@ -184,7 +197,12 @@ export interface AdminViolation {
   isCheating: boolean;
   isTechnicalIssue: boolean;
   occurredAt: string;
-  user: AdminUserRef;
+  user?: AdminUserRef | null;
+  candidate?: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
   interview: {
     id: string | number;
     status: string;

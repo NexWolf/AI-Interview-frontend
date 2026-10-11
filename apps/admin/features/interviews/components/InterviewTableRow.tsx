@@ -17,8 +17,9 @@ interface InterviewTableRowProps {
 
 export function InterviewTableRow({ interview, onViewDetails }: InterviewTableRowProps) {
   const score = interview.reports?.[0]?.overallScore;
-  const displayName = getCandidateDisplayName(interview.user);
-  const initials = getCandidateInitials(interview.user);
+  const displayName = getCandidateDisplayName(interview.user, interview.candidate);
+  const initials = getCandidateInitials(interview.user, interview.candidate);
+  const email = interview.user?.email || interview.candidate?.email || "—";
 
   return (
     <tr className="hover:bg-muted/30 transition-colors">
@@ -29,7 +30,7 @@ export function InterviewTableRow({ interview, onViewDetails }: InterviewTableRo
           </div>
           <div>
             <div className="font-medium text-foreground">{displayName}</div>
-            <div className="text-xs text-muted-foreground">{interview.user?.email}</div>
+            <div className="text-xs text-muted-foreground">{email}</div>
           </div>
         </div>
       </td>

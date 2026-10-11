@@ -37,20 +37,41 @@ export function formatInterviewDuration(durationInSeconds?: number | null): stri
 }
 
 /**
- * Formats candidate full name or falls back to email
+ * Formats candidate full name or falls back to email or candidate object
  */
-export function getCandidateDisplayName(user?: AdminInterview["user"] | null): string {
-  if (!user) return "Candidate";
-  if (user.firstName) {
+export function getCandidateDisplayName(
+  user?: AdminInterview["user"] | null,
+  candidate?: AdminInterview["candidate"] | null
+): string {
+  if (user?.firstName) {
     return `${user.firstName} ${user.lastName || ""}`.trim();
   }
-  return user.email || "Candidate";
+  if (user?.userName) {
+    return user.userName;
+  }
+  if (user?.email) {
+    return user.email;
+  }
+  if (candidate?.fullName) {
+    return candidate.fullName;
+  }
+  if (candidate?.email) {
+    return candidate.email;
+  }
+  return "Candidate";
 }
 
 /**
  * Returns the candidate initial letter for avatars
  */
-export function getCandidateInitials(user?: AdminInterview["user"] | null): string {
-  if (!user) return "U";
-  return user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "U";
+export function getCandidateInitials(
+  user?: AdminInterview["user"] | null,
+  candidate?: AdminInterview["candidate"] | null
+): string {
+  if (user?.firstName?.[0]) return user.firstName[0].toUpperCase();
+  if (user?.userName?.[0]) return user.userName[0].toUpperCase();
+  if (user?.email?.[0]) return user.email[0].toUpperCase();
+  if (candidate?.fullName?.[0]) return candidate.fullName[0].toUpperCase();
+  if (candidate?.email?.[0]) return candidate.email[0].toUpperCase();
+  return "C";
 }

@@ -7,6 +7,26 @@ export const AxiosAPI = axios.create({
 
 let cachedAccessToken: string | null = null;
 let tokenPromise: Promise<string | null> | null = null;
+let candidateToken: string | null = null;
+
+export function setCandidateToken(token: string | null) {
+  candidateToken = token;
+  if (typeof window !== "undefined") {
+    if (token) {
+      sessionStorage.setItem("candidate_access_token", token);
+    } else {
+      sessionStorage.removeItem("candidate_access_token");
+    }
+  }
+}
+
+export function getCandidateToken(): string | null {
+  if (candidateToken) return candidateToken;
+  if (typeof window !== "undefined") {
+    candidateToken = sessionStorage.getItem("candidate_access_token");
+  }
+  return candidateToken;
+}
 
 export function setCachedAccessToken(token: string | null) {
   cachedAccessToken = token;
@@ -83,7 +103,11 @@ async function getValidAccessToken(): Promise<string | null> {
 // REQUEST INTERCEPTOR: Proactive Token Injection
 // =========================================================================
 AxiosAPI.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-  const token = await getValidAccessToken();
+  let token = await getValidAccessToken();
+
+  if (!token) {
+    token = getCandidateToken();
+  }
 
   if (token && config.headers) {
     if (typeof config.headers.set === "function") {
@@ -163,7 +187,12 @@ AxiosAPI.interceptors.response.use(
         cachedAccessToken = null;
         processQueue(new Error("Session Expired"));
         if (typeof window !== "undefined") {
-          window.location.href = "/auth";
+          const isCandidateSession =
+            Boolean(getCandidateToken()) ||
+            window.location.pathname.startsWith("/interview/");
+          if (!isCandidateSession) {
+            window.location.href = "/auth";
+          }
         }
         return Promise.reject(error);
       }
@@ -185,11 +214,16 @@ AxiosAPI.interceptors.response.use(
       cachedAccessToken = null;
       processQueue(refreshErr);
       if (typeof window !== "undefined") {
-        window.location.href = "/auth";
+        const isCandidateSession =
+          Boolean(getCandidateToken()) ||
+          window.location.pathname.startsWith("/interview/");
+        if (!isCandidateSession) {
+          window.location.href = "/auth";
+        }
       }
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;
     }
   }
-);
+);
