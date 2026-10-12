@@ -1,2 +1,1 @@
-
-export const API_URL =  process.env.NEXT_PUBLIC_URL || "http://localhost:5000";
+export const API_URL = process.env.NEXT_PUBLIC_URL || "https://ai-interview.apps.taqat.academy";

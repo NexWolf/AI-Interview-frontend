@@ -3,7 +3,7 @@ import axios, { InternalAxiosRequestConfig } from "axios";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_URL ||
-  "http://localhost:5000";
+  "https://ai-interview.apps.taqat.academy";
 
 export const AxiosAPI = axios.create({
   baseURL: API_BASE_URL,

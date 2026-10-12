@@ -125,7 +125,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       return;
     }
 
-    const socketUrl = API_URL?.replace(/\/$/, "") || "http://localhost:5000";
+    const socketUrl = API_URL?.replace(/\/$/, "") || "https://ai-interview.apps.taqat.academy";
 
     const socket = io(socketUrl, {
       withCredentials: true,
