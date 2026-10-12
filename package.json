@@ -8,7 +8,10 @@
     ],
     "scripts": {
         "dev": "turbo run dev",
-        "build": "turbo run build"
+        "build": "turbo run build",
+        "start": "npm run start --workspace=client",
+        "start:client": "npm run start --workspace=client",
+        "start:company": "npm run start --workspace=company"
     },
     "devDependencies": {
         "turbo": "^2.11.7"
