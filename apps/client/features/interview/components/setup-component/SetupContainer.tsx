@@ -20,6 +20,7 @@ import {
   Zap,
   Layers,
   FolderGit2,
+  Compass,
 } from "lucide-react";
 
 import CameraPreview from "@/features/interview/components/setup-component/CameraPreview";
@@ -103,9 +104,12 @@ export const SetupContainer = () => {
   const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
   const [isAudioReady, setIsAudioReady] = useState<boolean>(false);
 
-  // Search parameters for project-based interview
+  // Search parameters for project-based interview or career discovery
   const searchParams = useSearchParams();
   const urlProjectId = searchParams.get("projectId");
+  const urlMode = searchParams.get("mode");
+  const isCareerDiscovery =
+    urlMode === "career_discovery" || urlMode === "student_placement";
 
   const [activeProjectId, setActiveProjectId] = useState<string | null>(urlProjectId);
 
@@ -213,7 +217,7 @@ export const SetupContainer = () => {
 
   // Navigation between steps
   const handleNextFromStep1 = () => {
-    if (!currentSkillsIds || currentSkillsIds.length === 0) {
+    if (!isCareerDiscovery && (!currentSkillsIds || currentSkillsIds.length === 0)) {
       toast.error(
         isAr
           ? "يرجى تحديد تقنية واحدة على الأقل قبل المتابعة"
@@ -244,7 +248,7 @@ export const SetupContainer = () => {
       return;
     }
 
-    if (!data.skillsIds || data.skillsIds.length === 0) {
+    if (!isCareerDiscovery && (!data.skillsIds || data.skillsIds.length === 0)) {
       toast.error(
         isAr
           ? "يرجى اختيار مهارة أو تقنية واحدة على الأقل"
@@ -254,19 +258,33 @@ export const SetupContainer = () => {
     }
 
     const payload: StartInterviewPayload = {
-      difficultyLevel: data.difficultyLevel,
+      difficultyLevel: isCareerDiscovery ? "Beginner" : data.difficultyLevel,
       interviewLanguage: data.interviewLanguage,
-      mode: hasJobDescription ? "job_description" : "skills_only",
-      job_description: hasJobDescription ? data.job_description : undefined,
-      duration: 20,
-      skillIds: data.skillsIds,
+      mode: isCareerDiscovery
+        ? "job_description"
+        : hasJobDescription
+          ? "job_description"
+          : "skills_only",
+      job_description: isCareerDiscovery
+        ? "CAREER_DISCOVERY: جلسة استكشاف وتحديد مسار التعلم البرمجي. المرشح مبتدئ يرغب في استكشاف شغفه وتحديد المسار الأنسب له من الصفر (Frontend, Backend, AI, Mobile). المطلوب التحدث معه بأسلوب تشجيعي وودي، وطرح أسئلة استكشافية متسلسلة لفهم طريقة تفكيره وميوله، وفي النهاية تقديم التوصية وخارطة الطريق الأنسب له."
+        : hasJobDescription
+          ? data.job_description
+          : undefined,
+      duration: isCareerDiscovery ? 15 : 20,
+      skillIds: data.skillsIds || [],
       projectId: activeProjectId || undefined,
+      isCareerDiscovery: isCareerDiscovery,
     };
 
     startInterview(payload, {
       onSuccess: (response) => {
         if (typeof window !== "undefined") {
           sessionStorage.setItem("interview_ai_voice", data.aiVoice || "Kore");
+          if (isCareerDiscovery) {
+            sessionStorage.setItem("interview_mode", "career_discovery");
+          } else {
+            sessionStorage.removeItem("interview_mode");
+          }
         }
         const store = useInterviewStore.getState();
         console.log("🚀 [SetupContainer] Starting Interview Room with Zustand Store:", store);
@@ -353,7 +371,11 @@ export const SetupContainer = () => {
                 key={step}
                 type="button"
                 onClick={() => {
-                  if (step === 2 && (!currentSkillsIds || currentSkillsIds.length === 0)) {
+                  if (
+                    step === 2 &&
+                    !isCareerDiscovery &&
+                    (!currentSkillsIds || currentSkillsIds.length === 0)
+                  ) {
                     toast.error(
                       isAr
                         ? "يرجى اختيار مهارة واحدة على الأقل أولاً"
@@ -368,8 +390,8 @@ export const SetupContainer = () => {
                   isActive
                     ? "bg-primary/10 border border-primary/30 text-primary shadow-xs"
                     : isCompleted
-                    ? "bg-background/80 hover:bg-muted/60 text-foreground"
-                    : "text-muted-foreground hover:bg-muted/40"
+                      ? "bg-background/80 hover:bg-muted/60 text-foreground"
+                      : "text-muted-foreground hover:bg-muted/40"
                 )}
               >
                 <div
@@ -378,8 +400,8 @@ export const SetupContainer = () => {
                     isActive
                       ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
                       : isCompleted
-                      ? "bg-emerald-500/20 text-emerald-500"
-                      : "bg-muted text-muted-foreground"
+                        ? "bg-emerald-500/20 text-emerald-500"
+                        : "bg-muted text-muted-foreground"
                   )}
                 >
                   {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : <Icon className="w-4 h-4" />}
@@ -398,6 +420,38 @@ export const SetupContainer = () => {
           {/* STEP 1: INTERVIEW SCOPE & CUSTOMIZATION */}
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in-50 duration-200">
+              {/* Career Discovery Mode Banner */}
+              {isCareerDiscovery && (
+                <div className="relative overflow-hidden rounded-2xl border border-cyan-500/40 bg-gradient-to-r from-cyan-500/10 via-emerald-500/5 to-card p-4 sm:p-5 shadow-xs transition-all">
+                  <div className="flex items-start gap-3 sm:gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-600 to-emerald-600 flex items-center justify-center text-white shadow-md shadow-cyan-500/20 shrink-0 mt-0.5">
+                      <Compass className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+                          {isAr ? "مقابلة تعليمية واستكشاف المسار" : "Career Discovery & Educational Interview"}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                          {isAr ? "مبتدئ بدون متطلبات مسبقة" : "Zero Prerequisites Required"}
+                        </span>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-foreground mt-1">
+                        {isAr
+                          ? "اكتشف شغفك ومسارك الأنسب من الصفر 🧭"
+                          : "Discover Your Path & Framework from Scratch 🧭"}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
+                        {isAr
+                          ? "هذه المقابلة ليست امتحاناً برمجياً! ستتحاور ودياً مع المرشد الذكي لاكتشاف ميولك وأسلوب تعلمك وخطة دراستك المناسبة، ولا يُشترط اختيار أي مهارات مسبقة."
+                          : "This is a guidance conversation, not a coding exam! You will converse with the AI mentor to explore your passion, time commitment, and optimal roadmap."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Linked Project Banner */}
               {activeProjectId && (
                 <div className="relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-card p-4 sm:p-5 shadow-xs transition-all">

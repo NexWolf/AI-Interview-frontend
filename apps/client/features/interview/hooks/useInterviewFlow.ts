@@ -35,6 +35,7 @@ interface UseInterviewFlowProps {
   setMicEnabled?: (enabled: boolean, caller?: string) => void;
   pullPendingViolations?: () => any[];
   flushViolations?: () => Promise<void> | void;
+  isCareerDiscovery?: boolean;
 }
 
 export function useInterviewFlow({
@@ -60,6 +61,7 @@ export function useInterviewFlow({
   disconnectSocket,
   pullPendingViolations,
   flushViolations,
+  isCareerDiscovery = false,
 }: UseInterviewFlowProps) {
   const [displayedQuestion, setDisplayedQuestion] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
@@ -67,6 +69,12 @@ export function useInterviewFlow({
   // Monotonically increasing question token to invalidate stale TTS/listen callbacks
   const questionTokenRef = useRef<number>(0);
   const listenTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const handleFinishInterviewRef = useRef<() => void>(() => {});
+  const isCareerDiscoveryRef = useRef<boolean>(isCareerDiscovery);
+
+  useEffect(() => {
+    isCareerDiscoveryRef.current = isCareerDiscovery;
+  }, [isCareerDiscovery]);
 
   const clearListenTimer = useCallback(() => {
     if (listenTimerRef.current) {
@@ -248,6 +256,18 @@ export function useInterviewFlow({
 
     setQuestionLiveText("");
 
+    // In Career Discovery, stop prefetching once all 5 questions have been generated or are being presented
+    const isDiscovery = Boolean(isCareerDiscovery || isCareerDiscoveryRef.current);
+    const currentOrder = state.currentQuestion?.questionOrder || 0;
+    const nextOrder = targetNext?.questionOrder || 0;
+    if (isDiscovery && (state.questionList.length >= 5 || currentOrder >= 5 || nextOrder >= 5)) {
+      console.log(
+        "%c🛑 [CAREER DISCOVERY PREFETCH HALT] Reached 5 questions limit. Not generating additional questions.",
+        "background: #0284c7; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+      );
+      return;
+    }
+
     // 2. ALWAYS request the backend to generate the NEXT question (to keep the buffer full)
     const voiceToSend =
       (typeof window !== "undefined"
@@ -296,6 +316,7 @@ export function useInterviewFlow({
     setQuestionLiveText,
     stopSpeaking,
     toQuestionItem,
+    isCareerDiscovery,
   ]);
 
   const requestNextQuestionRef = useRef(requestNextQuestion);
@@ -350,6 +371,17 @@ export function useInterviewFlow({
         useInterviewStore.getState().setAnswerText("");
         useInterviewStore.getState().setCurrentQuestion({ ...q, isAnswered: true });
 
+        const isDiscovery = Boolean(isCareerDiscovery || isCareerDiscoveryRef.current);
+        // If Career Discovery and this was question 5 (or last), conclude the interview immediately!
+        if (isDiscovery && q.questionOrder >= 5) {
+          console.log(
+            "%c🎯 [CAREER DISCOVERY COMPLETED] Reached 5 questions. Ending interview session...",
+            "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+          );
+          handleFinishInterviewRef.current();
+          return;
+        }
+
         console.log(
           "%c⏩ [STEP 4: proceed() -> requestNextQuestion] Calling requestNextQuestion()...",
           "background: #8b5cf6; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
@@ -403,7 +435,6 @@ export function useInterviewFlow({
       AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/answer`, {
         answerText: text,
       })
-        .then(proceed)
         .catch((e: any) => {
           console.error("Save answer error:", e);
           const errMsg =
@@ -421,6 +452,7 @@ export function useInterviewFlow({
       setMicEnabled,
       setSubmissionError,
       stopSpeaking,
+      isCareerDiscovery,
     ]
   );
 
@@ -515,8 +547,15 @@ export function useInterviewFlow({
         console.warn("Skip persistence failed:", e?.response?.data?.message || e?.message);
       });
     }
+
+    const isDiscovery = Boolean(isCareerDiscovery || isCareerDiscoveryRef.current);
+    if (isDiscovery && q && q.questionOrder >= 5) {
+      handleFinishInterviewRef.current();
+      return;
+    }
+
     requestNextQuestionRef.current();
-  }, [abortRecognition, clearListenTimer, interviewId, setMicEnabled, setSubmissionError, stopSpeaking]);
+  }, [abortRecognition, clearListenTimer, interviewId, isCareerDiscovery, setMicEnabled, setSubmissionError, stopSpeaking]);
 
   const handleFinishInterview = useCallback(async () => {
     if (useInterviewStore.getState().phase === "closing") return;
@@ -576,7 +615,19 @@ export function useInterviewFlow({
 
     toast.loading("Ending interview...");
 
-    const navigateToReport = () => {
+    const isTaskDefense =
+      typeof window !== "undefined" &&
+      sessionStorage.getItem("is_task_defense") === "true";
+    const defenseTaskId =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("defense_task_id")
+        : null;
+
+    const isDiscovery =
+      !isTaskDefense &&
+      Boolean(isCareerDiscovery || isCareerDiscoveryRef.current);
+
+    const navigateToReport = (defenseResult?: any) => {
       stopGlobalMediaStream();
       toast.dismiss();
 
@@ -591,24 +642,63 @@ export function useInterviewFlow({
         return;
       }
 
+      if (isTaskDefense) {
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("is_task_defense");
+          sessionStorage.removeItem("defense_task_id");
+        }
+        const passed = defenseResult?.passed ?? true;
+        const score = defenseResult?.score ?? "";
+        toast.success(
+          passed
+            ? "مبروك! تم اجتياز مناقشة المهمة بنجاح 🚀"
+            : "تم الانتهاء من المناقشة، يرجى مراجعة التقييم."
+        );
+        router.replace(
+          `/dashboard/tasks?defenseCompleted=true&passed=${passed}&defenseScore=${score}&taskId=${defenseTaskId || ""}`
+        );
+        return;
+      }
+
+      if (isDiscovery) {
+        toast.success("Interview completed! Redirecting to your learning tasks...");
+        router.replace(`/dashboard/tasks?interviewId=${interviewId}`);
+        return;
+      }
+
       toast.success("Interview completed! Redirecting to report...");
-      router.replace(`/dashboard/interviewDetails`);
+      router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
     };
 
     try {
       // 1. Mark interview as completed immediately with unviewed question metadata
-      await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`, finishPayload);
-
-      // 2. Trigger report generation (backend now handles it asynchronously in background and responds instantly)
-      await AxiosAPI.post(`/api/interviews/${interviewId}/summary`, finishPayload).catch((err) => {
-        console.error("Background summary generation error:", err);
+      await AxiosAPI.patch(`/api/interviews/${interviewId}/complete`, finishPayload).catch((e) => {
+        console.warn("Complete interview patch warning:", e?.response?.data?.message || e?.message);
       });
 
+      // 2. If Task Defense: call defense evaluation endpoint
+      let defenseEvalResult = null;
+      if (isTaskDefense) {
+        const evalEndpoint = defenseTaskId
+          ? `/api/agent/tasks/${defenseTaskId}/evaluate-defense`
+          : `/api/agent/interviews/${interviewId}/evaluate-defense`;
+
+        const evalRes = await AxiosAPI.post(evalEndpoint, finishPayload).catch((err) => {
+          console.error("Task defense evaluation error:", err);
+          return null;
+        });
+        defenseEvalResult = evalRes?.data?.data || null;
+      } else if (!isDiscovery) {
+        // Trigger report generation only if NOT Career Discovery
+        await AxiosAPI.post(`/api/interviews/${interviewId}/summary`, finishPayload).catch((err) => {
+          console.error("Background summary generation error:", err);
+        });
+      }
+
       // 3. Navigate immediately
-      navigateToReport();
+      navigateToReport(defenseEvalResult);
     } catch (error) {
       console.error("Error ending interview:", error);
-      toast.error("Failed to end interview properly.");
       // Navigate anyway to avoid being stuck if there's an error
       navigateToReport();
     }
@@ -624,7 +714,10 @@ export function useInterviewFlow({
     setReportLiveText,
     stopSpeaking,
     stopStream,
+    isCareerDiscovery,
   ]);
+
+  handleFinishInterviewRef.current = handleFinishInterview;
 
   // Typewriter effect for displaying the generated question smoothly
   useEffect(() => {

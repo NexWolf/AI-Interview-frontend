@@ -100,5 +100,10 @@ export function formatToQuestionItem(
     keyTopics,
     questionAudio: resolvedAudio,
     isAnswered,
+    options: Array.isArray(rawQuestion.options) ? rawQuestion.options : null,
+    reaction: typeof rawQuestion.reaction === "string" ? rawQuestion.reaction : null,
+    inputType: rawQuestion.inputType || null,
+    freeTextPrompt: typeof rawQuestion.freeTextPrompt === "string" ? rawQuestion.freeTextPrompt : null,
+    followUp: typeof rawQuestion.followUp === "string" ? rawQuestion.followUp : null,
   };
 }

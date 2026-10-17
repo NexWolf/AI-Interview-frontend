@@ -34,5 +34,6 @@ export interface StartInterviewPayload {
   job_description?: string;
   skillIds: string[];
   projectId?: string;
+  isCareerDiscovery?: boolean;
 }
 /**********************************/

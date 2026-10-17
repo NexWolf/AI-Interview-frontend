@@ -82,6 +82,26 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
       (RoomData as any)?.candidateId,
   );
 
+  const isTaskDefense = Boolean(
+    (RoomData as any)?.jobDescription?.includes("TASK_DISCUSSION") ||
+      (typeof window !== "undefined" &&
+        sessionStorage.getItem("is_task_defense") === "true")
+  );
+
+  const isCareerDiscovery =
+    !isTaskDefense &&
+    Boolean(
+      (RoomData as any)?.jobDescription?.includes("CAREER_DISCOVERY") ||
+        (RoomData as any)?.jobDescription?.includes("STUDENT") ||
+        (RoomData as any)?.jobDescription?.includes("استكشاف وتحديد مسار") ||
+        (RoomData as any)?.mode === "CAREER_DISCOVERY" ||
+        (RoomData as any)?.title?.includes("Career Discovery") ||
+        (RoomData as any)?.title?.includes("استكشاف وتحديد مسار") ||
+        (typeof window !== "undefined" &&
+          (sessionStorage.getItem("interview_mode") === "career_discovery" ||
+            sessionStorage.getItem("interview_mode") === "student_placement"))
+    );
+
   const languageRef = useRef<string>("English");
   useEffect(() => {
     if (RoomData?.interviewLanguage) {
@@ -270,6 +290,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     setMicEnabled,
     flushViolations,
     pullPendingViolations,
+    isCareerDiscovery,
   });
 
   // Wire up the submit answer ref so STT can call it
@@ -367,6 +388,10 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
       onEvent<{ text: string }>("summary:stream", ({ text }) => {
         setReportLiveText((prev) => prev + text);
       }),
+      onEvent<{ interviewId?: string }>("interview:completed", () => {
+        console.log("[SOCKET] interview:completed received from server");
+        handleFinishInterview();
+      }),
       onEvent<SummaryDonePayload>("summary:done", () => {
         console.log("[SOCKET] summary:done received");
         setReportLiveText("");
@@ -375,7 +400,13 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
         toast.dismiss();
         toast.success("Interview completed! Loading your evaluation report...");
         setTimeout(() => {
-          router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
+          if (isTaskDefense) {
+            router.replace(`/dashboard/tasks?defenseCompleted=true&interviewId=${interviewId}`);
+          } else if (isCareerDiscovery) {
+            router.replace(`/dashboard/tasks?interviewId=${interviewId}`);
+          } else {
+            router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
+          }
         }, 300);
       }),
     ];
@@ -383,7 +414,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     return () => {
       offs.forEach((off) => off());
     };
-  }, [interviewId, emitEvent, onEvent, router, onAskQuestion, toQuestionItem]);
+  }, [interviewId, emitEvent, onEvent, router, onAskQuestion, toQuestionItem, handleFinishInterview, isCareerDiscovery, isTaskDefense]);
 
   /* ==========================================================================
    * SECTION 8: FINISH / CLOSE INTERVIEW
@@ -401,9 +432,15 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
   useEffect(() => {
     if (!RoomData || bootedRef.current) return;
 
-    // If the interview was already completed, jump straight to the report
+    // If the interview was already completed, jump straight to tasks or report
     if (RoomData.status === "Completed") {
-      router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
+      if (isTaskDefense) {
+        router.replace(`/dashboard/tasks?defenseCompleted=true&interviewId=${interviewId}`);
+      } else if (isCareerDiscovery) {
+        router.replace(`/dashboard/tasks?interviewId=${interviewId}`);
+      } else {
+        router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
+      }
       return;
     }
     bootedRef.current = true;
@@ -621,6 +658,8 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
               handleSubmitAnswer={handleSubmitAnswer}
               handleSkipQuestion={handleSkipQuestion}
               isGeneratingQuestion={isGeneratingQuestion}
+              isCareerDiscovery={isCareerDiscovery}
+              currentQuestion={currentQuestion}
             />
           </div>
         </div>
@@ -654,6 +693,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
               questionLiveText={questionLiveText}
               displayedQuestion={displayedQuestion}
               isTyping={isTyping}
+              isCareerDiscovery={isCareerDiscovery}
             />
           </div>
         </div>

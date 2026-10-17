@@ -74,18 +74,18 @@ export const translations = {
     "benefits.aiInsights": "AI-powered insights",
 
     // Pricing
-    "pricing.badge": "Flexible & Transparent Pricing",
-    "pricing.title1": "Find the Perfect",
-    "pricing.title2": "Plan",
+    "pricing.badge": "Tailored Portals & Solutions",
+    "pricing.title1": "Choose Your",
+    "pricing.title2": "Gateway",
     "pricing.subtitle":
-      "Choose a plan that fits your career goals. Upgrade, downgrade, or cancel anytime.",
+      "Specialized environments built for candidates to excel, companies to hire faster, and institutions to prepare talent.",
     "pricing.monthly": "Monthly",
     "pricing.yearly": "Yearly",
     "pricing.save": "Save 20%",
     "pricing.perMo": "/mo",
     "pricing.perYr": "/yr",
-    "pricing.popular": "Most Popular",
-    "pricing.choose": "Choose Plan",
+    "pricing.popular": "Featured Portal",
+    "pricing.choose": "Get Started",
     "pricing.starterName": "Starter",
     "pricing.starterDesc":
       "Perfect for students and developers beginning their interview practice.",
@@ -111,6 +111,37 @@ export const translations = {
     "pricing.entF4": "API Access & Custom Integrations",
     "pricing.entF5": "Dedicated Account Manager",
 
+    // New Portals (Student, Company, University)
+    "pricing.studentBadge": "For Candidates & Learners",
+    "pricing.studentName": "Student & Job Seeker",
+    "pricing.studentDesc":
+      "Master real-world technical and HR interviews with interactive AI, personalized feedback, and actionable growth.",
+    "pricing.studentBtn": "Go to Client Dashboard",
+    "pricing.studentF1": "Interactive voice & video AI mock interviews",
+    "pricing.studentF2": "Instant scoring & weakness breakdown",
+    "pricing.studentF3": "Simulation for technical & behavioral questions",
+    "pricing.studentF4": "Comprehensive performance reports & roadmaps",
+
+    "pricing.companyBadge": "For Companies & Teams",
+    "pricing.companyName": "Company Portal",
+    "pricing.companyDesc":
+      "Automate candidate interviews, screen technical skills with AI, and discover top-tier talent in record time.",
+    "pricing.companyBtn": "Open Company Portal",
+    "pricing.companyF1": "Custom interview pipelines for each job opening",
+    "pricing.companyF2": "Automated candidate screening & AI evaluation",
+    "pricing.companyF3": "Centralized recruiter dashboard & analytics",
+    "pricing.companyF4": "In-depth candidate integrity & skill reports",
+
+    "pricing.universityBadge": "Coming Soon",
+    "pricing.universityName": "University Portal",
+    "pricing.universityDesc":
+      "Academic platform to track student employability, administer bulk mock sessions, and bridge academia to industry.",
+    "pricing.universityBtn": "Coming Soon",
+    "pricing.universityF1": "Cohort-wide progress & performance monitoring",
+    "pricing.universityF2": "Employability readiness benchmarks",
+    "pricing.universityF3": "Custom rubrics aligned with academic curricula",
+    "pricing.universityF4": "Career center & internship program integration",
+
     // Footer
     "footer.title": "Your next interview could be the one",
     "footer.desc":
@@ -130,6 +161,7 @@ export const translations = {
     "dashboard.brand": "AI Interview Coach",
     "dashboard.nav.candidate": "Candidate Dashboard",
     "dashboard.nav.dashboard": "Dashboard",
+    "dashboard.nav.tasks": "Learning Tasks",
     "dashboard.nav.myInterviews": "My Interviews",
     "dashboard.nav.profile": "Profile",
     "dashboard.nav.settings": "Settings",
@@ -149,6 +181,28 @@ export const translations = {
     "dashboard.recent.empty": "No interviews conducted yet",
     "dashboard.recent.startFirst": "Start your first AI mock interview to practice your skills and get actionable feedback.",
     "dashboard.recent.startNow": "Start Interview Now",
+
+    // Dashboard Dual Tracks
+    "dashboard.tracks.title": "Choose Your Path Today",
+    "dashboard.tracks.subtitle": "Start learning programming from scratch or test your readiness with AI mock interviews.",
+    "dashboard.tracks.learn.badge": "Learn from Scratch",
+    "dashboard.tracks.learn.title": "Learn Programming from Scratch",
+    "dashboard.tracks.learn.desc": "Master coding fundamentals step-by-step with an interactive AI mentor, curated roadmaps, and hands-on exercises.",
+    "dashboard.tracks.learn.tag1": "Guided Roadmaps (Web, Python, AI)",
+    "dashboard.tracks.learn.tag2": "AI Coding Mentor & Tutor",
+    "dashboard.tracks.learn.tag3": "Interactive Practice Challenges",
+    "dashboard.tracks.learn.cta": "Explore Learning Tracks",
+    "dashboard.tracks.learn.previewBadge": "Coming Soon Preview",
+    "dashboard.tracks.learn.discoveryBtn": "🧭 Discover My Path with AI",
+    "dashboard.tracks.learn.discoveryDesc": "Chat with our AI mentor to discover your ideal coding track based on your interests.",
+
+    "dashboard.tracks.interview.badge": "Career Readiness",
+    "dashboard.tracks.interview.title": "AI Mock Interviews",
+    "dashboard.tracks.interview.desc": "Simulate real-world hiring rounds with live AI voice & camera, instant scoring breakdowns, and tailored improvement plans.",
+    "dashboard.tracks.interview.tag1": "Live Voice & Camera Simulation",
+    "dashboard.tracks.interview.tag2": "Instant Scorecard Breakdown",
+    "dashboard.tracks.interview.tag3": "Technical & HR Question Banks",
+    "dashboard.tracks.interview.cta": "Start Mock Interview",
 
     // Settings
     "settings.title": "Settings",
@@ -300,18 +354,18 @@ export const translations = {
     "benefits.aiInsights": "تحليلات مدعومة بالذكاء الاصطناعي",
 
     // Pricing
-    "pricing.badge": "خطط أسعار مرنة وواضحة",
-    "pricing.title1": "اختر الخطة",
+    "pricing.badge": "بوابات مخصصة لكل قطاع",
+    "pricing.title1": "اختر البوابة",
     "pricing.title2": "المناسبة لك",
     "pricing.subtitle":
-      "حدد الباقة التي تتناسب مع أهدافك الوظيفية، مع إمكانية الترقية أو الإلغاء في أي وقت.",
+      "بيئات متخصصة مصممة بدقة للطلاب والباحثين عن عمل للتميز، وللشركات لاختيار أفضل الكفاءات، وللصروح الأكاديمية.",
     "pricing.monthly": "شهرياً",
     "pricing.yearly": "سنوياً",
     "pricing.save": "وفر 20%",
     "pricing.perMo": "/شهرياً",
     "pricing.perYr": "/سنوياً",
-    "pricing.popular": "الأكثر طلباً",
-    "pricing.choose": "اختر الخطة",
+    "pricing.popular": "البوابة الأكثر تميزاً",
+    "pricing.choose": "ابدأ الآن",
     "pricing.starterName": "البداية",
     "pricing.starterDesc":
       "مثالية للطلاب والمطورين الجدد في بداية تدريبهم على مقابلات العمل.",
@@ -337,6 +391,37 @@ export const translations = {
     "pricing.entF4": "ربط برمجي عبر API وتكامل خاص",
     "pricing.entF5": "مدير حساب مخصص",
 
+    // New Portals (Student, Company, University)
+    "pricing.studentBadge": "للأفراد والباحثين عن عمل",
+    "pricing.studentName": "بوابة الطالب والخريجين",
+    "pricing.studentDesc":
+      "تدرب على المقابلات الحقيقية بالذكاء الاصطناعي مع تقييم لحظي وتطوير شامل لمهاراتك التقنية والشخصية.",
+    "pricing.studentBtn": "الانتقال للوحة التحكم (Client)",
+    "pricing.studentF1": "مقابلات ذكية تفاعلية بالصوت والكاميرا",
+    "pricing.studentF2": "تحليل فوري للإجابات ونقاط القوة والضعف",
+    "pricing.studentF3": "محاكاة لأسئلة الشركات التقنية والسلوكية",
+    "pricing.studentF4": "تقارير أداء وخطة تحسين مخصصة لنموك",
+
+    "pricing.companyBadge": "للشركات ومسؤولي التوظيف",
+    "pricing.companyName": "بوابة الشركات (Company)",
+    "pricing.companyDesc":
+      "أتمتة عملية التوظيف والمقابلات لاكتشاف وتقييم أفضل الكفاءات بأعلى دقة واختصار الوقت والجهد.",
+    "pricing.companyBtn": "الدخول لبوابة الشركات",
+    "pricing.companyF1": "إنشاء وتخصيص مقابلات تناسب كل شاغر وظيفي",
+    "pricing.companyF2": "فرز آلي للمرشحين وتقييم موضوعي بالذكاء الاصطناعي",
+    "pricing.companyF3": "لوحة تحكم مركزية لإدارة المتقدمين والمقابلات",
+    "pricing.companyF4": "تقارير تحليلية دقيقة عن كفاءة ونزاهة كل مرشح",
+
+    "pricing.universityBadge": "قريباً",
+    "pricing.universityName": "بوابة الجامعات والأكاديميات",
+    "pricing.universityDesc":
+      "حلول أكاديمية لمتابعة جاهزية الطلاب لسوق العمل وربط المخرجات التعليمية بمتطلبات التوظيف الفعلية.",
+    "pricing.universityBtn": "قريباً (تحت التطوير)",
+    "pricing.universityF1": "لوحات تحكم لمتابعة أداء الدفعات والطلاب",
+    "pricing.universityF2": "مؤشرات قياس الجاهزية لسوق العمل",
+    "pricing.universityF3": "تخصيص نماذج الاختبارات للمناهج الأكاديمية",
+    "pricing.universityF4": "تكامل مع مراكز التوظيف والتدريب الميداني",
+
     // Footer
     "footer.title": "مقابلتك القادمة قد تكون خطوتك الكبرى",
     "footer.desc":
@@ -356,6 +441,7 @@ export const translations = {
     "dashboard.brand": "مدرب المقابلات الذكي",
     "dashboard.nav.candidate": "لوحة تدريب المرشح",
     "dashboard.nav.dashboard": "لوحة التحكم",
+    "dashboard.nav.tasks": "مهام المسار والتعلم",
     "dashboard.nav.myInterviews": "مقابلاتي",
     "dashboard.nav.profile": "الملف الشخصي",
     "dashboard.nav.settings": "الإعدادات",
@@ -375,6 +461,28 @@ export const translations = {
     "dashboard.recent.empty": "لم تجرِ أي مقابلات بعد",
     "dashboard.recent.startFirst": "ابدأ مقابلتك التجريبية الأولى بالذكاء الاصطناعي لتقييم مهاراتك وتلقي ملاحظات فورية.",
     "dashboard.recent.startNow": "ابدأ مقابلة جديدة الآن",
+
+    // Dashboard Dual Tracks
+    "dashboard.tracks.title": "اختر مسارك اليوم",
+    "dashboard.tracks.subtitle": "ابدأ رحلتك البرمجية من الصفر أو اختبر جاهزيتك لسوق العمل بمقابلات الذكاء الاصطناعي.",
+    "dashboard.tracks.learn.badge": "التأسيس والتعلم من الصفر",
+    "dashboard.tracks.learn.title": "مسار التعلّم والبرمجة من الصفر",
+    "dashboard.tracks.learn.desc": "تعلم أساسيات البرمجة خطوة بخطوة مع مرشد ذكي، تمارين تفاعلية، وخارطة طريق واضحة حتى الاحتراف.",
+    "dashboard.tracks.learn.tag1": "مسارات تفاعلية (ويب، بايثون، AI)",
+    "dashboard.tracks.learn.tag2": "مرشد برمجي ذكي على مدار الساعة",
+    "dashboard.tracks.learn.tag3": "تمارين عملية وتحديات كود",
+    "dashboard.tracks.learn.cta": "استكشاف مسارات التعلّم",
+    "dashboard.tracks.learn.previewBadge": "معاينة المسارات",
+    "dashboard.tracks.learn.discoveryBtn": "🧭 حدد مسارك مع المرشد الذكي",
+    "dashboard.tracks.learn.discoveryDesc": "محتار من أين تبدأ؟ أجرِ محادثة سريعة مع الذكاء الاصطناعي ليطرح عليك أسئلة ويكتشف اهتماماتك ومسارك الأنسب.",
+
+    "dashboard.tracks.interview.badge": "محاكاة مقابلات العمل",
+    "dashboard.tracks.interview.title": "مسار محاكاة المقابلات والتوظيف",
+    "dashboard.tracks.interview.desc": "اختبر مهاراتك بمحاكاة حقيقية بالصوت والكاميرا، واكشف نقاط قوتك وضعفك عبر تقارير الذكاء الاصطناعي.",
+    "dashboard.tracks.interview.tag1": "محاكاة حية بالصوت والفيديو",
+    "dashboard.tracks.interview.tag2": "تقييم فوري وتحليل أداء مفصل",
+    "dashboard.tracks.interview.tag3": "أسئلة تخصصية وسلوكية حقيقية",
+    "dashboard.tracks.interview.cta": "بدء مقابلة تجريبية جديدة",
 
     // Settings
     "settings.title": "الإعدادات",

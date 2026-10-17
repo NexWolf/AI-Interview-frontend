@@ -13,6 +13,8 @@ interface CandidateResponseWorkspaceProps {
   handleSubmitAnswer: () => void;
   handleSkipQuestion: () => void;
   isGeneratingQuestion: boolean;
+  isCareerDiscovery?: boolean;
+  currentQuestion?: any;
 }
 
 export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProps> = ({
@@ -25,12 +27,46 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
   handleSubmitAnswer,
   handleSkipQuestion,
   isGeneratingQuestion,
+  isCareerDiscovery = false,
+  currentQuestion,
 }) => {
   const autoSubmitCountdown = useInterviewStore(state => state.autoSubmitCountdown);
   const trimmed = answerText.trim();
   const hasText = trimmed.length > 0;
   const wordCount = hasText ? trimmed.split(/\s+/).filter(Boolean).length : 0;
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // Sync selectedOptionId when question or answerText changes
+  const [selectedOptionId, setSelectedOptionId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (currentQuestion?.options && answerText) {
+      const match = currentQuestion.options.find((opt: any) =>
+        answerText.startsWith(`${opt.id}:`) ||
+        answerText.startsWith(`${opt.id} -`) ||
+        answerText.startsWith(`${opt.id})`)
+      );
+      setSelectedOptionId(match ? match.id : null);
+    } else {
+      setSelectedOptionId(null);
+    }
+  }, [currentQuestion?.id, answerText]);
+
+  const handleSelectOption = (optId: string, optLabel: string) => {
+    setSelectedOptionId(optId);
+
+    // Extract any existing free text note after the option prefix if present
+    let extraNotes = "";
+    if (answerText) {
+      const stripped = answerText.replace(/^[A-Da-d]:[^\-\n]*(- )?/, "").trim();
+      if (stripped && !currentQuestion?.options?.some((o: any) => o.label === stripped)) {
+        extraNotes = ` - ${stripped}`;
+      }
+    }
+
+    const newAnswer = `${optId}: ${optLabel}${extraNotes}`;
+    setAnswer(newAnswer);
+  };
 
   React.useEffect(() => {
     if (textareaRef.current) {
@@ -91,12 +127,71 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
         )}
       </div>
 
+      {/* Career Discovery Options (ONLY rendered when isCareerDiscovery === true and options exist) */}
+      {isCareerDiscovery && currentQuestion?.options && currentQuestion.options.length > 0 && (
+        <div className="space-y-2 py-1">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-primary">
+              <span>🎯 اختر الخيار الأنسب لك:</span>
+            </span>
+            {selectedOptionId && (
+              <span className="text-[11px] text-primary/80 font-medium">
+                الخيار المحدد ({selectedOptionId})
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[140px] sm:max-h-[170px] overflow-y-auto pr-1">
+            {currentQuestion.options.map((opt: any) => {
+              const isSelected = selectedOptionId === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => handleSelectOption(opt.id, opt.label)}
+                  disabled={isSubmittingAnswer || isGeneratingQuestion}
+                  className={cn(
+                    "flex items-start gap-2.5 p-2.5 rounded-xl border text-right transition-all cursor-pointer text-xs leading-relaxed disabled:opacity-60 disabled:cursor-not-allowed",
+                    isSelected
+                      ? "bg-primary/15 border-primary text-foreground shadow-sm ring-1 ring-primary/40 font-medium"
+                      : "bg-muted/40 hover:bg-muted/80 border-border/60 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex items-center justify-center w-5 h-5 rounded-lg text-[11px] font-bold shrink-0 mt-0.5",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background border border-border text-muted-foreground"
+                    )}
+                  >
+                    {opt.id}
+                  </span>
+                  <span className="flex-1">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {currentQuestion.freeTextPrompt && (
+            <p className="text-[11px] text-muted-foreground/90 flex items-center gap-1 pt-0.5">
+              <span>💡</span>
+              <span>{currentQuestion.freeTextPrompt}</span>
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Answer Textarea with internal scroll and responsive bounded height */}
       <textarea
         ref={textareaRef}
         value={answerText}
         onChange={(e) => setAnswer(e.target.value)}
-        placeholder="Speak using the microphone or type your detailed response here..."
+        placeholder={
+          isCareerDiscovery
+            ? currentQuestion?.freeTextPrompt || "تحدث بالميكروفون أو اكتب تفاصيل إضافية هنا..."
+            : "Speak using the microphone or type your detailed response here..."
+        }
         className="w-full flex-1 min-h-[90px] max-h-[130px] sm:max-h-[145px] overflow-y-auto p-3.5 rounded-xl border border-input bg-background/70 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none placeholder:text-muted-foreground leading-relaxed"
       />
 

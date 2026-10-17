@@ -9,6 +9,7 @@ interface QuestionDisplayCardProps {
   questionLiveText: string;
   displayedQuestion: string;
   isTyping: boolean;
+  isCareerDiscovery?: boolean;
 }
 
 export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
@@ -19,6 +20,7 @@ export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
   questionLiveText,
   displayedQuestion,
   isTyping,
+  isCareerDiscovery = false,
 }) => {
   return (
     <div className="relative bg-card border border-border rounded-2xl p-3.5 sm:p-4 shadow-lg space-y-3 flex-1 flex flex-col justify-between min-h-0 text-foreground overflow-hidden">
@@ -48,6 +50,13 @@ export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
           <span>Listen Again</span>
         </button>
       </div>
+
+      {isCareerDiscovery && currentQuestion?.reaction && (
+        <div className="flex items-center gap-2 p-2 px-3 rounded-xl bg-primary/10 border border-primary/20 text-xs sm:text-sm text-primary font-medium animate-in fade-in duration-200">
+          <span className="text-sm">💬</span>
+          <span className="leading-snug">{currentQuestion.reaction}</span>
+        </div>
+      )}
 
       <div className="flex-1 min-h-[90px] max-h-[150px] sm:max-h-[170px] overflow-y-auto flex items-start relative z-10 pr-1">
         {isGeneratingQuestion && !questionLiveText ? (

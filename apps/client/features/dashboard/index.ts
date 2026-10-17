@@ -5,6 +5,8 @@ export { default as DashboardSkillProgress } from "./components/DashboardSkillPr
 export { default as DashboardRecentInterviews } from "./components/DashboardRecentInterviews";
 export { default as DashboardSkeleton } from "./components/DashboardSkeleton";
 export { default as DashboardProfileRequired } from "./components/DashboardProfileRequired";
+export { default as DashboardTrackCards } from "./components/DashboardTrackCards";
+export { default as CareerDiscoveryModal } from "./components/CareerDiscoveryModal";
 
 export * from "./components/layout";
 export * from "./constants/navigation.constants";

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Briefcase,
+  ListTodo,
   User,
   Settings,
   type LucideIcon,
@@ -10,6 +11,7 @@ export interface NavItem {
   href: string;
   labelKey:
     | "dashboard.nav.dashboard"
+    | "dashboard.nav.tasks"
     | "dashboard.nav.myInterviews"
     | "dashboard.nav.profile"
     | "dashboard.nav.settings";
@@ -23,6 +25,11 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
     labelKey: "dashboard.nav.dashboard",
     icon: LayoutDashboard,
     exact: true,
+  },
+  {
+    href: "/dashboard/tasks",
+    labelKey: "dashboard.nav.tasks",
+    icon: ListTodo,
   },
   {
     href: "/dashboard/interviewDetails",

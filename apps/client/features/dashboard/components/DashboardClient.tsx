@@ -6,6 +6,7 @@ import { useUserInfo } from "@/shared/hook/useUserInfo";
 import { useLanguage } from "@/shared/context/LanguageContext";
 
 import DashboardHeader from "./DashboardHeader";
+import DashboardTrackCards from "./DashboardTrackCards";
 import DashboardStats from "./DashboardStats";
 import DashboardSkillProgress from "./DashboardSkillProgress";
 import DashboardRecentInterviews from "./DashboardRecentInterviews";
@@ -41,6 +42,9 @@ export default function DashboardClient() {
     <div className="space-y-8">
       {/* Welcome greeting & new interview CTA */}
       <DashboardHeader firstName={user?.firstName} isAr={isAr} />
+
+      {/* Dual Student Tracks: Learn to Code from Scratch & AI Mock Interviews */}
+      <DashboardTrackCards />
 
       {/* High-level metrics */}
       <DashboardStats

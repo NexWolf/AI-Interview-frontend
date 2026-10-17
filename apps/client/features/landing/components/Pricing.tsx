@@ -1,77 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, Zap } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Check,
+  Zap,
+  GraduationCap,
+  Building2,
+  School,
+  ArrowRight,
+  ArrowUpRight,
+  Lock,
+} from "lucide-react";
+import Link from "next/link";
 
 import { BorderBeamPanel } from "@/components/ui/border-beam-panel";
 import { Button } from "@/components/ui/button";
 import { useLanguage, TranslationKey } from "@/shared/context/LanguageContext";
 
-type BillingCycle = "monthly" | "yearly";
-
-interface PlanItem {
-  id: string;
+interface PortalPlanItem {
+  id: "student" | "company" | "university";
   nameKey: TranslationKey;
-  monthly: number;
-  yearly: number;
   descKey: TranslationKey;
+  badgeKey: TranslationKey;
+  btnKey: TranslationKey;
   featureKeys: TranslationKey[];
   featured: boolean;
+  type: "student" | "company" | "university";
+  icon: typeof GraduationCap;
+  iconBg: string;
+  iconBorder: string;
+  iconColor: string;
+  badgeStyle: string;
 }
 
-const plans: PlanItem[] = [
+const plans: PortalPlanItem[] = [
   {
-    id: "starter",
-    nameKey: "pricing.starterName",
-    monthly: 19,
-    yearly: 190,
-    descKey: "pricing.starterDesc",
+    id: "student",
+    type: "student",
+    nameKey: "pricing.studentName",
+    descKey: "pricing.studentDesc",
+    badgeKey: "pricing.studentBadge",
+    btnKey: "pricing.studentBtn",
     featureKeys: [
-      "pricing.starterF1",
-      "pricing.starterF2",
-      "pricing.starterF3",
-      "pricing.starterF4",
+      "pricing.studentF1",
+      "pricing.studentF2",
+      "pricing.studentF3",
+      "pricing.studentF4",
     ],
     featured: false,
+    icon: GraduationCap,
+    iconBg: "bg-[#7D5BA6]/20",
+    iconBorder: "border-[#7D5BA6]/40",
+    iconColor: "text-[#C4B5FD]",
+    badgeStyle:
+      "border-[#7D5BA6]/30 bg-[#7D5BA6]/15 text-[#C4B5FD]",
   },
   {
-    id: "pro",
-    nameKey: "pricing.proName",
-    monthly: 49,
-    yearly: 490,
-    descKey: "pricing.proDesc",
+    id: "company",
+    type: "company",
+    nameKey: "pricing.companyName",
+    descKey: "pricing.companyDesc",
+    badgeKey: "pricing.companyBadge",
+    btnKey: "pricing.companyBtn",
     featureKeys: [
-      "pricing.proF1",
-      "pricing.proF2",
-      "pricing.proF3",
-      "pricing.proF4",
-      "pricing.proF5",
-      "pricing.proF6",
+      "pricing.companyF1",
+      "pricing.companyF2",
+      "pricing.companyF3",
+      "pricing.companyF4",
     ],
     featured: true,
+    icon: Building2,
+    iconBg: "bg-[#6136BF]/30",
+    iconBorder: "border-[#6136BF]/60",
+    iconColor: "text-[#FAFFFD]",
+    badgeStyle:
+      "border-[#6136BF]/50 bg-[#6136BF]/30 text-white shadow-sm shadow-[#6136BF]/30",
   },
   {
-    id: "enterprise",
-    nameKey: "pricing.entName",
-    monthly: 99,
-    yearly: 990,
-    descKey: "pricing.entDesc",
+    id: "university",
+    type: "university",
+    nameKey: "pricing.universityName",
+    descKey: "pricing.universityDesc",
+    badgeKey: "pricing.universityBadge",
+    btnKey: "pricing.universityBtn",
     featureKeys: [
-      "pricing.entF1",
-      "pricing.entF2",
-      "pricing.entF3",
-      "pricing.entF4",
-      "pricing.entF5",
+      "pricing.universityF1",
+      "pricing.universityF2",
+      "pricing.universityF3",
+      "pricing.universityF4",
     ],
     featured: false,
+    icon: School,
+    iconBg: "bg-white/[0.05]",
+    iconBorder: "border-white/15",
+    iconColor: "text-white/60",
+    badgeStyle:
+      "border-white/10 bg-white/[0.06] text-white/50",
   },
 ];
 
 export default function Pricing() {
   const { t } = useLanguage();
-  const [billingCycle, setBillingCycle] =
-    useState<BillingCycle>("monthly");
+  const companyUrl =
+    process.env.NEXT_PUBLIC_COMPANY_URL || "http://localhost:3002";
 
   return (
     <section
@@ -155,10 +186,8 @@ export default function Pricing() {
           CONTENT
       ========================================= */}
       <div className="relative z-10 mx-auto max-w-7xl">
-
         {/* Header */}
         <div className="mx-auto max-w-3xl text-center">
-
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -181,7 +210,6 @@ export default function Pricing() {
             "
           >
             <Zap className="h-4 w-4 text-[#9F84D9]" />
-
             {t("pricing.badge")}
           </motion.div>
 
@@ -204,9 +232,7 @@ export default function Pricing() {
             "
           >
             {t("pricing.title1")}{" "}
-            <span className="text-[#9F84D9]">
-              {t("pricing.title2")}
-            </span>
+            <span className="text-[#9F84D9]">{t("pricing.title2")}</span>
           </motion.h2>
 
           <motion.p
@@ -223,7 +249,7 @@ export default function Pricing() {
               max-w-xl
               text-sm
               leading-7
-              text-white/45
+              text-white/55
               sm:text-base
             "
           >
@@ -232,97 +258,10 @@ export default function Pricing() {
         </div>
 
         {/* =========================================
-            BILLING TOGGLE
-        ========================================= */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="
-            mt-10
-            flex
-            items-center
-            justify-center
-            gap-3
-          "
-        >
-          <div
-            className="
-              flex
-              items-center
-              rounded-full
-              border
-              border-white/10
-              bg-[#141019]
-              p-1
-            "
-          >
-            <button
-              type="button"
-              onClick={() => setBillingCycle("monthly")}
-              className={`
-                rounded-full
-                px-4
-                py-2
-                text-sm
-                transition-all
-                ${billingCycle === "monthly"
-                  ? "bg-[#6136BF] text-white"
-                  : "text-white/40 hover:text-white"
-                }
-              `}
-            >
-              {t("pricing.monthly")}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setBillingCycle("yearly")}
-              className={`
-                rounded-full
-                px-4
-                py-2
-                text-sm
-                transition-all
-                ${billingCycle === "yearly"
-                  ? "bg-[#6136BF] text-white"
-                  : "text-white/40 hover:text-white"
-                }
-              `}
-            >
-              {t("pricing.yearly")}
-            </button>
-          </div>
-
-          <span
-            className="
-              rounded-full
-              border
-              border-[#6136BF]/30
-              bg-[#6136BF]/15
-              px-3
-              py-1
-              text-xs
-              font-semibold
-              text-[#9F84D9]
-            "
-          >
-            {t("pricing.save")}
-          </span>
-        </motion.div>
-
-        {/* =========================================
-            PRICING CARDS
+            PORTAL CARDS (STUDENT, COMPANY, UNIVERSITY)
         ========================================= */}
         <div className="mt-16 grid grid-cols-1 gap-6 lg:grid-cols-3">
-
           {plans.map((plan, index) => {
-            const price =
-              billingCycle === "monthly"
-                ? plan.monthly
-                : plan.yearly;
-
             return (
               <motion.div
                 key={plan.id}
@@ -354,123 +293,150 @@ export default function Pricing() {
                       ? ["#6136BF", "#FFFFFF"]
                       : ["#724EBF", "#9F84D9"]
                   }
-                  thickness={plan.featured ? 2 : 1.5}
+                  thickness={plan.featured ? 2.5 : 1.5}
                   radius={20}
                   glow
-                  idleSpeed={32}
+                  idleSpeed={plan.featured ? 24 : 36}
                   hoverSpeed={180}
                   className="
                     h-full
-                    min-h-[520px]
+                    min-h-[500px]
                     border-transparent
                     bg-[#141019]
                     p-0
                   "
                 >
-                  <div className="flex h-full min-h-[520px] flex-col p-8">
-
-                    {/* Popular */}
-                    {plan.featured && (
+                  <div className="flex h-full min-h-[500px] flex-col p-8">
+                    {/* Top Row: Icon + Badge */}
+                    <div className="mb-6 flex items-center justify-between">
                       <div
-                        className="
-                          mb-5
-                          inline-flex
-                          w-fit
-                          rounded-full
-                          border
-                          border-[#6136BF]/40
-                          bg-[#6136BF]/20
-                          px-3
-                          py-1
-                          text-[11px]
-                          font-semibold
-                          uppercase
-                          tracking-[0.15em]
-                          text-[#9F84D9]
-                        "
+                        className={`flex h-13 w-13 items-center justify-center rounded-2xl border ${plan.iconBg} ${plan.iconBorder}`}
                       >
-                        {t("pricing.popular")}
+                        <plan.icon className={`h-6 w-6 ${plan.iconColor}`} />
                       </div>
-                    )}
 
-                    {/* Plan name */}
-                    <h3 className="text-2xl font-semibold text-white">
-                      {t(plan.nameKey)}
-                    </h3>
-
-                    <p className="mt-2 text-sm leading-6 text-white/40">
-                      {t(plan.descKey)}
-                    </p>
-
-                    {/* Price */}
-                    <div className="mt-8 flex items-baseline">
-
-                      <span className="text-5xl font-bold tracking-tight text-white">
-                        <AnimatePresence mode="wait">
-                          <motion.span
-                            key={`${plan.id}-${billingCycle}`}
-                            initial={{
-                              opacity: 0,
-                              y: 8,
-                            }}
-                            animate={{
-                              opacity: 1,
-                              y: 0,
-                            }}
-                            exit={{
-                              opacity: 0,
-                              y: -8,
-                            }}
-                            transition={{
-                              duration: 0.25,
-                            }}
-                          >
-                            ${price}
-                          </motion.span>
-                        </AnimatePresence>
-                      </span>
-
-                      <span className="ml-2 text-sm text-white/35">
-                        {billingCycle === "monthly" ? t("pricing.perMo") : t("pricing.perYr")}
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${plan.badgeStyle}`}
+                      >
+                        {plan.type === "university" && (
+                          <Lock className="h-3 w-3 opacity-60" />
+                        )}
+                        {t(plan.badgeKey)}
                       </span>
                     </div>
 
-                    {/* Features */}
-                    <ul className="mt-8 space-y-4">
+                    {/* Plan Name */}
+                    <h3 className="text-2xl font-bold tracking-tight text-white">
+                      {t(plan.nameKey)}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="mt-3 text-sm leading-6 text-white/50 min-h-[48px]">
+                      {t(plan.descKey)}
+                    </p>
+
+                    {/* Divider */}
+                    <div className="my-6 h-px w-full bg-gradient-to-r from-white/15 via-[#6136BF]/30 to-transparent" />
+
+                    {/* Features List */}
+                    <ul className="space-y-3.5">
                       {plan.featureKeys.map((fKey) => (
                         <li
                           key={fKey}
-                          className="
-                            flex
-                            items-center
-                            gap-3
-                            text-sm
-                            text-white/75
-                          "
+                          className="flex items-start gap-3 text-sm text-white/80"
                         >
-                          <Check className="h-4 w-4 shrink-0 text-[#9F84D9]" />
-
-                          <span>{t(fKey)}</span>
+                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6136BF]/25 text-[#9F84D9]">
+                            <Check className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="leading-5">{t(fKey)}</span>
                         </li>
                       ))}
                     </ul>
 
-                    {/* Button */}
-                    <div className="mt-auto pt-10">
-                      <Button
-                        asChild
-                        size="lg"
-                        className={`w-full rounded-full transition-all duration-300 ${plan.featured
-                            ? "border border-[#6136BF] bg-[#6136BF] text-white shadow-xl shadow-[#6136BF]/25 hover:bg-[#724EBF] hover:shadow-[#724EBF]/35"
-                            : "border border-[#6136BF]/40 bg-white/[0.04] text-white hover:bg-[#6136BF]/20 hover:border-[#6136BF]"
-                          }`}
-                      >
-                        <a href="/auth">
-                          {t("pricing.choose")}
-                        </a>
-                      </Button>
-                    </div>
+                    {/* Action Button */}
+                    <div className="mt-auto pt-8">
+                      {plan.type === "student" && (
+                        <Button
+                          asChild
+                          size="lg"
+                          className="
+                            group
+                            w-full
+                            rounded-full
+                            border
+                            border-[#6136BF]/40
+                            bg-white/[0.05]
+                            text-white
+                            transition-all
+                            duration-300
+                            hover:border-[#6136BF]
+                            hover:bg-[#6136BF]/25
+                            hover:shadow-lg
+                            hover:shadow-[#6136BF]/20
+                          "
+                        >
+                          <Link
+                            href="/dashboard"
+                            className="flex items-center justify-center gap-2"
+                          >
+                            <span>{t(plan.btnKey)}</span>
+                            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+                          </Link>
+                        </Button>
+                      )}
 
+                      {plan.type === "company" && (
+                        <Button
+                          asChild
+                          size="lg"
+                          className="
+                            group
+                            w-full
+                            rounded-full
+                            border
+                            border-[#6136BF]
+                            bg-[#6136BF]
+                            text-white
+                            shadow-xl
+                            shadow-[#6136BF]/30
+                            transition-all
+                            duration-300
+                            hover:bg-[#724EBF]
+                            hover:shadow-[#724EBF]/45
+                          "
+                        >
+                          <a
+                            href={companyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2"
+                          >
+                            <span>{t(plan.btnKey)}</span>
+                            <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 rtl:rotate-90" />
+                          </a>
+                        </Button>
+                      )}
+
+                      {plan.type === "university" && (
+                        <Button
+                          disabled
+                          size="lg"
+                          className="
+                            w-full
+                            cursor-not-allowed
+                            rounded-full
+                            border
+                            border-white/10
+                            bg-white/[0.04]
+                            text-white/40
+                            transition-all
+                            hover:bg-white/[0.04]
+                          "
+                        >
+                          <span>{t(plan.btnKey)}</span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </BorderBeamPanel>
               </motion.div>
