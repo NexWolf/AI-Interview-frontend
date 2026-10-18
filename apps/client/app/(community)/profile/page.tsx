@@ -1,5 +1,6 @@
 import ProfilePreview from "@/features/profile/components/ProfilePreview"
-import { profileService } from "@/features/profile/services/profile.service"
+import { accountServer } from "@/shared/services/account.server"
+import { USER_PROFILE_QUERY_KEY } from "@/features/profile/queryKeys"
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
 
 export const dynamic = "force-dynamic";
@@ -10,8 +11,10 @@ const page = async () => {
   const queryClient = new QueryClient();
 
   await queryClient.prefetchQuery({
-    queryKey : ["profile"],
-    queryFn : profileService.getAll,
+    queryKey : USER_PROFILE_QUERY_KEY,
+    queryFn : accountServer.profile,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   })
 
   return (

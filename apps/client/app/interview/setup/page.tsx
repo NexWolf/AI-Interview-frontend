@@ -3,9 +3,7 @@ import SetupContainer from "@/features/interview/components/setup-component/Setu
 import { skillsKey } from "@/shared/constants/query-key";
 import { USER_INFO_QUERY_KEY } from "@/shared/hook/useUserInfo";
 import { USER_SKILLS_QUERY_KEY } from "@/shared/hook/useUserSkills";
-import { defaultAuthRetry } from "@/shared/lib/queryUtils";
-import { skillsService } from "@/shared/services/skills.service";
-import { userService } from "@/shared/services/user.service";
+import { accountServer } from "@/shared/services/account.server";
 import {
   dehydrate,
   HydrationBoundary,
@@ -20,19 +18,19 @@ const page = async () => {
   await Promise.all([
     queryClient.prefetchQuery({
       queryKey: USER_INFO_QUERY_KEY,
-      queryFn: userService.getMe,
-      retry: defaultAuthRetry,
+      queryFn: accountServer.user,
+      retry: false,
     }),
     queryClient.prefetchQuery({
       queryKey: USER_SKILLS_QUERY_KEY,
-      queryFn: userService.getUserSkills,
-      retry: defaultAuthRetry,
+      queryFn: accountServer.userSkills,
+      retry: false,
     }),
     queryClient.prefetchQuery({
       queryKey: skillsKey.All,
-      queryFn: skillsService.getAll,
+      queryFn: accountServer.skills,
       staleTime: 5 * 60 * 1000,
-      retry: defaultAuthRetry,
+      retry: false,
     }),
   ]);
 

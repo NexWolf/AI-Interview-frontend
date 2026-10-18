@@ -10,7 +10,7 @@ export const useUpdateSkills = () => {
       profileService.updateSkills(skills),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-      queryClient.invalidateQueries({ queryKey: ["user", "me", "skills"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "me"] });
     },
     onError: (error: AxiosError<{ message?: string }>) => {
       console.error("Error updating skills:", error);

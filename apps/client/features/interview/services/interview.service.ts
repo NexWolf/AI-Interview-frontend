@@ -16,6 +16,14 @@ const unwrap = async <T>(promise: Promise<{ data: StandardApiResponse<T> }>) => 
 };
 
 export const interviewService = {
+  getStatuses: async (ids: string[]): Promise<Array<{ interviewId: string; status: string; reportReady: boolean }>> => {
+    const response = await AxiosAPI.post('/api/v1/interviews/statuses', { ids });
+    return response.data.data;
+  },
+  getStatus: async (id: string): Promise<{ interviewId: string; status: string; reportReady: boolean }> => {
+    const response = await AxiosAPI.get(`/api/v1/interviews/${id}/status`);
+    return response.data.data;
+  },
   create: async (data: StartInterviewPayload): Promise<StartInterviewResponse> => {
     return unwrap(AxiosAPI.post(`/api/v1/interviews/start`, data));
   },
@@ -37,7 +45,7 @@ export const interviewService = {
   getAll: async (
     params?: GetAllInterviewsParams,
   ): Promise<GetAllInterviewsResponse> => {
-    const query = new URLSearchParams();
+    const query = new URLSearchParams({ view: "summary" });
     if (params?.page) query.set("page", String(params.page));
     if (params?.limit) query.set("limit", String(params.limit));
     const qs = query.toString();

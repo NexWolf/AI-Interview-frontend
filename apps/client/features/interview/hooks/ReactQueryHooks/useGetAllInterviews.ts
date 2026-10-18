@@ -1,4 +1,5 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 import { interviewService } from "../../services/interview.service";
 import { defaultAuthRetry } from "@/shared/lib/queryUtils";
 import type { GetAllInterviewsParams } from "../../types/interviewRoom";
@@ -22,17 +23,28 @@ const isRecentlyCompletedWithoutReport = (inv: any): boolean => {
 };
 
 export const useGetAllInterviews = (params?: GetAllInterviewsParams) => {
-  return useQuery({
-    queryKey: params ? [INTERVIEWS_QUERY_KEY[0], params] : INTERVIEWS_QUERY_KEY,
+  const queryClient = useQueryClient();
+  const queryKey = useMemo(() => params ? [INTERVIEWS_QUERY_KEY[0], { page: params.page, limit: params.limit }] : INTERVIEWS_QUERY_KEY,
+    [params?.page, params?.limit]);
+  const query = useQuery({
+    queryKey,
     queryFn: () => interviewService.getAll(params),
     placeholderData: keepPreviousData,
     staleTime: 2 * 60 * 1000,
     retry: defaultAuthRetry,
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      const list = Array.isArray(data) ? data : data?.interviews;
-      const isAnyGenerating = list?.some(isRecentlyCompletedWithoutReport);
-      return isAnyGenerating ? 5000 : false;
-    },
   });
+  const pendingIds = query.data?.interviews.filter(isRecentlyCompletedWithoutReport).map(item => item.id) || [];
+  const statuses = useQuery({
+    queryKey: ["interview-report-statuses", pendingIds],
+    queryFn: () => interviewService.getStatuses(pendingIds),
+    enabled: pendingIds.length > 0,
+    refetchInterval: 5000,
+    retry: defaultAuthRetry,
+  });
+  useEffect(() => {
+    if (statuses.data?.some(item => item.reportReady)) {
+      void queryClient.invalidateQueries({ queryKey, exact: true });
+    }
+  }, [statuses.data, queryClient, queryKey]);
+  return query;
 };

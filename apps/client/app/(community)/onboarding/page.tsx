@@ -1,7 +1,6 @@
 import OnBoardingComponent from "@/features/onboarding/components/OnBoardingComponent";
 import { skillsKey } from "@/shared/constants/query-key";
-import { defaultAuthRetry } from "@/shared/lib/queryUtils";
-import { skillsService } from "@/shared/services/skills.service";
+import { accountServer } from "@/shared/services/account.server";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +11,9 @@ export default async function OnboardingPage() {
 
   await queryClient.prefetchQuery({
     queryKey: skillsKey.All,
-    queryFn : skillsService.getAll,
-    retry : defaultAuthRetry,
+    queryFn : accountServer.skills,
+    staleTime: 5 * 60 * 1000,
+    retry : false,
   })
 
 

@@ -28,6 +28,12 @@ export interface ReportApi {
   updatedAt: string;
 }
 
+export type ReportSummaryApi = Pick<ReportApi,
+  'id' | 'interviewId' | 'userId' | 'overallScore' | 'technicalKnowledgeScore' |
+  'communicationScore' | 'confidenceScore' | 'problemSolvingScore' | 'currentLevel' |
+  'recommendedNextLevel' | 'isApproved' | 'isCertificateIssued' | 'reportPdfUrl' |
+  'createdAt' | 'updatedAt'>;
+
 export interface AnswerApi {
   id: string;
   answerText: string | null;
@@ -102,7 +108,7 @@ export interface InterviewListItem {
   createdAt: string;
   updatedAt: string;
   skills: InterviewRoomSkill[];
-  report?: ReportApi | null;
+  report?: ReportSummaryApi | null;
   jobDescription?: string | null;
   codebaseProjectId?: string | null;
   codebaseProject?: {

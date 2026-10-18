@@ -28,8 +28,7 @@ export default function DashboardClient() {
     data: interviews,
     isLoading: interviewsLoading,
     isError: interviewsError,
-  } = useGetAllInterviews();
-
+  } = useGetAllInterviews({ page: 1, limit: 6 });
   if (dashboardLoading) {
     return <DashboardSkeleton />;
   }

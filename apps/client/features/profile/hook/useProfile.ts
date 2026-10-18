@@ -3,12 +3,13 @@ import { profileService } from "../services/profile.service"
 import { defaultAuthRetry } from "@/shared/lib/queryUtils"
 
 
-export const USER_PROFILE_QUERY_KEY = ["profile" , "me"]
+import { USER_PROFILE_QUERY_KEY } from "../queryKeys";
+export { USER_PROFILE_QUERY_KEY };
 export const useProfile = () => {
     return useQuery({
         queryKey : USER_PROFILE_QUERY_KEY,
         queryFn : profileService.getAll,
-        staleTime : 1000 * 60 * 20,
+        staleTime : 1000 * 60 * 5,
         retry : defaultAuthRetry
     })
 }

@@ -1,3 +1,4 @@
+import "server-only";
 import { API_URL } from "@/constants/routes";
 import axios from "axios";
 import { cookies } from "next/headers";
@@ -5,6 +6,7 @@ import { cookies } from "next/headers";
 export const AxiosServerAPI = axios.create({
     baseURL: API_URL,
     withCredentials: true,
+    timeout: 15000,
 });
 
 AxiosServerAPI.interceptors.request.use(async (config) => {

@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*"
+    "./*": "./src/*",
+    "./lib/AxiosAPI": "./src/lib/AxiosAPI.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

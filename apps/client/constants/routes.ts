@@ -1,1 +1,1 @@
-export const API_URL = process.env.NEXT_PUBLIC_URL || "http://localhost:5000";
+export { API_BASE_URL as API_URL } from "@repo/shared/lib/AxiosAPI";

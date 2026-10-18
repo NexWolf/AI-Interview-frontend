@@ -136,9 +136,6 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       auth: {
         token,
       },
-      query: {
-        token,
-      },
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1500,

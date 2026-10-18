@@ -1,9 +1,5 @@
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_URL || 'http://localhost:5000';
 import axios, { InternalAxiosRequestConfig } from "axios";
-
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_URL ||
-  "http://localhost:5000";
 
 export const AxiosAPI = axios.create({
   baseURL: API_BASE_URL,
@@ -11,6 +7,26 @@ export const AxiosAPI = axios.create({
 
 let cachedAccessToken: string | null = null;
 let tokenPromise: Promise<string | null> | null = null;
+let candidateToken: string | null = null;
+
+export function setCandidateToken(token: string | null) {
+  candidateToken = token;
+  if (typeof window !== "undefined") {
+    if (token) {
+      sessionStorage.setItem("candidate_access_token", token);
+    } else {
+      sessionStorage.removeItem("candidate_access_token");
+    }
+  }
+}
+
+export function getCandidateToken(): string | null {
+  if (candidateToken) return candidateToken;
+  if (typeof window !== "undefined") {
+    candidateToken = sessionStorage.getItem("candidate_access_token");
+  }
+  return candidateToken;
+}
 
 export function setCachedAccessToken(token: string | null) {
   cachedAccessToken = token;
@@ -21,6 +37,9 @@ export function clearCachedAccessToken() {
   tokenPromise = null;
 }
 
+/**
+ * Checks if a JWT token is expired or will expire within 15 seconds.
+ */
 function isTokenExpired(token: string): boolean {
   try {
     const parts = token.split(".");
@@ -35,17 +54,24 @@ function isTokenExpired(token: string): boolean {
     );
     const payload = JSON.parse(jsonPayload);
     if (!payload.exp) return true;
+    // Buffer of 15 seconds to prevent near-expiry edge cases
     return payload.exp * 1000 < Date.now() + 15000;
   } catch {
     return true;
   }
 }
 
+/**
+ * Deduplicated token fetcher to prevent race conditions during cold start.
+ * If multiple parallel requests fire while token is null/expired, only ONE network call to /api/auth/token is made.
+ */
 async function getValidAccessToken(): Promise<string | null> {
+  // Fast path: cached and still valid
   if (cachedAccessToken && !isTokenExpired(cachedAccessToken)) {
     return cachedAccessToken;
   }
 
+  // Deduplication: if another request is already fetching, reuse its promise
   if (!tokenPromise) {
     tokenPromise = fetch("/api/auth/token", {
       method: "GET",
@@ -73,8 +99,18 @@ async function getValidAccessToken(): Promise<string | null> {
   return tokenPromise;
 }
 
+// =========================================================================
+// REQUEST INTERCEPTOR: Proactive Token Injection
+// =========================================================================
 AxiosAPI.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-  const token = await getValidAccessToken();
+  // This client belongs to the browser. Server Components use a request-scoped
+  // client and must never read/write the browser token cache in a shared process.
+  if (typeof window === 'undefined') return config;
+  let token = await getValidAccessToken();
+
+  if (!token) {
+    token = getCandidateToken();
+  }
 
   if (token && config.headers) {
     if (typeof config.headers.set === "function") {
@@ -86,6 +122,9 @@ AxiosAPI.interceptors.request.use(async (config: InternalAxiosRequestConfig) => 
   return config;
 });
 
+// =========================================================================
+// RESPONSE INTERCEPTOR: Reactive 401 Handling with Deduplicated Queue
+// =========================================================================
 let isRefreshing = false;
 let pendingQueue: Array<{
   resolve: (token: string) => void;
@@ -110,6 +149,7 @@ AxiosAPI.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Ignore non-401 errors or already retried requests
     if (
       !error.response ||
       error.response.status !== 401 ||
@@ -118,6 +158,7 @@ AxiosAPI.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // If another request is currently refreshing the session, queue this request
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {
         pendingQueue.push({ resolve, reject });
@@ -149,7 +190,12 @@ AxiosAPI.interceptors.response.use(
         cachedAccessToken = null;
         processQueue(new Error("Session Expired"));
         if (typeof window !== "undefined") {
-          window.location.href = "/auth";
+          const isCandidateSession =
+            Boolean(getCandidateToken()) ||
+            window.location.pathname.startsWith("/interview/");
+          if (!isCandidateSession) {
+            window.location.href = "/auth";
+          }
         }
         return Promise.reject(error);
       }
@@ -171,7 +217,12 @@ AxiosAPI.interceptors.response.use(
       cachedAccessToken = null;
       processQueue(refreshErr);
       if (typeof window !== "undefined") {
-        window.location.href = "/auth";
+        const isCandidateSession =
+          Boolean(getCandidateToken()) ||
+          window.location.pathname.startsWith("/interview/");
+        if (!isCandidateSession) {
+          window.location.href = "/auth";
+        }
       }
       return Promise.reject(refreshErr);
     } finally {

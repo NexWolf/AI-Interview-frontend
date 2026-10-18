@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { FilesetResolver, FaceLandmarker } from "@mediapipe/tasks-vision";
+import type { FaceLandmarker } from "@mediapipe/tasks-vision";
 
 export type CameraViolationType = "no_face" | "multiple_faces" | "looking_away";
 
@@ -72,6 +72,8 @@ export function useCameraProctoring({
     const initLandmarker = async () => {
       try {
         setIsModelLoading(true);
+        const { FilesetResolver, FaceLandmarker } = await import("@mediapipe/tasks-vision");
+        if (isCancelled) return;
         const vision = await FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
         );
