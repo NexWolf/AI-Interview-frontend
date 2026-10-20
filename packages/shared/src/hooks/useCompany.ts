@@ -11,8 +11,9 @@ import { toast } from "sonner";
 export { companyQueryKeys };
 
 // 1. Company Profile
-export function useCompanyProfile() {
+export function useCompanyProfile(enabled = true) {
   return useQuery({
+    enabled,
     queryKey: companyQueryKeys.profile,
     queryFn: () => companyService.getProfile(),
     staleTime: 5 * 60 * 1000,

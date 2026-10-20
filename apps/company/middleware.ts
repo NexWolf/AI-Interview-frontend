@@ -44,9 +44,11 @@ export function middleware(request: NextRequest) {
   const role = payload?.role;
   const isCompany = role === "COMPANY" || role === "ADMIN" || role === "SUPER_ADMIN";
 
+  const hasValidAccessToken = !!payload && typeof payload.exp === 'number' && payload.exp * 1000 > Date.now();
+
   // 3. User is already authenticated and attempts to visit /login
   if (pathname === "/login") {
-    if ((accessToken || refreshToken) && isCompany) {
+    if (hasValidAccessToken && isCompany) {
       return NextResponse.redirect(new URL("/", request.url));
     }
     return NextResponse.next();

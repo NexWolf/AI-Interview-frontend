@@ -16,7 +16,7 @@ export function CompanyLayout({ children }: CompanyLayoutProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { t, isArabic } = useLanguage();
-  const { data: profile } = useCompanyProfile();
+  const { data: profile } = useCompanyProfile(pathname !== "/login");
 
   const companyName = profile?.company?.name || "Company";
   const initials = (companyName.slice(0, 2) || "CO").toUpperCase();

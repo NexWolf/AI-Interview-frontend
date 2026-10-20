@@ -5,6 +5,22 @@ export const AxiosAPI = axios.create({
   baseURL: API_BASE_URL,
 });
 
+// Each app configures its own login route; the client app keeps /auth.
+let authLoginPath: '/auth' | '/login' = '/auth';
+let redirectingToLogin = false;
+
+export function setAuthLoginPath(path: '/auth' | '/login') {
+  authLoginPath = path;
+}
+
+function redirectToLogin() {
+  if (typeof window === 'undefined' || redirectingToLogin || window.location.pathname === authLoginPath) return;
+  const isCandidateSession = Boolean(getCandidateToken()) || window.location.pathname.startsWith('/interview/');
+  if (isCandidateSession) return;
+  redirectingToLogin = true;
+  window.location.replace(authLoginPath);
+}
+
 let cachedAccessToken: string | null = null;
 let tokenPromise: Promise<string | null> | null = null;
 let candidateToken: string | null = null;
@@ -189,14 +205,7 @@ AxiosAPI.interceptors.response.use(
       if (!res.ok || !data?.accessToken) {
         cachedAccessToken = null;
         processQueue(new Error("Session Expired"));
-        if (typeof window !== "undefined") {
-          const isCandidateSession =
-            Boolean(getCandidateToken()) ||
-            window.location.pathname.startsWith("/interview/");
-          if (!isCandidateSession) {
-            window.location.href = "/auth";
-          }
-        }
+        redirectToLogin();
         return Promise.reject(error);
       }
 
@@ -216,14 +225,7 @@ AxiosAPI.interceptors.response.use(
     } catch (refreshErr) {
       cachedAccessToken = null;
       processQueue(refreshErr);
-      if (typeof window !== "undefined") {
-        const isCandidateSession =
-          Boolean(getCandidateToken()) ||
-          window.location.pathname.startsWith("/interview/");
-        if (!isCandidateSession) {
-          window.location.href = "/auth";
-        }
-      }
+      redirectToLogin();
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;
