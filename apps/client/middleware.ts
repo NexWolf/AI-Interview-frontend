@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 
-const TOKEN_COOKIE_NAME = "accessToken";
-
 // الصفحات اللي مفتوحة للكل (بدون تسجيل دخول)
 const publicRoutes = ["/", "/auth", "/verify-email", "/forgot-password", "/reset-password"];
 
@@ -26,34 +24,36 @@ export function middleware(request: NextRequest) {
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 
-  // 2. هل المستخدم معه token؟
-  const token = request.cookies.get(TOKEN_COOKIE_NAME)?.value;
+  // 2. هل المستخدم معه accessToken أو refreshToken؟
+  const accessToken = request.cookies.get("accessToken")?.value;
+  const refreshToken = request.cookies.get("refreshToken")?.value;
+  const isAuthenticated = Boolean(accessToken || refreshToken);
   const isOnboardingDone = request.cookies.get("onboardingDone")?.value === "true";
 
-  // 3. إذا عليه token وراح على صفحة الدخول → وجّهه بعده
-  if (token && (pathname === "/auth" || pathname.startsWith("/auth/"))) {
+  // 3. إذا مسجل دخول وراح على صفحة الدخول → وجّهه للـ dashboard أو onboarding
+  if (isAuthenticated && (pathname === "/auth" || pathname.startsWith("/auth/"))) {
     return NextResponse.redirect(
       new URL(isOnboardingDone ? "/dashboard" : "/onboarding", request.url),
     );
   }
 
-  // 4. إذا مسار محمي وما معه token → رجعو عـ /auth
-  if (!isPublicRoute && !token) {
+  // 4. إذا مسار محمي وما معه أي توكن → رجعو عـ /auth
+  if (!isPublicRoute && !isAuthenticated) {
     const url = new URL("/auth", request.url);
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  // 5. إذا معه token بس ما خلص onboarding وطالب يفتح مسار يحتاجه → وجّهه للـ onboarding
+  // 5. إذا مسجل بس ما خلص onboarding وطالب يفتح مسار يحتاجه → وجّهه للـ onboarding
   if (
-    token &&
+    isAuthenticated &&
     !isOnboardingDone &&
     onboardingRequiredRoutes.some((route) => pathname.startsWith(route))
   ) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
-  // 6. معه token وصفحة محمية → خليه يفوت
+  // 6. مسجل دخول وصفحة محمية → اسمح له بالمرور
   return NextResponse.next();
 }
 

@@ -5,33 +5,39 @@
  * ========================================================================== */
 
 import { useGetInterveiwRoom } from "@/features/interview/hooks/ReactQueryHooks/useGetInterviewRoom";
-import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { setCandidateToken, getCandidateToken } from "@/shared/lib/AxiosAPI";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { cn } from "@/shared/lib/utils";
+import { setCandidateToken } from "@/shared/lib/AxiosAPI";
 import { useInterviewTimer } from "@/shared/hook/useInterviewTimer";
 import { useInterviewProtection } from "@/features/interview/hooks/useInterviewProtection";
 import { useViolationsManager } from "@/features/interview/hooks/useViolationsManager";
 import CameraPreview from "@/features/interview/components/setup-component/CameraPreview";
-import { InterviewHeader } from "@/features/interview/components/session-component/InterviewHeader";
-import { AIAvatarStage } from "@/features/interview/components/session-component/AIAvatarStage";
-import { QuestionDisplayCard } from "@/features/interview/components/session-component/QuestionDisplayCard";
-import { CandidateResponseWorkspace } from "@/features/interview/components/session-component/CandidateResponseWorkspace";
-import { InterviewSidebar } from "@/features/interview/components/session-component/InterviewSidebar";
-import { LiveReportOverlay } from "@/features/interview/components/session-component/LiveReportOverlay";
+import {
+  InterviewHeader,
+  QuestionTopBar,
+  AIAvatarStage,
+  QuestionDisplayCard,
+  CandidateResponseWorkspace,
+  LiveReportOverlay,
+  RoomLoadingState,
+  RoomErrorState,
+  CandidateCompletedState,
+} from "@/features/interview/components/session-component";
 import { useInterviewAudio } from "@/features/interview/hooks/useInterviewAudio";
+import { useAudioRecorder } from "@/features/interview/hooks/useAudioRecorder";
 import { useInterviewSpeechRecognition } from "@/features/interview/hooks/useInterviewSpeechRecognition";
 import { useInterviewFlow } from "@/features/interview/hooks/useInterviewFlow";
+import { useInterviewSocketSubscriptions } from "@/features/interview/hooks/useInterviewSocketSubscriptions";
 import { useInterviewStore } from "@/features/interview/store/useInterviewStore";
 import { formatToQuestionItem } from "@/features/interview/utils/questionMapper";
-import { Phase, QuestionItem } from "@/features/interview/types";
+import { QuestionItem } from "@/features/interview/types";
 import { useIntegrityMonitor, IntegrityEvent } from "@/shared/hook/useIntegrityMonitor";
+import { useInterviewSocket } from "@/shared/hook/useInterviewSocket";
+import { useMediaStream } from "@/shared/components/provider/MediaStermProvider";
 import {
-  useInterviewSocket,
-  QuestionNewPayload,
-  SummaryDonePayload,
-  SocketErrorPayload,
-} from "@/shared/hook/useInterviewSocket";
-import { useMediaStream, stopGlobalMediaStream } from "@/shared/components/provider/MediaStermProvider";
+  detectInterviewMode,
+  getInterviewRedirectUrl,
+} from "@/features/interview/utils/interviewRouting";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -41,8 +47,9 @@ interface InterviewSessionClientProps {
 
 export default function InterviewSessionClient({ interviewId }: InterviewSessionClientProps) {
   const router = useRouter();
+
   // Media stream and violation hooks
-  const { stopStream, setMicEnabled } = useMediaStream();
+  const { stream, stopStream, setMicEnabled } = useMediaStream();
   const { addViolation, flushViolations, pullPendingViolations } = useViolationsManager(interviewId);
 
   /* ==========================================================================
@@ -76,31 +83,9 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     }
   }, [RoomData]);
 
-  const isCandidateSession = Boolean(
-    getCandidateToken() ||
-      (RoomData as any)?.isCandidateInterview ||
-      (RoomData as any)?.candidateId,
-  );
-
-  const isTaskDefense = Boolean(
-    (RoomData as any)?.jobDescription?.includes("TASK_DISCUSSION") ||
-      (typeof window !== "undefined" &&
-        sessionStorage.getItem("is_task_defense") === "true")
-  );
-
-  const isCareerDiscovery =
-    !isTaskDefense &&
-    Boolean(
-      (RoomData as any)?.jobDescription?.includes("CAREER_DISCOVERY") ||
-        (RoomData as any)?.jobDescription?.includes("STUDENT") ||
-        (RoomData as any)?.jobDescription?.includes("استكشاف وتحديد مسار") ||
-        (RoomData as any)?.mode === "CAREER_DISCOVERY" ||
-        (RoomData as any)?.title?.includes("Career Discovery") ||
-        (RoomData as any)?.title?.includes("استكشاف وتحديد مسار") ||
-        (typeof window !== "undefined" &&
-          (sessionStorage.getItem("interview_mode") === "career_discovery" ||
-            sessionStorage.getItem("interview_mode") === "student_placement"))
-    );
+  // Unified Mode and Session Heuristics (DRY)
+  const modeInfo = useMemo(() => detectInterviewMode(RoomData), [RoomData]);
+  const { isCandidateSession, isCareerDiscovery } = modeInfo;
 
   const languageRef = useRef<string>("English");
   useEffect(() => {
@@ -141,72 +126,35 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
 
   /* ==========================================================================
    * SECTION 2: CORE STATE + PHASE STATE MACHINE (ZUSTAND)
-   * ----------------------------------------------------------------------
-   * The core state is now managed globally by useInterviewStore.
    * ======================================================================== */
 
-  const {
-    phase,
-    currentQuestion,
-    questionList,
-    answerText,
-    isAISpeaking,
-    isListening,
-    submissionError,
-    setAnswerText,
-    setIsAISpeaking,
-    setSubmissionError,
-  } = useInterviewStore();
+  const phase = useInterviewStore((state) => state.phase);
+  const currentQuestion = useInterviewStore((state) => state.currentQuestion);
+  const questionList = useInterviewStore((state) => state.questionList);
+  const isAISpeaking = useInterviewStore((state) => state.isAISpeaking);
+  const isListening = useInterviewStore((state) => state.isListening);
+  const setAnswerText = useInterviewStore((state) => state.setAnswerText);
+  const setIsAISpeaking = useInterviewStore((state) => state.setIsAISpeaking);
 
   const isGeneratingQuestion = phase === "generating";
   const isSubmittingAnswer = phase === "processing";
   const isFinishing = phase === "closing";
 
-
-
   // Integrity / proctoring state
   const [warningCount, setWarningCount] = useState<number>(0);
-
-  // Live socket text (used only during report generation)
-  const [reportLiveText, setReportLiveText] = useState<string>("");
-
-  // Live socket text (used during question generation)
-  const [questionLiveText, setQuestionLiveText] = useState<string>("");
-
-
+  const [proctoringStatus, setProctoringStatus] = useState<{
+    hasViolation: boolean;
+    message?: string;
+  } | undefined>(undefined);
 
   /* ==========================================================================
-   * SECTION 3: SHARED REFS
-   * ----------------------------------------------------------------------
-   * These refs exist so callbacks (speech recognition events, socket
-   * callbacks, audio "onended" handlers) can always read the *latest*
-   * value without being re-created / re-subscribed on every render.
+   * SECTION 3: SHARED REFS & SOCKET CONNECTION
    * ======================================================================== */
 
-  // Snapshot of text that existed before live transcription started, so we
-  // don't wipe user's typed text or duplicate interim results.
   const draftBaseRef = useRef<string>("");
-
-  // Callback fired when Sara finishes reading a question out loud —
-  // wired to auto-open the mic when the flow is live.
   const speakDoneRef = useRef<(() => void) | null>(null);
-
-  // Booted flag so the initial-load effect only runs once
   const bootedRef = useRef(false);
-
-  // Flow refs hoisted to break cyclic dependencies between STT and Flow hooks
   const submitAnswerRef = useRef<(text: string) => void>(() => {});
-
-  /* ==========================================================================
-   * SECTION 3.5: SOCKET CONNECTION
-   * ----------------------------------------------------------------------
-   * Declared early (before Section 6/7) because `liveConnected` and
-   * `emitEvent` are read inside useCallback dependency arrays below —
-   * those arrays are evaluated immediately during render, so the values
-   * must already exist. The actual event *subscriptions* (joining the
-   * room, listening for question/answer/summary events) live in Section 7,
-   * grouped with the rest of the socket wiring.
-   * ======================================================================== */
 
   const {
     connected: liveConnected,
@@ -214,31 +162,64 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     error: socketError,
     emitEvent,
     onEvent,
-    disconnect: disconnectSocket,
+    connect: connectSocket,
   } = useInterviewSocket({ interviewId });
+
+  // Re-attempt socket connection when RoomData candidateToken becomes available
+  useEffect(() => {
+    const candidateTok = (RoomData as any)?.candidateToken;
+    if (candidateTok && !liveConnected) {
+      connectSocket();
+    }
+  }, [RoomData, liveConnected, connectSocket]);
+
+  // Debug: log socket connection state changes (use warn instead of error to prevent Next.js dev overlay)
+  useEffect(() => {
+    if (socketConnecting) {
+      console.log("[SOCKET] 🔄 Connecting to socket server...");
+    }
+    if (socketError) {
+      console.warn("[SOCKET] ⚠️ Connection warning:", socketError);
+    }
+    if (liveConnected) {
+      console.log("[SOCKET] ✅ Connected! liveConnected =", liveConnected);
+    }
+  }, [liveConnected, socketConnecting, socketError]);
 
   /* ==========================================================================
    * SECTION 4: AUDIO / TEXT-TO-SPEECH
-   * ----------------------------------------------------------------------
-   * Everything related to Sara "speaking" a question out loud.
    * ======================================================================== */
 
-  const { makeAudioUrl, speakQuestion, stopSpeaking } = useInterviewAudio({
+  const { speakQuestion, stopSpeaking } = useInterviewAudio({
     selectedVoice,
     setIsAISpeaking,
     speakDoneRef,
   });
 
   /* ==========================================================================
-   * SECTION 5: SPEECH-TO-TEXT (microphone / SpeechRecognition)
-   * ----------------------------------------------------------------------
-   * Everything related to capturing the candidate's spoken answer.
+   * SECTION 5: AUDIO RECORDER & SILENCE COUNTDOWN
    * ======================================================================== */
 
+  const handleSubmitAnswerRef = useRef<(blob?: Blob | null) => void>(() => {});
+
   const {
-    startListening,
-    toggleListening,
-    forceStopRecognition,
+    isRecording,
+    currentVolume,
+    startRecording,
+    stopRecording,
+    cleanupAudio,
+  } = useAudioRecorder({
+    stream,
+    onAutoSubmit: async (blob) => {
+      console.log("%c⏱️ [AUTO-SUBMIT]: Submitting recorded audio blob...", "color: #10b981", blob?.size);
+      handleSubmitAnswerRef.current(blob);
+    },
+  });
+
+  // Speech Recognition (fallback or auxiliary for Career Discovery)
+  const {
+    startListening: startSpeechRecognition,
+    toggleListening: toggleSpeechRecognition,
     abortRecognition,
   } = useInterviewSpeechRecognition({
     stopSpeaking,
@@ -248,12 +229,53 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     setMicEnabled,
   });
 
+  // Unified listening handler prioritizing Audio Recording in Standard Interviews
+  const startListening = useCallback(async () => {
+    stopSpeaking();
+    setMicEnabled?.(true, "startListening");
+    useInterviewStore.getState().setPhase("listening");
+    useInterviewStore.getState().setIsListening(true);
+
+    if (isCareerDiscovery) {
+      startSpeechRecognition();
+    }
+    await startRecording();
+  }, [isCareerDiscovery, setMicEnabled, startRecording, startSpeechRecognition, stopSpeaking]);
+
+  const toggleListening = useCallback(async () => {
+    if (isRecording || isListening) {
+      // Manual finish by candidate -> produce audio blob and submit
+      const blob = await stopRecording();
+      if (isCareerDiscovery) {
+        abortRecognition();
+      }
+      useInterviewStore.getState().setIsListening(false);
+      handleSubmitAnswerRef.current(blob);
+    } else {
+      await startListening();
+    }
+  }, [abortRecognition, isCareerDiscovery, isListening, isRecording, startListening, stopRecording]);
+
+  // Ensure recorder is strictly stopped when AI is speaking (zero echo)
+  useEffect(() => {
+    if (phase === "speaking") {
+      stopRecording();
+      if (isCareerDiscovery) {
+        abortRecognition();
+      }
+    }
+  }, [abortRecognition, isCareerDiscovery, phase, stopRecording]);
+
+  const onUserSubmitAnswer = useCallback(async () => {
+    const blob = await stopRecording();
+    if (isCareerDiscovery) {
+      abortRecognition();
+    }
+    handleSubmitAnswerRef.current(blob);
+  }, [abortRecognition, isCareerDiscovery, stopRecording]);
+
   /* ==========================================================================
    * SECTION 6: DOMAIN FLOW (question / answer orchestration)
-   * ----------------------------------------------------------------------
-   * The actual interview "script": ask a question, speak it, listen for
-   * the answer, submit it, ask the next one. This is where Sections 4
-   * (audio) and 5 (STT) get wired together via phase transitions.
    * ======================================================================== */
 
   const {
@@ -272,161 +294,41 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     liveConnected,
     emitEvent,
     draftBaseRef,
-    setSubmissionError,
     speakDoneRef,
     startListening,
     stopSpeaking,
     speakQuestion,
-    forceStopRecognition,
     abortRecognition,
-    makeAudioUrl,
-    setQuestionLiveText,
-    setReportLiveText,
     selectedVoice,
     languageRef,
     router,
     stopStream,
-    disconnectSocket,
     setMicEnabled,
     flushViolations,
     pullPendingViolations,
     isCareerDiscovery,
   });
 
+  handleSubmitAnswerRef.current = handleSubmitAnswer;
   // Wire up the submit answer ref so STT can call it
   submitAnswerRef.current = submitAnswerWithText;
 
   /* ==========================================================================
-   * SECTION 7: SOCKET WIRING (event subscriptions)
-   * ----------------------------------------------------------------------
-   * `liveConnected` / `emitEvent` / `onEvent` themselves come from
-   * Section 3.5 (declared early so Section 6 can use them). This section
-   * is just the effect that joins the room and subscribes to
-   * server-pushed events.
+   * SECTION 7: SOCKET SUBSCRIPTIONS (Encapsulated Hook)
    * ======================================================================== */
 
-  // Debug: log socket connection state changes
-  useEffect(() => {
-    if (socketConnecting) {
-      console.log("[SOCKET] 🔄 Connecting to socket server...");
-    }
-    if (socketError) {
-      console.error("[SOCKET] ❌ Connection error:", socketError);
-    }
-    if (liveConnected) {
-      console.log("[SOCKET] ✅ Connected! liveConnected =", liveConnected);
-    }
-  }, [liveConnected, socketConnecting, socketError]);
-
-  const handledQuestionIdsRef = useRef<Set<string | number>>(new Set());
-
-  useEffect(() => {
-    if (!interviewId) return;
-
-    const offs = [
-      onEvent<QuestionNewPayload>("question:new", ({ question }) => {
-        console.debug(
-          `[${useInterviewStore.getState().phase}][question:new] received id: ${question.questionId}, current q: ${useInterviewStore.getState().currentQuestion?.id}`
-        );
-        const currentPhase = useInterviewStore.getState().phase;
-        if (currentPhase === "closing") {
-          console.debug(`[${currentPhase}][question:new] ignored (closing) id: ${question.questionId}`);
-          return;
-        }
-        if (useInterviewStore.getState().currentQuestion?.id === String(question.questionId)) {
-          console.debug(`[${currentPhase}][question:new] ignored (same as current) id: ${question.questionId}`);
-          return;
-        }
-        if (handledQuestionIdsRef.current.has(question.questionId)) {
-          console.debug(`[${currentPhase}][question:new] ignored (already handled) id: ${question.questionId}`);
-          return;
-        }
-        
-        handledQuestionIdsRef.current.add(question.questionId);
-        setQuestionLiveText(""); // Clear stream text when done
-        
-        const newQ = toQuestionItem(question);
-        useInterviewStore.getState().addQuestion(newQ);
-        useInterviewStore.getState().setNextQuestion(newQ);
-
-        console.log(
-          "%c📥 [SOCKET question:new] Buffered new incoming question into nextQuestion:",
-          "background: #0d9488; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
-          {
-            newQuestionId: newQ.id,
-            order: newQ.questionOrder,
-            questionText: newQ.question,
-            hasAudio: !!newQ.questionAudio,
-            currentPhase: useInterviewStore.getState().phase,
-          }
-        );
-        
-        if (useInterviewStore.getState().phase === "generating") {
-          console.log("⚡ [RECOVER FROM GENERATING] Asking newly arrived question immediately!");
-          onAskQuestion(newQ, true, true);
-        }
-      }),
-      onEvent<{ text: string }>("question:stream", ({ text }) => {
-        setQuestionLiveText((prev) => prev + text);
-      }),
-      onEvent<SocketErrorPayload>("question:error", ({ message }) => {
-        console.log("[SOCKET] question:error:", message);
-        if (useInterviewStore.getState().phase === "generating") useInterviewStore.getState().setPhase("idle");
-        toast.error(message || "Failed to generate next question");
-      }),
-      onEvent<SocketErrorPayload>("answer:error", ({ message }) => {
-        console.log("[SOCKET] answer:error:", message);
-        if (useInterviewStore.getState().phase === "processing") useInterviewStore.getState().setPhase("idle");
-        toast.error(message || "Failed to save answer");
-      }),
-      onEvent<SocketErrorPayload>("summary:error", ({ message }) => {
-        console.log("[SOCKET] summary:error:", message);
-        toast.dismiss();
-        useInterviewStore.getState().setPhase("idle");
-        toast.error(message || "Error generating report");
-      }),
-      onEvent<{ text: string }>("summary:stream", ({ text }) => {
-        setReportLiveText((prev) => prev + text);
-      }),
-      onEvent<{ interviewId?: string }>("interview:completed", () => {
-        console.log("[SOCKET] interview:completed received from server");
-        handleFinishInterview();
-      }),
-      onEvent<SummaryDonePayload>("summary:done", () => {
-        console.log("[SOCKET] summary:done received");
-        setReportLiveText("");
-        useInterviewStore.getState().setPhase("idle");
-        stopGlobalMediaStream();
-        toast.dismiss();
-        toast.success("Interview completed! Loading your evaluation report...");
-        setTimeout(() => {
-          if (isTaskDefense) {
-            router.replace(`/dashboard/tasks?defenseCompleted=true&interviewId=${interviewId}`);
-          } else if (isCareerDiscovery) {
-            router.replace(`/dashboard/tasks?interviewId=${interviewId}`);
-          } else {
-            router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
-          }
-        }, 300);
-      }),
-    ];
-
-    return () => {
-      offs.forEach((off) => off());
-    };
-  }, [interviewId, emitEvent, onEvent, router, onAskQuestion, toQuestionItem, handleFinishInterview, isCareerDiscovery, isTaskDefense]);
+  useInterviewSocketSubscriptions({
+    interviewId,
+    onEvent,
+    toQuestionItem,
+    onAskQuestion,
+    handleFinishInterview,
+    modeInfo,
+    router,
+  });
 
   /* ==========================================================================
-   * SECTION 8: FINISH / CLOSE INTERVIEW
-   * ======================================================================== */
-
-  // handleFinishInterview is now fully encapsulated inside useInterviewFlow
-
-  /* ==========================================================================
-   * SECTION 9: INITIAL LOAD / RESUME
-   * ----------------------------------------------------------------------
-   * Runs once RoomData arrives: redirect if already completed, otherwise
-   * either resume the last unanswered question or kick off question #1.
+   * SECTION 8: INITIAL LOAD / RESUME
    * ======================================================================== */
 
   useEffect(() => {
@@ -434,13 +336,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
 
     // If the interview was already completed, jump straight to tasks or report
     if (RoomData.status === "Completed") {
-      if (isTaskDefense) {
-        router.replace(`/dashboard/tasks?defenseCompleted=true&interviewId=${interviewId}`);
-      } else if (isCareerDiscovery) {
-        router.replace(`/dashboard/tasks?interviewId=${interviewId}`);
-      } else {
-        router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
-      }
+      router.replace(getInterviewRedirectUrl(modeInfo, interviewId));
       return;
     }
     bootedRef.current = true;
@@ -469,34 +365,27 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
       {
         roomStatus: RoomData.status,
         dbQuestionsCount: qs.length,
-        storeCurrentQuestion: storeState.currentQuestion
-          ? { id: storeState.currentQuestion.id, order: storeState.currentQuestion.questionOrder }
-          : null,
-        storeNextQuestion: storeState.nextQuestion
-          ? { id: storeState.nextQuestion.id, order: storeState.nextQuestion.questionOrder }
-          : null,
         pendingQuestionToAsk: pending ? { id: pending.id, order: pending.questionOrder } : null,
       }
     );
+
     if (pending) {
-      // Resume: Sara re-reads the unanswered question via TTS, then the mic opens
       setAnswerText("");
       onAskQuestion(pending, true, true);
     } else {
-      // Fresh interview (or all questions answered) -> start the next one
       requestNextQuestion();
     }
-  }, [RoomData, interviewId, router, setAnswerText, onAskQuestion, requestNextQuestion, emitEvent]);
+  }, [RoomData, interviewId, router, setAnswerText, onAskQuestion, requestNextQuestion, modeInfo]);
 
   /* ==========================================================================
-   * SECTION 10: INTEGRITY / PROCTORING / TIMER
+   * SECTION 9: INTEGRITY / PROCTORING / TIMER
    * ======================================================================== */
 
   useIntegrityMonitor({
     interviewId,
     onViolation: (event: IntegrityEvent) => {
       setWarningCount((prev) => prev + 1);
-      
+
       const mappedViolation = event.type.startsWith("camera")
         ? ("CAMERA_DISCONNECTED" as const)
         : ("MICROPHONE_DISCONNECTED" as const);
@@ -521,7 +410,7 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     isEnabled: true,
     onTabSwitch: () => {
       setWarningCount((prev) => prev + 1);
-      
+
       addViolation({
         violationType: "TAB_SWITCH",
         category: "Intentional",
@@ -533,76 +422,78 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
     },
   });
 
+  const handleProctoringStatusChange = useCallback(
+    (status: { hasViolation: boolean; statusMessage?: string }) => {
+      setProctoringStatus((prev) => {
+        if (
+          prev?.hasViolation === status.hasViolation &&
+          prev?.message === status.statusMessage
+        ) {
+          return prev;
+        }
+        return {
+          hasViolation: status.hasViolation,
+          message: status.statusMessage,
+        };
+      });
+    },
+    []
+  );
+
+  const handleCameraViolation = useCallback(
+    (v: { message: string }) => {
+      setWarningCount((prev) => prev + 1);
+
+      let mappedType: any = "SYSTEM_ISSUE";
+      if (v.message.toLowerCase().includes("multiple faces")) {
+        mappedType = "MULTIPLE_FACES_DETECTED";
+      } else if (v.message.toLowerCase().includes("no face")) {
+        mappedType = "FACE_NOT_DETECTED";
+      }
+
+      addViolation({
+        violationType: mappedType,
+        category:
+          mappedType === "MULTIPLE_FACES_DETECTED"
+            ? "Intentional"
+            : "Unintentional",
+        details: v.message,
+        description: "Camera violation detected by model.",
+        systemResponse: "Recorded camera proctoring violation.",
+        isCheating: mappedType === "MULTIPLE_FACES_DETECTED",
+      });
+    },
+    [addViolation]
+  );
+
   /* ==========================================================================
-   * SECTION 11: EARLY RETURNS (loading / error states)
+   * SECTION 10: EARLY RETURNS (Modularized States)
    * ======================================================================== */
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Loading interview room and connecting to AI interviewer...</p>
-      </div>
-    );
+    return <RoomLoadingState />;
   }
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 text-center">
-        <AlertTriangle className="w-12 h-12 text-destructive mb-3" />
-        <h2 className="text-lg font-bold text-destructive">Failed to load interview session</h2>
-        <p className="text-xs text-muted-foreground mt-1">{error?.message}</p>
-        <button
-          onClick={() => refetch()}
-          className="mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg"
-        >
-          Try Again
-        </button>
-      </div>
+      <RoomErrorState
+        errorMessage={error?.message}
+        onRetry={() => refetch()}
+      />
     );
   }
 
   if (RoomData?.status === "Completed" && isCandidateSession) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-4 shadow-sm animate-in zoom-in-75 duration-300">
-          <CheckCircle2 className="w-9 h-9" />
-        </div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-          تم الانتهاء من المقابلة بنجاح
-        </h2>
-        <p className="text-sm text-muted-foreground max-w-md mt-2 leading-relaxed">
-          شكراً لك! تم استلام جميع إجاباتك وإرسال تقرير المقابلة مباشرة إلى الشركة. يمكنك إغلاق هذه الصفحة بأمان الآن.
-        </p>
-        <p className="text-xs text-muted-foreground/80 max-w-md mt-1">
-          Thank you! Your interview has been submitted directly to the hiring team. You can safely close this page.
-        </p>
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => window.close()}
-            className="px-5 py-2.5 rounded-xl border border-border/80 hover:bg-muted text-xs font-semibold transition-all cursor-pointer shadow-sm"
-          >
-            إغلاق الصفحة (Close Tab)
-          </button>
-        </div>
-      </div>
-    );
+    return <CandidateCompletedState />;
   }
 
   /* ==========================================================================
-   * SECTION 12: RENDER (UI)
-   * ----------------------------------------------------------------------
-   * 12a. Header (status / timer / end button)
-   * 12b. AI avatar + candidate webcam
-   * 12c. Question display card
-   * 12d. Candidate answer workspace
-   * 12e. Sidebar (skills / history / proctoring rules)
-   * 12f. Finishing / report-generation overlay
+   * SECTION 11: RENDER (Cinematic World-Class AI Conversational Layout)
    * ======================================================================== */
 
   return (
-    <div className="min-h-screen lg:h-screen lg:max-h-screen bg-background text-foreground flex flex-col font-sans w-full lg:overflow-hidden">
-      {/* 12a. Top Header Bar */}
+    <div className="min-h-screen lg:h-screen lg:max-h-screen bg-background text-foreground flex flex-col font-sans w-full lg:overflow-hidden select-none">
+      {/* 11a. Top Header Bar */}
       <InterviewHeader
         RoomData={RoomData}
         liveConnected={liveConnected}
@@ -612,99 +503,79 @@ export default function InterviewSessionClient({ interviewId }: InterviewSession
         handleFinishInterview={handleFinishInterview}
       />
 
-      {/* 2. Main Workspace (Dual Column / Split-Screen Layout) */}
-      <div className="flex-1 w-full max-w-7xl mx-auto p-3 sm:p-4 lg:p-5 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 min-h-0 lg:overflow-hidden">
+      {/* 11b. Ultra-Slim Question Bar (Question counter, dots, topics, replay) */}
+      <QuestionTopBar
+        currentQuestion={currentQuestion}
+        questionList={questionList}
+        replayQuestion={replayQuestion}
+        isAISpeaking={isAISpeaking}
+        proctoringStatus={proctoringStatus}
+        isCareerDiscovery={isCareerDiscovery}
+        interviewLanguage={RoomData?.interviewLanguage}
+      />
+
+      {/* 11c. Main Conversational Stage (Focused Center + Top-Left PiP) */}
+      <div className="relative flex-1 w-full max-w-5xl mx-auto px-3 sm:px-5 py-2 flex flex-col justify-between items-center min-h-0 overflow-hidden">
         
-        {/* =========================================================
-            LEFT COLUMN: CANDIDATE (YOU)
-            ========================================================= */}
-        <div className="flex flex-col gap-3 sm:gap-3.5 w-full h-full min-h-0 justify-between">
-          {/* Candidate Webcam (Top) - scaled to ~half page and matched with AI avatar */}
-          <div className="h-[270px] sm:h-[310px] lg:h-[45vh] max-h-[390px] w-full flex items-center justify-center relative bg-muted/20 rounded-2xl md:rounded-3xl shadow-md overflow-hidden border border-border/40 shrink-0">
-            {!isFinishing && (
-              <div className="absolute inset-0 w-full h-full">
-                <CameraPreview
-                  isRoomInterview={true}
-                  onCameraViolation={(v) => {
-                    setWarningCount((prev) => prev + 1);
-                    
-                    let mappedType: any = "SYSTEM_ISSUE";
-                    if (v.message.toLowerCase().includes("multiple faces")) mappedType = "MULTIPLE_FACES_DETECTED";
-                    else if (v.message.toLowerCase().includes("no face")) mappedType = "FACE_NOT_DETECTED";
-
-                    addViolation({
-                      violationType: mappedType,
-                      category: mappedType === "MULTIPLE_FACES_DETECTED" ? "Intentional" : "Unintentional",
-                      details: v.message,
-                      description: "Camera violation detected by model.",
-                      systemResponse: "Recorded camera proctoring violation.",
-                      isCheating: mappedType === "MULTIPLE_FACES_DETECTED",
-                    });
-                  }}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Candidate Workspace / Text (Bottom) */}
-          <div className="flex-1 min-h-0 flex flex-col justify-start">
-            <CandidateResponseWorkspace
-              isListening={isListening}
-              isSubmittingAnswer={isSubmittingAnswer}
-              toggleListening={toggleListening}
-              answerText={answerText}
-              setAnswer={setAnswerText}
-              submissionError={submissionError}
-              handleSubmitAnswer={handleSubmitAnswer}
-              handleSkipQuestion={handleSkipQuestion}
-              isGeneratingQuestion={isGeneratingQuestion}
-              isCareerDiscovery={isCareerDiscovery}
-              currentQuestion={currentQuestion}
-            />
-          </div>
+        {/* Top-Left Floating Candidate Webcam (PiP Card) */}
+        <div
+          className={cn(
+            "absolute top-2 left-3 sm:top-3 sm:left-5 z-20 w-40 sm:w-52 md:w-56 aspect-video rounded-2xl overflow-hidden backdrop-blur-md transition-all duration-300",
+            proctoringStatus?.hasViolation
+              ? "ring-2 ring-red-500 border-2 border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.55)] animate-pulse"
+              : "border border-border/50 bg-muted/40 shadow-xl"
+          )}
+        >
+          {!isFinishing && (
+            <div className="w-full h-full">
+              <CameraPreview
+                isRoomInterview={true}
+                onProctoringStatusChange={handleProctoringStatusChange}
+                onCameraViolation={handleCameraViolation}
+              />
+            </div>
+          )}
         </div>
 
-        {/* =========================================================
-            RIGHT COLUMN: AI INTERVIEWER (SARA)
-            ========================================================= */}
-        <div className="flex flex-col gap-3 sm:gap-3.5 w-full h-full min-h-0 justify-between">
-          {/* AI Avatar (Top) - scaled to ~half page and matched with Candidate Webcam */}
-          <div className="h-[270px] sm:h-[310px] lg:h-[45vh] max-h-[390px] w-full flex items-center justify-center relative bg-muted/20 rounded-2xl md:rounded-3xl border border-border/40 shadow-md overflow-hidden shrink-0">
-            <AIAvatarStage
-              aiPersonaName={aiPersonaName}
-              selectedVoice={selectedVoice}
-              isAISpeaking={isAISpeaking}
-              currentQuestion={currentQuestion}
-              isGeneratingQuestion={isGeneratingQuestion}
-              isListening={isListening}
-              isSubmittingAnswer={isSubmittingAnswer}
-              stopSpeaking={stopSpeaking}
-              replayQuestion={replayQuestion}
-            />
-          </div>
+        {/* Center Stage: Circular AI Avatar + Borderless Question Subtitles */}
+        <div className="flex-1 w-full flex flex-col items-center justify-center gap-1 sm:gap-3 my-auto z-10">
+          {/* Circular AI Avatar with soundwave pulse rings */}
+          <AIAvatarStage
+            aiPersonaName={aiPersonaName}
+            selectedVoice={selectedVoice}
+            isAISpeaking={isAISpeaking}
+            isGeneratingQuestion={isGeneratingQuestion}
+            isListening={isListening}
+            isSubmittingAnswer={isSubmittingAnswer}
+          />
 
-          {/* AI Speech Bubble (Bottom) */}
-          <div className="flex-1 min-h-0 flex flex-col justify-start">
-            <QuestionDisplayCard
-              currentQuestion={currentQuestion}
-              questionList={questionList}
-              replayQuestion={replayQuestion}
-              isGeneratingQuestion={isGeneratingQuestion}
-              questionLiveText={questionLiveText}
-              displayedQuestion={displayedQuestion}
-              isTyping={isTyping}
-              isCareerDiscovery={isCareerDiscovery}
-            />
-          </div>
+          {/* Borderless World-Class Question Subtitles */}
+          <QuestionDisplayCard
+            currentQuestion={currentQuestion}
+            displayedQuestion={displayedQuestion}
+            isTyping={isTyping}
+            isCareerDiscovery={isCareerDiscovery}
+            onRetryQuestion={requestNextQuestion}
+            onSkipQuestion={handleSkipQuestion}
+          />
         </div>
 
+        {/* Bottom Stage: Candidate Response Workspace with Radial Countdown Mic */}
+        <div className="w-full max-w-3xl shrink-0 z-10 pb-1">
+          <CandidateResponseWorkspace
+            toggleListening={toggleListening}
+            handleSubmitAnswer={onUserSubmitAnswer}
+            handleSkipQuestion={handleSkipQuestion}
+            isCareerDiscovery={isCareerDiscovery}
+            currentVolume={currentVolume}
+          />
+        </div>
       </div>
 
-      {/* 12f. Live report generation overlay */}
+      {/* 11d. Unified Transition Screen upon completion */}
       <LiveReportOverlay
         isFinishing={isFinishing}
         liveConnected={liveConnected}
-        reportLiveText={reportLiveText}
       />
     </div>
   );

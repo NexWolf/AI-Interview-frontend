@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 
-type MediaStatus = "idle" | "loading" | "ready" | "error" | "muted";
+type MediaStatus = "idle" | "loading" | "ready" | "error" | "muted" | "stopped";
 
 type MediaStreamContextType = {
   stream: MediaStream | null;
   videoStatus: MediaStatus;
   audioStatus: MediaStatus;
+  isMicEnabled: boolean;
   stopStream: () => void;
   restartStream: () => Promise<MediaStream | null>;
   ensureStreamActive: () => Promise<MediaStream | null>;
@@ -86,16 +87,20 @@ export const stopGlobalMediaStream = () => {
 
 export const MediaStreamProvider = ({ children }: { children: React.ReactNode }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [videoStatus, setVideoStatus] = useState<MediaStatus>("loading");
-  const [audioStatus, setAudioStatus] = useState<MediaStatus>("loading");
+  const [videoStatus, setVideoStatus] = useState<MediaStatus>("idle");
+  const [audioStatus, setAudioStatus] = useState<MediaStatus>("idle");
+  const [isMicEnabled, setIsMicEnabled] = useState<boolean>(true);
   const streamRef = useRef<MediaStream | null>(null);
   const pendingAcquisitionRef = useRef<Promise<MediaStream | null> | null>(null);
+  const isStoppedRef = useRef<boolean>(false);
 
-  // Invariant: mic starts OFF by default. Remember desired state across acquisitions.
-  const micEnabledRef = useRef<boolean>(false);
+  // Invariant: track desired state across acquisitions.
+  const micEnabledRef = useRef<boolean>(true);
 
   const stopStream = useCallback(() => {
+    isStoppedRef.current = true;
     micEnabledRef.current = false;
+    setIsMicEnabled(false);
 
     // 1. Stop all tracks in streamRef
     if (streamRef.current) {
@@ -114,14 +119,15 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
     // 2. Stop global tracks & DOM video elements
     stopGlobalMediaStream();
 
-    // 3. Update state
+    // 3. Update state with stopped status so components do not auto-restart
     setStream(null);
-    setVideoStatus("idle");
-    setAudioStatus("idle");
+    setVideoStatus("stopped");
+    setAudioStatus("stopped");
   }, []);
 
   const setMicEnabled = useCallback((enabled: boolean, caller?: string) => {
     micEnabledRef.current = enabled;
+    setIsMicEnabled(enabled);
     console.debug(`[MIC] setMicEnabled(${enabled}) called by: ${caller || "unknown"}`);
 
     if (streamRef.current) {
@@ -196,10 +202,21 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
           },
         });
 
-        // CRITICAL INVARIANT: newly acquired audio tracks default to enabled = false unless explicitly requested
+        if (isStoppedRef.current) {
+          console.debug("[STREAM] Acquisition completed but stream was stopped. Discarding tracks.");
+          newStream.getTracks().forEach((track) => {
+            try {
+              track.enabled = false;
+              track.stop();
+            } catch {}
+          });
+          return null;
+        }
+
         newStream.getAudioTracks().forEach((track) => {
           track.enabled = micEnabledRef.current;
         });
+        setIsMicEnabled(micEnabledRef.current);
         console.debug(`[MIC] Applied micEnabledRef (${micEnabledRef.current}) to newly acquired stream audio tracks`);
 
         streamRef.current = newStream;
@@ -242,6 +259,7 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
   }, []);
 
   const ensureStreamActive = useCallback(async (): Promise<MediaStream | null> => {
+    isStoppedRef.current = false;
     const current = streamRef.current;
     if (
       current &&
@@ -260,8 +278,6 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
   }, [startStream]);
 
   useEffect(() => {
-    startStream();
-
     const handleBeforeUnload = () => {
       stopGlobalMediaStream();
     };
@@ -270,8 +286,11 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Guarantee complete release of hardware tracks on provider unmount (navigation)
+      stopStream();
+      stopGlobalMediaStream();
     };
-  }, [startStream]);
+  }, [stopStream]);
 
   return (
     <MediaStreamContext.Provider
@@ -279,6 +298,7 @@ export const MediaStreamProvider = ({ children }: { children: React.ReactNode })
         stream,
         videoStatus,
         audioStatus,
+        isMicEnabled,
         stopStream,
         restartStream: startStream,
         ensureStreamActive,

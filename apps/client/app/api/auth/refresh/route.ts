@@ -21,8 +21,11 @@ export async function POST() {
         });
 
         if (!backendResponse.ok) {
-            cookieStore.delete("accessToken");
-            cookieStore.delete("refreshToken");
+            // Only wipe cookies if the backend explicitly rejected authentication (401 or 403)
+            if (backendResponse.status === 401 || backendResponse.status === 403) {
+                cookieStore.delete("accessToken");
+                cookieStore.delete("refreshToken");
+            }
             return NextResponse.json(
                 { success: false, message: "Refresh Failed (فشل تحديث الرمز)" },
                 { status: 401 }

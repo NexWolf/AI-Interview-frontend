@@ -2,17 +2,22 @@ import { useCallback, useEffect, useRef, useState, MutableRefObject } from "reac
 import { toast } from "sonner";
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { Phase, QuestionItem } from "../types";
+import { QuestionItem } from "../types";
 import { useInterviewStore } from "../store/useInterviewStore";
 import { formatToQuestionItem } from "../utils/questionMapper";
 import { stopGlobalMediaStream } from "@/shared/components/provider/MediaStermProvider";
+import {
+  detectInterviewMode,
+  getInterviewRedirectUrl,
+  clearTaskDefenseSession,
+} from "../utils/interviewRouting";
+import { useTypewriter } from "./useTypewriter";
 
 interface UseInterviewFlowProps {
   interviewId: string;
   liveConnected: boolean;
   emitEvent: (event: string, payload: any, callback?: any) => void;
   draftBaseRef: MutableRefObject<string>;
-  setSubmissionError: (err: string | null) => void;
   speakDoneRef: MutableRefObject<(() => void) | null>;
   startListening: () => void;
   stopSpeaking: () => void;
@@ -22,16 +27,11 @@ interface UseInterviewFlowProps {
     language?: string,
     questionToken?: number
   ) => void;
-  forceStopRecognition: () => void;
   abortRecognition: () => void;
-  makeAudioUrl: (b64: string, mime: string) => string | null;
-  setQuestionLiveText: React.Dispatch<React.SetStateAction<string>>;
-  setReportLiveText: React.Dispatch<React.SetStateAction<string>>;
   selectedVoice: string;
   languageRef: MutableRefObject<string>;
   router: AppRouterInstance;
   stopStream: () => void;
-  disconnectSocket?: () => void;
   setMicEnabled?: (enabled: boolean, caller?: string) => void;
   pullPendingViolations?: () => any[];
   flushViolations?: () => Promise<void> | void;
@@ -43,28 +43,48 @@ export function useInterviewFlow({
   liveConnected,
   emitEvent,
   draftBaseRef,
-  setSubmissionError,
   speakDoneRef,
   startListening,
   stopSpeaking,
   speakQuestion,
-  forceStopRecognition,
   abortRecognition,
-  makeAudioUrl,
-  setQuestionLiveText,
-  setReportLiveText,
   selectedVoice,
   languageRef,
   router,
   stopStream,
   setMicEnabled,
-  disconnectSocket,
   pullPendingViolations,
   flushViolations,
   isCareerDiscovery = false,
 }: UseInterviewFlowProps) {
-  const [displayedQuestion, setDisplayedQuestion] = useState<string>("");
-  const [isTyping, setIsTyping] = useState<boolean>(false);
+  // Read generation lagging status directly from Zustand store
+  const isGenerationLagging = useInterviewStore((s) => s.isGenerationLagging);
+  const generationWatchdogRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Watchdog timer: If generation takes longer than 20 seconds, flag as lagging in Zustand store
+  useEffect(() => {
+    const unsubscribe = useInterviewStore.subscribe((state) => {
+      if (state.phase === "generating") {
+        if (!generationWatchdogRef.current) {
+          generationWatchdogRef.current = setTimeout(() => {
+            useInterviewStore.getState().setIsGenerationLagging(true);
+          }, 20000);
+        }
+      } else {
+        if (generationWatchdogRef.current) {
+          clearTimeout(generationWatchdogRef.current);
+          generationWatchdogRef.current = null;
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (generationWatchdogRef.current) {
+        clearTimeout(generationWatchdogRef.current);
+      }
+    };
+  }, []);
 
   // Monotonically increasing question token to invalidate stale TTS/listen callbacks
   const questionTokenRef = useRef<number>(0);
@@ -94,6 +114,18 @@ export function useInterviewFlow({
   // Ask a question: speak it, then open the mic so the user can answer
   const onAskQuestion = useCallback(
     (q: QuestionItem, shouldSpeak: boolean, autoListen: boolean) => {
+      // Deduplication guard: If this exact question is already current and actively speaking, do not restart
+      const currentState = useInterviewStore.getState();
+      if (
+        currentState.currentQuestion?.id === q.id &&
+        currentState.phase === "speaking"
+      ) {
+        console.debug(
+          `[onAskQuestion] Deduplication: Question ${q.id} is already actively speaking. Skipping duplicate ask.`
+        );
+        return;
+      }
+
       clearListenTimer();
       // Ensure mic and STT are completely off before asking new question
       abortRecognition();
@@ -124,14 +156,11 @@ export function useInterviewFlow({
       }
       useInterviewStore.getState().setAnswerText(existingDraft);
       draftBaseRef.current = existingDraft;
-      setSubmissionError(null);
+      useInterviewStore.getState().setSubmissionError(null);
       useInterviewStore.getState().setPhase("speaking");
 
       const onTTSDone = () => {
         clearListenTimer();
-        // Immediately ensure full text is displayed
-        setDisplayedQuestion(q.question);
-        setIsTyping(false);
 
         console.log(
           "%c🔊 [TTS DONE] AI voice finished speaking. Preparing microphone...",
@@ -186,7 +215,6 @@ export function useInterviewFlow({
       draftBaseRef,
       languageRef,
       setMicEnabled,
-      setSubmissionError,
       speakDoneRef,
       speakQuestion,
       startListening,
@@ -196,7 +224,7 @@ export function useInterviewFlow({
   const onAskQuestionRef = useRef(onAskQuestion);
   onAskQuestionRef.current = onAskQuestion;
 
-  const requestNextQuestion = useCallback(() => {
+  const requestNextQuestion = useCallback((options?: { forceGenerate?: boolean }) => {
     const state = useInterviewStore.getState();
     const currentPhase = state.phase;
 
@@ -206,6 +234,7 @@ export function useInterviewFlow({
       {
         currentQuestionId: state.currentQuestion?.id,
         currentPhase,
+        forceGenerate: options?.forceGenerate,
         bufferedNextQuestion: state.nextQuestion
           ? { id: state.nextQuestion.id, order: state.nextQuestion.questionOrder }
           : null,
@@ -216,17 +245,37 @@ export function useInterviewFlow({
       }
     );
 
-    if (currentPhase === "generating" || currentPhase === "closing") {
-      console.log(`[REQUEST NEXT] Aborting because phase is already '${currentPhase}'`);
+    if (currentPhase === "closing") {
+      console.log(`[REQUEST NEXT] Aborting because phase is 'closing'`);
+      return;
+    }
+
+    if (currentPhase === "generating" && !options?.forceGenerate) {
+      console.log(`[REQUEST NEXT] Aborting because phase is already 'generating'`);
       return;
     }
 
     // 1. Check if there is an upcoming question ready (Prefetch hit!)
     // Prioritize nextQuestion, then fallback to any unanswered question in questionList
+    // Clean Code Invariant: Question progression MUST be strictly forward ((order > currentOrder))
     const currentQId = state.currentQuestion?.id;
-    const targetNext =
-      state.nextQuestion ||
-      state.questionList.find((q) => !q.isAnswered && q.id !== currentQId);
+    const currentOrder = state.currentQuestion?.questionOrder || 0;
+
+    const validNextBuffered =
+      state.nextQuestion &&
+      (state.nextQuestion.questionOrder || 0) > currentOrder &&
+      !state.nextQuestion.isAnswered
+        ? state.nextQuestion
+        : null;
+
+    const fallbackNext = state.questionList.find(
+      (q) =>
+        !q.isAnswered &&
+        q.id !== currentQId &&
+        (q.questionOrder || 0) > currentOrder
+    );
+
+    const targetNext = validNextBuffered || fallbackNext;
 
     if (targetNext) {
       // PREFETCH HIT: Ask immediately, zero latency!
@@ -236,12 +285,25 @@ export function useInterviewFlow({
         {
           targetQuestionId: targetNext.id,
           order: targetNext.questionOrder,
-          source: state.nextQuestion?.id === targetNext.id ? "nextQuestion buffer" : "questionList fallback",
+          source:
+            state.nextQuestion?.id === targetNext.id
+              ? "nextQuestion buffer"
+              : "questionList fallback",
         }
       );
       useInterviewStore.getState().setNextQuestion(null);
       onAskQuestionRef.current(targetNext, true, true);
     } else {
+      // If the backend previously notified us that the interview is completed (no more questions)
+      if (state.isPendingCompletion) {
+        console.log(
+          "%c🏁 [INTERVIEW FINISHED] No further questions remaining and completion is pending. Finishing interview...",
+          "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+        );
+        handleFinishInterviewRef.current();
+        return;
+      }
+
       // PREFETCH MISS: (e.g. initial load without buffer, or backend is slow)
       console.log(
         "%c⏳ [PREFETCH MISS] No target question found in buffer! Setting phase to 'generating'...",
@@ -254,11 +316,11 @@ export function useInterviewFlow({
       useInterviewStore.getState().setPhase("generating");
     }
 
-    setQuestionLiveText("");
+    // Clear live question stream text in store
+    useInterviewStore.getState().clearQuestionLiveText();
 
     // In Career Discovery, stop prefetching once all 5 questions have been generated or are being presented
     const isDiscovery = Boolean(isCareerDiscovery || isCareerDiscoveryRef.current);
-    const currentOrder = state.currentQuestion?.questionOrder || 0;
     const nextOrder = targetNext?.questionOrder || 0;
     if (isDiscovery && (state.questionList.length >= 5 || currentOrder >= 5 || nextOrder >= 5)) {
       console.log(
@@ -313,7 +375,6 @@ export function useInterviewFlow({
     liveConnected,
     selectedVoice,
     setMicEnabled,
-    setQuestionLiveText,
     stopSpeaking,
     toQuestionItem,
     isCareerDiscovery,
@@ -322,8 +383,8 @@ export function useInterviewFlow({
   const requestNextQuestionRef = useRef(requestNextQuestion);
   requestNextQuestionRef.current = requestNextQuestion;
 
-  const submitAnswerWithText = useCallback(
-    (text: string) => {
+  const submitAnswer = useCallback(
+    async (text?: string, audioBlob?: Blob | null) => {
       const state = useInterviewStore.getState();
       if (state.isSubmittingAnswer) {
         console.warn("[SUBMIT BLOCKED] Already submitting answer.");
@@ -335,22 +396,35 @@ export function useInterviewFlow({
         return;
       }
 
+      const finalText = (text ?? state.answerText ?? "").trim();
+      const hasAudio = Boolean(audioBlob && audioBlob.size > 0);
+
+      if (!finalText && !hasAudio) {
+        const errorMsg =
+          languageRef.current === "Arabic"
+            ? "لم يتم التقاط أي صوت أو إجابة. يرجى التحدث بالميكروفون بوضوح ثم المحاولة مجدداً."
+            : "No audio or text response detected. Please speak into your microphone clearly and try again.";
+        console.warn("[SUBMIT BLOCKED] Neither answer text nor audio provided.");
+        useInterviewStore.getState().setSubmissionError(errorMsg);
+        return;
+      }
+
       console.log(
-        "%c🚀 [STEP 2: submitAnswerWithText] Submitting Answer:",
+        "%c🚀 [submitAnswer] Submitting Answer:",
         "background: #f59e0b; color: black; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
         {
           questionId: q.id,
           questionOrder: q.questionOrder,
-          answerLength: text.length,
-          answerPreview: text.length > 60 ? text.substring(0, 60) + "..." : text,
-          transport: liveConnected ? "SOCKET" : "HTTP",
+          hasAudio,
+          audioBytes: audioBlob?.size,
+          answerLength: finalText.length,
+          transport: hasAudio ? "HTTP (FormData)" : liveConnected ? "SOCKET" : "HTTP",
         }
       );
 
-      // Invariant: Stop STT & disable hardware mic BEFORE network call
+      // Invariant: Stop STT & stop speaking, keep hardware mic ready
       clearListenTimer();
       abortRecognition();
-      setMicEnabled?.(false, "submitAnswerWithText");
       stopSpeaking();
       useInterviewStore.getState().setPhase("processing");
 
@@ -362,14 +436,14 @@ export function useInterviewFlow({
             answeredQuestionId: q.id,
           }
         );
-        setSubmissionError(null);
+        useInterviewStore.getState().setSubmissionError(null);
         if (typeof window !== "undefined" && q?.id) {
           try {
             sessionStorage.removeItem(`interview_draft_${q.id}`);
           } catch {}
         }
         useInterviewStore.getState().setAnswerText("");
-        useInterviewStore.getState().setCurrentQuestion({ ...q, isAnswered: true });
+        useInterviewStore.getState().markQuestionAnswered(q.id);
 
         const isDiscovery = Boolean(isCareerDiscovery || isCareerDiscoveryRef.current);
         // If Career Discovery and this was question 5 (or last), conclude the interview immediately!
@@ -390,30 +464,51 @@ export function useInterviewFlow({
       };
 
       const handleFailure = (errMsg: string) => {
-        // Invariant: On failure, restore answer text, transition to idle, mic stays OFF
         console.error("❌ [SUBMIT FAILURE]:", errMsg);
-        useInterviewStore.getState().setAnswerText(text);
-        setMicEnabled?.(false, "submitAnswerWithText failure");
+        if (finalText) {
+          useInterviewStore.getState().setAnswerText(finalText);
+        }
         useInterviewStore.getState().setPhase("idle");
-        setSubmissionError(errMsg);
+        useInterviewStore.getState().setSubmissionError(errMsg);
         toast.error(errMsg);
       };
 
-      const payload: any = { interviewId, questionId: q.id, answerText: text };
-      if (pullPendingViolations) {
-        payload.violations = pullPendingViolations();
-      }
+      const violations = pullPendingViolations ? pullPendingViolations() : [];
 
-      if (liveConnected) {
-        // Proceed instantly without waiting for the backend (Zero Latency Submission)
+      // 1. If audio is provided -> Send multipart/form-data via HTTP to trigger AssemblyAI on backend
+      if (hasAudio && audioBlob) {
         proceed();
 
-        console.log(
-          "%c📡 [STEP 5: BACKGROUND SOCKET] Emitting 'answer:submit' event in background...",
-          "background: #0284c7; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
-          payload
-        );
-        
+        const formData = new FormData();
+        const ext = audioBlob.type.includes("mp4") ? "mp4" : "webm";
+        formData.append("audio", audioBlob, `answer_${q.id}.${ext}`);
+        if (finalText) {
+          formData.append("answerText", finalText);
+        }
+        if (violations.length > 0) {
+          formData.append("violations", JSON.stringify(violations));
+        }
+
+        AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/answer`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        }).catch((e: any) => {
+          console.error("Save audio answer error:", e);
+          const errMsg =
+            e?.response?.data?.message ||
+            "تعذر إرسال الإجابة الصوتية بسبب مشكلة في الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة.";
+          handleFailure(errMsg);
+        });
+        return;
+      }
+
+      // 2. Text-only submission with active Socket connection
+      if (liveConnected) {
+        proceed();
+        const payload: any = { interviewId, questionId: q.id, answerText: finalText };
+        if (violations.length > 0) {
+          payload.violations = violations;
+        }
+
         emitEvent("answer:submit", payload, ({ ok, message, data }: any) => {
           console.log(
             "%c📥 [STEP 6: SOCKET ACK] Backend answer:submit acknowledgment received:",
@@ -430,18 +525,17 @@ export function useInterviewFlow({
         return;
       }
 
-      // Same for HTTP
+      // 3. Text-only HTTP fallback
       proceed();
       AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/answer`, {
-        answerText: text,
-      })
-        .catch((e: any) => {
-          console.error("Save answer error:", e);
-          const errMsg =
-            e?.response?.data?.message ||
-            "تعذر إرسال الإجابة بسبب مشكلة في الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة.";
-          handleFailure(errMsg);
-        });
+        answerText: finalText,
+      }).catch((e: any) => {
+        console.error("Save answer error:", e);
+        const errMsg =
+          e?.response?.data?.message ||
+          "تعذر إرسال الإجابة بسبب مشكلة في الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة.";
+        handleFailure(errMsg);
+      });
     },
     [
       abortRecognition,
@@ -449,11 +543,15 @@ export function useInterviewFlow({
       emitEvent,
       interviewId,
       liveConnected,
-      setMicEnabled,
-      setSubmissionError,
+      pullPendingViolations,
       stopSpeaking,
       isCareerDiscovery,
     ]
+  );
+
+  const submitAnswerWithText = useCallback(
+    (text: string) => submitAnswer(text, null),
+    [submitAnswer]
   );
 
   const replayQuestion = useCallback(() => {
@@ -471,9 +569,7 @@ export function useInterviewFlow({
 
     const onTTSDone = () => {
       clearListenTimer();
-      setDisplayedQuestion(q.question);
-      setIsTyping(false);
-      
+
       const currentState = useInterviewStore.getState();
       if (
         questionTokenRef.current !== currentToken ||
@@ -515,47 +611,122 @@ export function useInterviewFlow({
     stopSpeaking,
   ]);
 
-  const handleSubmitAnswer = useCallback(() => {
-    const text = useInterviewStore.getState().answerText.trim();
-    if (!text) {
-      toast.error("Please provide or speak an answer before submitting.");
-      return;
-    }
-    clearListenTimer();
-    abortRecognition();
-    setMicEnabled?.(false, "handleSubmitAnswer");
-    stopSpeaking();
-    setSubmissionError(null);
-    submitAnswerWithText(text);
-  }, [abortRecognition, clearListenTimer, setMicEnabled, setSubmissionError, stopSpeaking, submitAnswerWithText]);
+  const handleSubmitAnswer = useCallback(
+    (audioBlob?: Blob | null) => {
+      const text = useInterviewStore.getState().answerText.trim();
+      const hasAudio = Boolean(audioBlob && audioBlob.size > 0);
+      if (!text && !hasAudio) {
+        const errorMsg =
+          languageRef.current === "Arabic"
+            ? "لم يتم التقاط أي صوت أو إجابة. يرجى التحدث بالميكروفون بوضوح ثم المحاولة مجدداً."
+            : "No audio or text response detected. Please speak into your microphone clearly and try again.";
+        console.warn("[SUBMIT BLOCKED] Neither answer text nor audio provided.");
+        useInterviewStore.getState().setSubmissionError(errorMsg);
+        return;
+      }
+      clearListenTimer();
+      abortRecognition();
+      stopSpeaking();
+      useInterviewStore.getState().setSubmissionError(null);
+      submitAnswer(text, audioBlob);
+    },
+    [abortRecognition, clearListenTimer, languageRef, stopSpeaking, submitAnswer]
+  );
 
   const handleSkipQuestion = useCallback(() => {
+    const state = useInterviewStore.getState();
+    const q = state.currentQuestion;
+
+    if (!q) {
+      console.warn("[SKIP BLOCKED] No active current question to skip.");
+      return;
+    }
+
+    if (state.phase === "generating" || state.isGeneratingQuestion) {
+      console.warn("[SKIP BLOCKED] Already generating next question.");
+      return;
+    }
+
     clearListenTimer();
     abortRecognition();
     setMicEnabled?.(false, "handleSkipQuestion");
     stopSpeaking();
-    setSubmissionError(null);
-    toast.info("Question skipped");
-    const q = useInterviewStore.getState().currentQuestion;
-    if (q) {
-      if (typeof window !== "undefined") {
-        try {
-          sessionStorage.removeItem(`interview_draft_${q.id}`);
-        } catch {}
-      }
-      AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/skip`).catch((e) => {
-        console.warn("Skip persistence failed:", e?.response?.data?.message || e?.message);
-      });
+    state.setSubmissionError(null);
+    state.setAnswerText("");
+    toast.info(languageRef.current === "Arabic" ? "تم تخطي السؤال" : "Question skipped");
+
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.removeItem(`interview_draft_${q.id}`);
+      } catch {}
     }
+    AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/skip`).catch((e) => {
+      console.warn("Skip persistence failed:", e?.response?.data?.message || e?.message);
+    });
 
     const isDiscovery = Boolean(isCareerDiscovery || isCareerDiscoveryRef.current);
-    if (isDiscovery && q && q.questionOrder >= 5) {
+    if (isDiscovery && q.questionOrder >= 5) {
       handleFinishInterviewRef.current();
       return;
     }
 
-    requestNextQuestionRef.current();
-  }, [abortRecognition, clearListenTimer, interviewId, isCareerDiscovery, setMicEnabled, setSubmissionError, stopSpeaking]);
+    // Mark current question as answered/skipped in local store
+    state.markQuestionAnswered(q.id);
+    const updatedList = useInterviewStore.getState().questionList;
+
+    // Check if nextQuestion is ready in buffer (strictly forward)
+    const currentOrder = q.questionOrder || 0;
+    const validNext =
+      state.nextQuestion &&
+      (state.nextQuestion.questionOrder || 0) > currentOrder &&
+      !state.nextQuestion.isAnswered
+        ? state.nextQuestion
+        : null;
+
+    const targetNext =
+      validNext ||
+      updatedList.find(
+        (item) =>
+          !item.isAnswered &&
+          item.id !== q.id &&
+          (item.questionOrder || 0) > currentOrder
+      );
+
+    if (targetNext) {
+      // PREFETCH HIT: Next question already available! Present immediately
+      console.log(
+        "%c⏩ [SKIP PREFETCH HIT] Next question ready in buffer. Transitioning immediately:",
+        "background: #059669; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+        targetNext.id
+      );
+      state.setNextQuestion(null);
+      onAskQuestionRef.current(targetNext, true, true);
+
+      // Keep pipeline filled in background
+      requestNextQuestionRef.current();
+    } else {
+      // PREFETCH MISS: Next question not in buffer yet!
+      // Enter 'generating' (Sara is thinking) state and clear old question
+      console.log(
+        "%c⏳ [SKIP PREFETCH MISS] Next question not ready in buffer. Setting phase to 'generating' (سارة تفكر في السؤال القادم...)",
+        "background: #d97706; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+      );
+      state.setCurrentQuestion(null);
+      state.clearQuestionLiveText();
+      state.setPhase("generating");
+
+      // Force generation request to backend
+      requestNextQuestionRef.current({ forceGenerate: true });
+    }
+  }, [
+    abortRecognition,
+    clearListenTimer,
+    interviewId,
+    isCareerDiscovery,
+    languageRef,
+    setMicEnabled,
+    stopSpeaking,
+  ]);
 
   const handleFinishInterview = useCallback(async () => {
     if (useInterviewStore.getState().phase === "closing") return;
@@ -615,17 +786,8 @@ export function useInterviewFlow({
 
     toast.loading("Ending interview...");
 
-    const isTaskDefense =
-      typeof window !== "undefined" &&
-      sessionStorage.getItem("is_task_defense") === "true";
-    const defenseTaskId =
-      typeof window !== "undefined"
-        ? sessionStorage.getItem("defense_task_id")
-        : null;
-
-    const isDiscovery =
-      !isTaskDefense &&
-      Boolean(isCareerDiscovery || isCareerDiscoveryRef.current);
+    const modeInfo = detectInterviewMode();
+    const { isTaskDefense, isCareerDiscovery: isDiscovery, defenseTaskId } = modeInfo;
 
     const navigateToReport = (defenseResult?: any) => {
       stopGlobalMediaStream();
@@ -643,10 +805,7 @@ export function useInterviewFlow({
       }
 
       if (isTaskDefense) {
-        if (typeof window !== "undefined") {
-          sessionStorage.removeItem("is_task_defense");
-          sessionStorage.removeItem("defense_task_id");
-        }
+        clearTaskDefenseSession();
         const passed = defenseResult?.passed ?? true;
         const score = defenseResult?.score ?? "";
         toast.success(
@@ -655,19 +814,23 @@ export function useInterviewFlow({
             : "تم الانتهاء من المناقشة، يرجى مراجعة التقييم."
         );
         router.replace(
-          `/dashboard/tasks?defenseCompleted=true&passed=${passed}&defenseScore=${score}&taskId=${defenseTaskId || ""}`
+          getInterviewRedirectUrl(modeInfo, interviewId, {
+            defenseCompleted: true,
+            passed,
+            score,
+          })
         );
         return;
       }
 
       if (isDiscovery) {
         toast.success("Interview completed! Redirecting to your learning tasks...");
-        router.replace(`/dashboard/tasks?interviewId=${interviewId}`);
+        router.replace(getInterviewRedirectUrl(modeInfo, interviewId));
         return;
       }
 
       toast.success("Interview completed! Redirecting to report...");
-      router.replace(`/dashboard/interviewDetails?id=${interviewId}`);
+      router.replace(getInterviewRedirectUrl(modeInfo, interviewId));
     };
 
     try {
@@ -703,53 +866,57 @@ export function useInterviewFlow({
       navigateToReport();
     }
   }, [
-    abortRecognition,
     clearListenTimer,
-    emitEvent,
     flushViolations,
     interviewId,
-    liveConnected,
     router,
     setMicEnabled,
-    setReportLiveText,
     stopSpeaking,
     stopStream,
-    isCareerDiscovery,
+    abortRecognition,
   ]);
 
   handleFinishInterviewRef.current = handleFinishInterview;
 
-  // Typewriter effect for displaying the generated question smoothly
+  // Typewriter effect synchronized with AI speech
+  const currentQuestion = useInterviewStore((s) => s.currentQuestion);
+  const currentQuestionText = currentQuestion?.question;
+  const isAISpeaking = useInterviewStore((s) => s.isAISpeaking);
+  const [canStartTyping, setCanStartTyping] = useState<boolean>(false);
+
   useEffect(() => {
-    const currentQuestion = useInterviewStore.getState().currentQuestion;
-    if (!currentQuestion?.question) {
-      setDisplayedQuestion("");
-      setIsTyping(false);
+    if (!currentQuestion?.id) {
+      setCanStartTyping(false);
       return;
     }
-    setDisplayedQuestion("");
-    setIsTyping(true);
-    let i = 0;
-    const text = currentQuestion.question;
-    const speed = 40;
 
-    const interval = setInterval(() => {
-      setDisplayedQuestion(text.slice(0, i + 1));
-      i++;
-      if (i >= text.length) {
-        clearInterval(interval);
-        setIsTyping(false);
-        // If AI is not actively speaking sound and speechDone is still pending, trigger it
-        const state = useInterviewStore.getState();
-        if (!state.isAISpeaking && state.phase === "speaking" && speakDoneRef.current) {
-          const cb = speakDoneRef.current;
-          speakDoneRef.current = null;
-          cb();
-        }
+    if (isAISpeaking) {
+      setCanStartTyping(true);
+      return;
+    }
+
+    // Safety timeout: If audio does not start within 1200ms (e.g. muted audio or fallback), begin typing anyway
+    const timer = setTimeout(() => {
+      setCanStartTyping(true);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [currentQuestion?.id, isAISpeaking]);
+
+  const { displayedText: displayedQuestion, isTyping } = useTypewriter({
+    text: currentQuestionText,
+    speed: 40,
+    enabled: canStartTyping,
+    onComplete: () => {
+      // If AI is not actively speaking sound and speechDone is still pending, trigger it
+      const state = useInterviewStore.getState();
+      if (!state.isAISpeaking && state.phase === "speaking" && speakDoneRef.current) {
+        const cb = speakDoneRef.current;
+        speakDoneRef.current = null;
+        cb();
       }
-    }, speed);
-    return () => clearInterval(interval);
-  }, [useInterviewStore().currentQuestion?.question, speakDoneRef]);
+    },
+  });
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -761,12 +928,18 @@ export function useInterviewFlow({
   return {
     displayedQuestion,
     isTyping,
+    isGenerationLagging,
     onAskQuestion: useCallback(
       (q: QuestionItem, shouldSpeak: boolean, autoListen: boolean) =>
         onAskQuestionRef.current(q, shouldSpeak, autoListen),
       []
     ),
-    requestNextQuestion: useCallback(() => requestNextQuestionRef.current(), []),
+    requestNextQuestion: useCallback(
+      (options?: { forceGenerate?: boolean }) =>
+        requestNextQuestionRef.current(options),
+      []
+    ),
+    submitAnswer,
     submitAnswerWithText,
     replayQuestion,
     handleSubmitAnswer,

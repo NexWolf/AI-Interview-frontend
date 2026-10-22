@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useInterviewReportData } from "../../../hooks/useInterviewReportData";
 import { ReportSkeleton } from "../shared/ReportSkeleton";
 import { ReportHeader } from "./ReportHeader";
@@ -35,30 +35,21 @@ export const InterviewReportView: React.FC<InterviewReportViewProps> = ({
     overall,
   } = useInterviewReportData(interviewId);
 
-  if (isLoading || isGeneratingReport) {
+  // 1. Seamless loading & generation state: Display modern Skeleton immediately upon leaving room
+  if (isLoading || isGeneratingReport || !report) {
     return (
-      <div className="space-y-4">
-        {isGeneratingReport && (
-          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col items-center justify-center gap-3 text-center">
-            <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
-            <div>
-              <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
-                جاري تحليل إجاباتك وإنشاء التقرير المدعوم بالذكاء الاصطناعي...
-              </p>
-              <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-1">
-                الرجاء الانتظار، سيتم عرض التقرير فور جهوزه.
-              </p>
-            </div>
-          </div>
-        )}
-        <ReportSkeleton />
-      </div>
+      <ReportSkeleton
+        isGenerating={true}
+        title="جاري تحليل إجاباتك وإنشاء التقرير المدعوم بالذكاء الاصطناعي..."
+        subtitle="الرجاء الانتظار، نقوم بفحص مهاراتك الفنية وبناء التقرير التقييمي وخطة التحسين."
+      />
     );
   }
 
+  // 2. Fatal load or interview not found error
   if (isError || !interview) {
     return (
-      <div className="max-w-md mx-auto my-20 rounded-2xl border border-border bg-card/60 p-8 text-center">
+      <div className="max-w-md mx-auto my-20 rounded-2xl border border-border bg-card/60 p-8 text-center shadow-lg">
         <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto mb-3" />
         <h2 className="text-lg font-bold">Failed to load interview</h2>
         <p className="text-sm text-muted-foreground mt-2">
@@ -82,55 +73,44 @@ export const InterviewReportView: React.FC<InterviewReportViewProps> = ({
     );
   }
 
+  // 3. Complete Report Evaluation View
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
       {/* 1. Header Overview Card */}
       <ReportHeader
         interview={interview}
         answeredCount={answeredQuestions.length}
       />
 
-      {!report ? (
-        <div className="rounded-2xl border border-border bg-card/50 p-8 text-center space-y-3">
-          <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
-          <h2 className="font-bold text-lg">No report generated yet</h2>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            The AI report is generated when the interview is finished. If your interview
-            is still running, return to the interview room and end it to generate your
-            evaluation.
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* 2. Overall Score & Dimension Performance */}
-          <ReportScoreOverview
-            overall={overall}
-            currentLevel={report.currentLevel}
-            recommendedNextLevel={report.recommendedNextLevel}
-            dimensionScores={dimensionScores}
-          />
+      {/* 2. Overall Score & Dimension Performance */}
+      <ReportScoreOverview
+        overall={overall}
+        currentLevel={report.currentLevel}
+        recommendedNextLevel={report.recommendedNextLevel}
+        dimensionScores={dimensionScores}
+      />
 
-          {/* 3. Strengths & Improvement Areas */}
-          <ReportStrengthsWeaknesses
-            strengths={report.strengths}
-            weaknesses={report.weaknesses}
-          />
+      {/* 3. Strengths and Weaknesses */}
+      <ReportStrengthsWeaknesses
+        strengths={report.strengths}
+        weaknesses={report.weaknesses}
+      />
 
-          {/* 4. Personalized AI Improvement Plan */}
-          {report.improvementPlan && (
-            <ReportImprovementPlan plan={report.improvementPlan} />
-          )}
-
-          {/* 5. General Recommendations */}
-          <ReportRecommendations recommendations={recommendations} />
-
-          {/* 6. Skill-Level Breakdown */}
-          <ReportSkillsAssessment skills={interview.skills} />
-
-          {/* 7. Detailed Question-by-Question Analysis */}
-          <ReportQuestionsAnalysis questions={questionsWithEvaluation} />
-        </>
+      {/* 4. Improvement Plan */}
+      {report.improvementPlan && (
+        <ReportImprovementPlan plan={report.improvementPlan} />
       )}
+
+      {/* 5. Recommendations */}
+      <ReportRecommendations recommendations={recommendations} />
+
+      {/* 6. Skills Assessment */}
+      <ReportSkillsAssessment skills={interview.skills} />
+
+      {/* 5. Detailed Questions Analysis */}
+      <ReportQuestionsAnalysis
+        questions={questionsWithEvaluation}
+      />
     </div>
   );
 };

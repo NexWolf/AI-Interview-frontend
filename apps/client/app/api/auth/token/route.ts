@@ -27,6 +27,40 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
+// Single-flight in-memory deduplication map on Next.js server to prevent race-condition rotation failures
+const inFlightRefreshes = new Map<
+  string,
+  Promise<{ ok: boolean; status: number; data: any; setCookies: string[] }>
+>();
+
+async function executeBackendRefresh(refreshToken: string) {
+  let pending = inFlightRefreshes.get(refreshToken);
+  if (!pending) {
+    pending = fetch(`${API_URL}/api/v1/auth/refresh-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    })
+      .then(async (backendResponse) => {
+        const data = await backendResponse.json().catch(() => ({}));
+        const setCookies = backendResponse.headers.getSetCookie?.() || [];
+        return {
+          ok: backendResponse.ok,
+          status: backendResponse.status,
+          data,
+          setCookies,
+        };
+      })
+      .finally(() => {
+        // Clean up from memory once completed
+        inFlightRefreshes.delete(refreshToken);
+      });
+
+    inFlightRefreshes.set(refreshToken, pending);
+  }
+  return pending;
+}
+
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -44,24 +78,23 @@ export async function GET() {
     }
 
     // 3. AUTO-REFRESH PATH: Access token is missing or expired, but we have a refresh token.
-    console.log("[Token Route] Access token expired. Attempting silent refresh...");
-    
-    const backendResponse = await fetch(`${API_URL}/api/v1/auth/refresh-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
+    console.log("[Token Route] Access token expired. Attempting deduplicated refresh...");
 
-    // If backend rejects the refresh token, delete cookies and return 401
-    if (!backendResponse.ok) {
-      console.warn("[Token Route] Refresh token rejected by backend.");
+    const backendResult = await executeBackendRefresh(refreshToken);
+
+    // If backend rejects the refresh token (401 or 403), delete cookies.
+    // Invariant: NEVER delete cookies on transient server errors (500, 502, 503)
+    if (!backendResult.ok) {
+      console.warn("[Token Route] Refresh token rejected by backend:", backendResult.status);
       const response = NextResponse.json({ accessToken: null }, { status: 401 });
-      response.cookies.set("accessToken", "", { maxAge: 0, path: "/" });
-      response.cookies.set("refreshToken", "", { maxAge: 0, path: "/" });
+      if (backendResult.status === 401 || backendResult.status === 403) {
+        response.cookies.set("accessToken", "", { maxAge: 0, path: "/" });
+        response.cookies.set("refreshToken", "", { maxAge: 0, path: "/" });
+      }
       return response;
     }
 
-    const data = await backendResponse.json().catch(() => ({}));
+    const data = backendResult.data;
     let newAccessToken: string | null = data?.data?.accessToken || null;
     let newRefreshToken: string | null = data?.data?.refreshToken || null;
 
@@ -76,7 +109,7 @@ export async function GET() {
 
     // Parse any headers as fallback if not present in JSON
     try {
-      const setCookies = backendResponse.headers.getSetCookie?.() || [];
+      const setCookies = backendResult.setCookies || [];
       for (const cookie of setCookies) {
         const [cookiePair] = cookie.split(";");
         const separatorIndex = cookiePair.indexOf("=");

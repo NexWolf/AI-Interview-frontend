@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Brain, Bot, Zap, Cpu } from "lucide-react";
+import { Sparkles, Brain } from "lucide-react";
 
 interface SplashScreenProps {
   message?: string;
@@ -33,35 +33,17 @@ export function SplashScreen({
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-background text-foreground select-none">
-      {/* Dynamic Ambient Background Glows */}
+      {/* Dynamic Ambient Background Glows (GPU Accelerated & Isolated) */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* Top-center radial ambient glow */}
-        <motion.div
-          animate={{
-            scale: [1, 1.25, 1],
-            opacity: [0.35, 0.55, 0.35],
-          }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-gradient-to-b from-primary/30 via-accent/20 to-transparent blur-[120px]"
+        <div
+          className="animate-gentle-pulse absolute -top-32 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-gradient-to-b from-primary/30 via-accent/20 to-transparent blur-[100px] pointer-events-none"
         />
 
         {/* Bottom subtle ambient glow */}
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.25, 0.45, 0.25],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1,
-          }}
-          className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[480px] h-[480px] rounded-full bg-gradient-to-t from-primary/20 via-purple-600/15 to-transparent blur-[110px]"
+        <div
+          className="animate-gentle-pulse absolute -bottom-32 left-1/2 -translate-x-1/2 w-[480px] h-[480px] rounded-full bg-gradient-to-t from-primary/20 via-purple-600/15 to-transparent blur-[90px] pointer-events-none"
+          style={{ animationDelay: "2s" }}
         />
 
         {/* Subtle grid pattern for high-tech aesthetic */}
@@ -76,50 +58,26 @@ export function SplashScreen({
 
       {/* Main Content Box */}
       <div className="relative z-10 flex flex-col items-center max-w-md w-full px-6 text-center">
-        {/* Central Logo Container with Multi-Layer Glow */}
+        {/* Central Logo Container with Multi-Layer GPU Glow */}
         <div className="relative mb-8 flex items-center justify-center">
           {/* Outermost pulsing ring */}
-          <motion.div
-            animate={{
-              scale: [1, 1.45, 1],
-              opacity: [0.2, 0.5, 0.2],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="absolute w-36 h-36 rounded-full bg-primary/20 blur-xl"
+          <div
+            className="animate-gentle-pulse absolute w-36 h-36 rounded-full bg-primary/25 blur-xl pointer-events-none"
           />
 
-          {/* Rotating dashed accent orbit */}
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{
-              duration: 18,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-            className="absolute w-28 h-28 rounded-full border border-dashed border-primary/30 dark:border-primary/40 pointer-events-none"
+          {/* Rotating dashed accent orbit - Pure GPU Compositor Animation (Zero Main-Thread Drop) */}
+          <div
+            className="animate-spin-clockwise absolute w-28 h-28 rounded-full border border-dashed border-primary/40 dark:border-primary/50 pointer-events-none"
           />
 
-          {/* Inner reverse rotating subtle ring */}
-          <motion.div
-            animate={{ rotate: -360 }}
-            transition={{
-              duration: 24,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-            className="absolute w-24 h-24 rounded-full border border-dotted border-accent/40 dark:border-accent/30 pointer-events-none"
+          {/* Inner reverse rotating subtle ring - Pure GPU Compositor Animation */}
+          <div
+            className="animate-spin-counter absolute w-24 h-24 rounded-full border border-dotted border-accent/50 dark:border-accent/40 pointer-events-none"
           />
 
           {/* Premium Logo Shield */}
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="relative w-20 h-20 rounded-2xl p-[1.5px] bg-gradient-to-b from-primary via-accent to-purple-800 shadow-[0_0_35px_rgba(97,54,191,0.45)] dark:shadow-[0_0_45px_rgba(159,132,217,0.35)]"
+          <div
+            className="relative w-20 h-20 rounded-2xl p-[1.5px] bg-gradient-to-b from-primary via-accent to-purple-800 shadow-[0_0_35px_rgba(97,54,191,0.45)] dark:shadow-[0_0_45px_rgba(159,132,217,0.35)] transform-gpu"
           >
             <div className="w-full h-full rounded-[14px] bg-card/90 dark:bg-card/70 backdrop-blur-md flex items-center justify-center relative overflow-hidden border border-white/10">
               {/* Subtle internal shine */}
@@ -128,32 +86,18 @@ export function SplashScreen({
               {/* AI Brain / Sparkles Center Icon */}
               <div className="relative flex items-center justify-center text-primary">
                 <Brain className="w-9 h-9 drop-shadow-[0_2px_10px_rgba(97,54,191,0.5)] transition-transform" />
-                <motion.div
-                  animate={{
-                    scale: [0.8, 1.2, 0.8],
-                    opacity: [0.7, 1, 0.7],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute -top-1 -right-1 text-accent"
+                <div
+                  className="animate-pulse absolute -top-1 -right-1 text-accent"
                 >
                   <Sparkles className="w-4 h-4 fill-accent" />
-                </motion.div>
+                </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Brand Title */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="space-y-1.5"
-        >
+        <div className="space-y-1.5">
           <div className="flex items-center justify-center gap-2">
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent">
               {message}
@@ -162,29 +106,16 @@ export function SplashScreen({
           <p className="text-xs sm:text-sm text-muted-foreground font-medium">
             {subMessage || "Next-Generation Intelligent Practice Platform"}
           </p>
-        </motion.div>
+        </div>
 
-        {/* Futuristic Glowing Progress Bar */}
-        <motion.div
-          initial={{ scaleX: 0.8, opacity: 0 }}
-          animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-56 sm:w-64 mt-6"
-        >
+        {/* Futuristic Glowing Progress Bar - Hardware Accelerated Sweep */}
+        <div className="w-56 sm:w-64 mt-6">
           <div className="h-1.5 w-full bg-muted/60 dark:bg-muted/30 rounded-full overflow-hidden relative p-[1px] border border-border/50">
-            <motion.div
-              animate={{
-                x: ["-100%", "200%"],
-              }}
-              transition={{
-                duration: 1.6,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="w-1/2 h-full rounded-full bg-gradient-to-r from-transparent via-primary to-accent shadow-[0_0_12px_rgba(97,54,191,0.8)]"
+            <div
+              className="animate-progress-sweep w-1/2 h-full rounded-full bg-gradient-to-r from-transparent via-primary to-accent shadow-[0_0_12px_rgba(97,54,191,0.8)]"
             />
           </div>
-        </motion.div>
+        </div>
 
         {/* Dynamic Status Text with Smooth Fade Transition */}
         <div className="h-6 mt-4 flex items-center justify-center overflow-hidden">
@@ -205,10 +136,7 @@ export function SplashScreen({
 
         {/* Live System Indicator Pill */}
         {showStatusPill && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+          <div
             className="mt-8 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 border border-border/50 backdrop-blur-sm"
           >
             <span className="relative flex h-2 w-2">
@@ -218,7 +146,7 @@ export function SplashScreen({
             <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
               AI Models Online
             </span>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

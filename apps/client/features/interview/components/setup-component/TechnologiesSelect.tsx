@@ -1,65 +1,91 @@
-import { useMemo } from "react";
-import { useUserSkills } from "@/shared/hook/useUserSkills";
-import { useAllSkills } from "@/shared/hook/useAllSkills";
-import { useFormContext } from "react-hook-form";
+"use client";
 
-export const TecnologiesSelect = () => {
-  const { data: userSkills } = useUserSkills();
-  const { data: allSkills } = useAllSkills();
-  const { register } = useFormContext();
+import React from "react";
+import {
+  useTechnologiesSelect,
+  SelectedSkillsBox,
+  TechnologyDropdownSelect,
+  TechnologySuggestionsCard,
+  TechnologiesSkeleton,
+  TechnologiesErrorFallback,
+} from "./technologies";
 
-  const skillsList = useMemo(() => {
-    if (!allSkills || allSkills.length === 0) {
-      if (userSkills && userSkills.length > 0) {
-        return userSkills.map((item) => ({ id: item.skill.id, name: item.skill.name }));
-      }
-      return [];
-    }
+/**
+ * Onboarding-style Technologies selector for the Interview Setup Wizard.
+ * Refactored to adhere strictly to Clean Code & Best Practices:
+ * - Single Responsibility: Orchestrates modular subcomponents.
+ * - Separation of Concerns: Business & caching logic encapsulated in `useTechnologiesSelect`.
+ * - High cohesion, loose coupling, and maintainability.
+ */
+export const TechnologiesSelect: React.FC = () => {
+  const {
+    isAr,
+    isLoading,
+    isAllSkillsError,
+    refetchAllSkills,
+    userSkills,
+    allSkills,
+    selectedSkillsIds,
+    skillMap,
+    allSkillsList,
+    availableUserSkills,
+    availableGeneralSkills,
+    addSkill,
+    removeSkill,
+    clearAll,
+    errorMessage,
+  } = useTechnologiesSelect();
 
-    const userSkillIdSet = new Set((userSkills || []).map((us) => String(us.skill?.id || us.skillId)));
-    const active = allSkills.filter((s) => s.isActive !== false);
+  if (isLoading) {
+    return <TechnologiesSkeleton />;
+  }
 
-    return [...active].sort((a, b) => {
-      const aIsUser = userSkillIdSet.has(String(a.id));
-      const bIsUser = userSkillIdSet.has(String(b.id));
-      if (aIsUser && !bIsUser) return -1;
-      if (!aIsUser && bIsUser) return 1;
-      return (a.name || a.nameEn || "").localeCompare(b.name || b.nameEn || "");
-    });
-  }, [allSkills, userSkills]);
-
-  if (!skillsList || skillsList.length === 0) {
+  if (
+    isAllSkillsError &&
+    (!allSkills || allSkills.length === 0) &&
+    (!userSkills || userSkills.length === 0)
+  ) {
     return (
-      <div className="p-4 border border-yellow-500/30 bg-yellow-500/10 rounded-xl text-yellow-600 dark:text-yellow-400 text-sm">
-        Loading technologies...
-      </div>
+      <TechnologiesErrorFallback
+        isAr={isAr}
+        onRetry={() => refetchAllSkills()}
+      />
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {skillsList.map((skill) => {
-          return (
-            <label
-              key={skill.id}
-              className="group relative flex items-center gap-3 p-3.5 sm:p-4 rounded-xl border border-border bg-card/60 hover:bg-muted/50 transition-all duration-200 cursor-pointer select-none shadow-sm hover:shadow-md active:scale-[0.98] has-[:checked]:border-primary has-[:checked]:bg-primary/10 dark:has-[:checked]:bg-primary/15"
-            >
-              <input
-                type="checkbox"
-                value={skill.id}
-                {...register(`skillsIds`)}
-                className="h-4 w-4 rounded border-border text-primary accent-primary focus:ring-primary/30 cursor-pointer transition-all"
-              />
-              <span className="text-sm font-medium text-foreground group-has-[:checked]:text-primary group-has-[:checked]:font-semibold truncate transition-colors">
-                {skill.name}
-              </span>
-            </label>
-          );
-        })}
-      </div>
+    <div className="space-y-5 w-full">
+      {/* 1. Selected Skills Box */}
+      <SelectedSkillsBox
+        isAr={isAr}
+        selectedSkillsIds={selectedSkillsIds}
+        skillMap={skillMap}
+        onRemoveSkill={removeSkill}
+        onClearAll={clearAll}
+        errorMessage={errorMessage}
+      />
+
+      {/* 2. Dropdown Select Input */}
+      <TechnologyDropdownSelect
+        isAr={isAr}
+        selectedSkillsIds={selectedSkillsIds}
+        userSkills={userSkills}
+        allSkillsList={allSkillsList}
+        skillMap={skillMap}
+        onAddSkill={addSkill}
+      />
+
+      {/* 3. Quick Suggestions Card */}
+      <TechnologySuggestionsCard
+        isAr={isAr}
+        availableUserSkills={availableUserSkills}
+        availableGeneralSkills={availableGeneralSkills}
+        onAddSkill={addSkill}
+      />
     </div>
   );
 };
 
-export default TecnologiesSelect;
+// Retain legacy export for backward compatibility
+export const TecnologiesSelect = TechnologiesSelect;
+export default TechnologiesSelect;

@@ -65,7 +65,7 @@ function isTokenExpired(token: string): boolean {
  * Deduplicated token fetcher to prevent race conditions during cold start.
  * If multiple parallel requests fire while token is null/expired, only ONE network call to /api/auth/token is made.
  */
-async function getValidAccessToken(): Promise<string | null> {
+export async function getValidAccessToken(): Promise<string | null> {
   // Fast path: cached and still valid
   if (cachedAccessToken && !isTokenExpired(cachedAccessToken)) {
     return cachedAccessToken;

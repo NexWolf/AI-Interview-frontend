@@ -1,80 +1,113 @@
 import React from 'react';
-import { Volume2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { useTypewriter } from '../../hooks/useTypewriter';
+import { useInterviewStore } from '../../store/useInterviewStore';
 
 interface QuestionDisplayCardProps {
   currentQuestion: any;
-  questionList: any[];
-  replayQuestion: () => void;
-  isGeneratingQuestion: boolean;
-  questionLiveText: string;
-  displayedQuestion: string;
-  isTyping: boolean;
+  isGeneratingQuestion?: boolean;
+  questionLiveText?: string;
+  displayedQuestion?: string;
+  isTyping?: boolean;
   isCareerDiscovery?: boolean;
+  isGenerationLagging?: boolean;
+  onRetryQuestion?: () => void;
+  onSkipQuestion?: () => void;
+  onTypingComplete?: () => void;
 }
 
+/**
+ * Borderless Cinematic Question Display (Subtitles Style).
+ * Displays AI speech/question text with world-class typography and zero box borders.
+ */
 export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
   currentQuestion,
-  questionList,
-  replayQuestion,
   isGeneratingQuestion,
   questionLiveText,
   displayedQuestion,
   isTyping,
   isCareerDiscovery = false,
+  isGenerationLagging,
+  onRetryQuestion,
+  onSkipQuestion,
+  onTypingComplete,
 }) => {
+  const storeQuestionLiveText = useInterviewStore((s) => s.questionLiveText);
+  const storeIsLagging = useInterviewStore((s) => s.isGenerationLagging);
+  const storeIsGenerating = useInterviewStore((s) => s.isGeneratingQuestion);
+
+  const activeQuestionLiveText = questionLiveText !== undefined ? questionLiveText : storeQuestionLiveText;
+  const activeIsGenerating = isGeneratingQuestion !== undefined ? isGeneratingQuestion : storeIsGenerating;
+  const activeIsLagging = isGenerationLagging !== undefined ? isGenerationLagging : storeIsLagging;
+
+  // Typewriter effect (fallback only if displayedQuestion is not supplied by parent flow)
+  const typewriter = useTypewriter({
+    text: displayedQuestion === undefined ? currentQuestion?.question : null,
+    speed: 35,
+    enabled: displayedQuestion === undefined,
+    onComplete: onTypingComplete,
+  });
+
+  const activeDisplayedQuestion = displayedQuestion !== undefined ? displayedQuestion : typewriter.displayedText;
+  const activeIsTyping = isTyping !== undefined ? isTyping : typewriter.isTyping;
+
   return (
-    <div className="relative bg-card border border-border rounded-2xl p-3.5 sm:p-4 shadow-lg space-y-3 flex-1 flex flex-col justify-between min-h-0 text-foreground overflow-hidden">
-      {/* Subtle glow effect behind the card */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
-      <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
-            Question {currentQuestion?.questionOrder || questionList.length || 1}
-          </span>
-          {currentQuestion?.keyTopics && currentQuestion.keyTopics.length > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5">
-              {currentQuestion.keyTopics.map((topic: string, i: number) => (
-                <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground border border-border/50">
-                  {topic}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={replayQuestion}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-primary/10 text-xs font-medium text-primary transition-all duration-200 cursor-pointer"
-        >
-          <Volume2 className="w-3.5 h-3.5" />
-          <span>Listen Again</span>
-        </button>
-      </div>
-
+    <div className="w-full max-w-3xl mx-auto px-4 py-2 flex flex-col items-center justify-center text-center">
+      {/* Career Discovery Reaction (if present) */}
       {isCareerDiscovery && currentQuestion?.reaction && (
-        <div className="flex items-center gap-2 p-2 px-3 rounded-xl bg-primary/10 border border-primary/20 text-xs sm:text-sm text-primary font-medium animate-in fade-in duration-200">
-          <span className="text-sm">💬</span>
-          <span className="leading-snug">{currentQuestion.reaction}</span>
+        <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold animate-in fade-in duration-200">
+          <span>💬</span>
+          <span>{currentQuestion.reaction}</span>
         </div>
       )}
 
-      <div className="flex-1 min-h-[90px] max-h-[150px] sm:max-h-[170px] overflow-y-auto flex items-start relative z-10 pr-1">
-        {isGeneratingQuestion && !questionLiveText ? (
-          <div className="flex items-center gap-3 text-muted-foreground py-2 animate-pulse">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <span className="text-sm font-medium">Sara is preparing your next question...</span>
+      {/* Main Question Text (Borderless Cinematic Subtitle) */}
+      <div className="min-h-[60px] max-h-[140px] sm:max-h-[170px] overflow-y-auto flex items-center justify-center w-full px-2">
+        {activeIsGenerating && !activeQuestionLiveText ? (
+          <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse py-2">
+            <div className="flex items-center gap-2.5">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span className="text-sm font-medium">سارة تفكر في السؤال القادم...</span>
+            </div>
+
+            {/* Lagging Fallback Pill */}
+            {activeIsLagging && (
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs animate-in fade-in">
+                <span>تأخر الرد من السيرفر:</span>
+                {onRetryQuestion && (
+                  <button
+                    type="button"
+                    onClick={onRetryQuestion}
+                    className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer text-xs transition"
+                  >
+                    إعادة المحاولة
+                  </button>
+                )}
+                {onSkipQuestion && (
+                  <button
+                    type="button"
+                    onClick={onSkipQuestion}
+                    className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border/50 cursor-pointer text-xs transition"
+                  >
+                    تخطي
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
-          <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed tracking-wide">
-            {isGeneratingQuestion ? (
+          <p className="text-base sm:text-lg md:text-xl font-medium text-foreground/95 leading-relaxed tracking-wide select-none">
+            {activeIsGenerating ? (
               <>
-                {questionLiveText}
+                {activeQuestionLiveText}
                 <span className="inline-block w-1.5 h-4 ml-1 bg-primary animate-pulse align-middle" />
               </>
             ) : (
               <>
-                {displayedQuestion || "Waiting for Sara to start the conversation..."}
-                {isTyping && <span className="inline-block w-1.5 h-4 ml-1 bg-primary animate-pulse align-middle" />}
+                {activeDisplayedQuestion || "في انتظار بدء المحادثة مع سارة..."}
+                {activeIsTyping && (
+                  <span className="inline-block w-1.5 h-4 ml-1 bg-primary animate-pulse align-middle" />
+                )}
               </>
             )}
           </p>

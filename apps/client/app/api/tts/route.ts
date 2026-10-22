@@ -11,15 +11,33 @@ function sanitizeText(text: string): string {
 }
 
 function resolveVoice(text: string, requestedVoice?: string | null): string {
-  if (requestedVoice && requestedVoice.trim()) {
+  const isArabic = /[\u0600-\u06FF]/.test(text);
+
+  // If text is Arabic, always resolve to high-quality studio Arabic neural voice
+  // (matches backend ar-SA-ZariyahNeural)
+  if (isArabic) {
+    if (requestedVoice && requestedVoice.startsWith("ar-")) {
+      return requestedVoice;
+    }
+    return "ar-SA-ZariyahNeural";
+  }
+
+  // If already a valid Edge neural voice format (e.g. "en-US-JennyNeural")
+  if (requestedVoice && requestedVoice.includes("-")) {
     return requestedVoice.trim();
   }
 
-  // Detect Arabic characters
-  const isArabic = /[\u0600-\u06FF]/.test(text);
-  if (isArabic) {
-    // High quality natural Arabic female voice (Salma) or Zariyah
-    return "ar-EG-SalmaNeural";
+  // Persona name mapping to Edge TTS neural voices
+  const personaToEdgeVoice: Record<string, string> = {
+    Kore: "en-US-JennyNeural",
+    Aoede: "en-US-AriaNeural",
+    Charon: "en-US-GuyNeural",
+    Puck: "en-US-ChristopherNeural",
+    Fenrir: "en-US-EricNeural",
+  };
+
+  if (requestedVoice && personaToEdgeVoice[requestedVoice]) {
+    return personaToEdgeVoice[requestedVoice];
   }
 
   // Default English female voice
@@ -78,7 +96,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/tts
 // Body: { text: string, voice?: string }
-// Returns: { success: true, audioBase64: string, mimeType: "audio/mp3", voice: string }
+// Returns: { success: true, audioBase64: string, mimeType: "audio/mpeg", voice: string }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -98,7 +116,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       audioBase64: buffer.toString("base64"),
-      mimeType: "audio/mp3",
+      mimeType: "audio/mpeg",
       voice: selectedVoice,
     });
   } catch (error: any) {

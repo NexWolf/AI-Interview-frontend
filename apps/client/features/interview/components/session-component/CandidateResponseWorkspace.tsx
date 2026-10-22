@@ -1,73 +1,80 @@
-import React from 'react';
-import { MicOff, AlertTriangle, Loader2, SkipForward, Send, Clock } from 'lucide-react';
-import { useInterviewStore } from '../../store/useInterviewStore';
-import { cn } from '@/shared/lib/utils';
+import React from "react";
+import { Clock } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
+import { useInterviewStore } from "../../store/useInterviewStore";
+import {
+  RadialMicCountdown,
+  CareerDiscoveryOptions,
+  WorkspaceErrorBanner,
+  WorkspaceActionBar,
+} from "./workspace";
 
-interface CandidateResponseWorkspaceProps {
-  isListening: boolean;
-  isSubmittingAnswer: boolean;
+export interface CandidateResponseWorkspaceProps {
   toggleListening: () => void;
-  answerText: string;
-  setAnswer: (val: string) => void;
-  submissionError: string | null;
   handleSubmitAnswer: () => void;
   handleSkipQuestion: () => void;
-  isGeneratingQuestion: boolean;
   isCareerDiscovery?: boolean;
+  currentVolume?: number;
+  // Optional overrides (for testing, storybook, or controlled mode)
+  isListening?: boolean;
+  isSubmittingAnswer?: boolean;
+  answerText?: string;
+  setAnswer?: (val: string) => void;
+  submissionError?: string | null;
+  isGeneratingQuestion?: boolean;
   currentQuestion?: any;
 }
 
+/**
+ * CandidateResponseWorkspace
+ * Clean orchestrator component adhering to Single Responsibility and Separation of Concerns.
+ * Consumes Zustand selectors directly for optimal rendering performance (preventing parent re-renders).
+ * Sub-responsibilities are delegated to dedicated workspace components:
+ * - RadialMicCountdown: Animated SVG countdown around the mic
+ * - CareerDiscoveryOptions: Multiple-choice selector with answer prefixing
+ * - WorkspaceErrorBanner: Failure recovery & retry banner
+ * - WorkspaceActionBar: Skip, Word counter, and Submit button
+ */
 export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProps> = ({
-  isListening,
-  isSubmittingAnswer,
   toggleListening,
-  answerText,
-  setAnswer,
-  submissionError,
   handleSubmitAnswer,
   handleSkipQuestion,
-  isGeneratingQuestion,
   isCareerDiscovery = false,
-  currentQuestion,
+  currentVolume = 0,
+  isListening: propIsListening,
+  isSubmittingAnswer: propIsSubmittingAnswer,
+  answerText: propAnswerText,
+  setAnswer: propSetAnswer,
+  submissionError: propSubmissionError,
+  isGeneratingQuestion: propIsGeneratingQuestion,
+  currentQuestion: propCurrentQuestion,
 }) => {
-  const autoSubmitCountdown = useInterviewStore(state => state.autoSubmitCountdown);
+  // Fine-grained Zustand selectors to guarantee surgical re-renders
+  const storeAnswerText = useInterviewStore((state) => state.answerText);
+  const storeSetAnswerText = useInterviewStore((state) => state.setAnswerText);
+  const storeIsListening = useInterviewStore((state) => state.isListening);
+  const storeIsSubmittingAnswer = useInterviewStore((state) => state.isSubmittingAnswer);
+  const storeIsGeneratingQuestion = useInterviewStore((state) => state.isGeneratingQuestion);
+  const storeSubmissionError = useInterviewStore((state) => state.submissionError);
+  const autoSubmitCountdown = useInterviewStore((state) => state.autoSubmitCountdown);
+  const storeCurrentQuestion = useInterviewStore((state) => state.currentQuestion);
+
+  // Allow optional props to override store (useful for unit tests / previews)
+  const answerText = propAnswerText !== undefined ? propAnswerText : storeAnswerText;
+  const setAnswer = propSetAnswer || storeSetAnswerText;
+  const isListening = propIsListening !== undefined ? propIsListening : storeIsListening;
+  const isSubmittingAnswer = propIsSubmittingAnswer !== undefined ? propIsSubmittingAnswer : storeIsSubmittingAnswer;
+  const isGeneratingQuestion = propIsGeneratingQuestion !== undefined ? propIsGeneratingQuestion : storeIsGeneratingQuestion;
+  const submissionError = propSubmissionError !== undefined ? propSubmissionError : storeSubmissionError;
+  const currentQuestion = propCurrentQuestion !== undefined ? propCurrentQuestion : storeCurrentQuestion;
+
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
   const trimmed = answerText.trim();
   const hasText = trimmed.length > 0;
   const wordCount = hasText ? trimmed.split(/\s+/).filter(Boolean).length : 0;
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  // Sync selectedOptionId when question or answerText changes
-  const [selectedOptionId, setSelectedOptionId] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (currentQuestion?.options && answerText) {
-      const match = currentQuestion.options.find((opt: any) =>
-        answerText.startsWith(`${opt.id}:`) ||
-        answerText.startsWith(`${opt.id} -`) ||
-        answerText.startsWith(`${opt.id})`)
-      );
-      setSelectedOptionId(match ? match.id : null);
-    } else {
-      setSelectedOptionId(null);
-    }
-  }, [currentQuestion?.id, answerText]);
-
-  const handleSelectOption = (optId: string, optLabel: string) => {
-    setSelectedOptionId(optId);
-
-    // Extract any existing free text note after the option prefix if present
-    let extraNotes = "";
-    if (answerText) {
-      const stripped = answerText.replace(/^[A-Da-d]:[^\-\n]*(- )?/, "").trim();
-      if (stripped && !currentQuestion?.options?.some((o: any) => o.label === stripped)) {
-        extraNotes = ` - ${stripped}`;
-      }
-    }
-
-    const newAnswer = `${optId}: ${optLabel}${extraNotes}`;
-    setAnswer(newAnswer);
-  };
-
+  // Auto-scroll textarea as live speech transcription streams in
   React.useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
@@ -75,197 +82,145 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
   }, [answerText]);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-3.5 sm:p-4 shadow-lg space-y-3 flex-1 flex flex-col justify-between min-h-0">
+    <div className="bg-card/90 backdrop-blur-md border border-border/80 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3 w-full flex flex-col justify-between min-h-0">
+      {/* Top Status Header */}
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-card-foreground uppercase tracking-wider flex items-center gap-2">
-          <span>Your Answer</span>
-          {isListening && (
+          <span>إجابتك (Your Answer)</span>
+          {isListening && autoSubmitCountdown === null && (
             <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] flex items-center gap-1 animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              Listening - auto-submits when you stop speaking
+              المايك يستمع لصوتك
             </span>
           )}
           {isSubmittingAnswer && (
             <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] flex items-center gap-1 animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Answer submitted - Sara is thinking...
+              تم إرسال الإجابة..
             </span>
           )}
           {autoSubmitCountdown !== null && (
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] flex items-center gap-1 animate-pulse ml-2 font-bold shadow-sm shadow-amber-500/20">
-              <Clock className="w-3 h-3" />
-              Auto-submitting in {autoSubmitCountdown}...
+            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-400 text-xs flex items-center gap-1.5 animate-pulse font-bold shadow-sm shadow-amber-500/20">
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <span>إرسال تلقائي خلال {autoSubmitCountdown} ثوانٍ...</span>
             </span>
           )}
         </label>
 
-        {/* Voice visualizer (automated) */}
-        {isListening ? (
-          <div
-            onClick={toggleListening}
-            className="flex items-center gap-1 h-6 px-4 bg-red-500/10 rounded-lg border border-red-500/20 cursor-pointer hover:bg-red-500/20 transition"
-            title="جاري الاستماع... (انقر للإيقاف والإرسال يدوياً)"
-          >
-            <div className="w-1 bg-red-500 h-2/6 animate-[bounce_1s_infinite_0ms]" />
-            <div className="w-1 bg-red-500 h-4/6 animate-[bounce_1s_infinite_200ms]" />
-            <div className="w-1 bg-red-500 h-full animate-[bounce_1s_infinite_400ms]" />
-            <div className="w-1 bg-red-500 h-3/6 animate-[bounce_1s_infinite_600ms]" />
-            <div className="w-1 bg-red-500 h-5/6 animate-[bounce_1s_infinite_800ms]" />
-            <div className="w-1 bg-red-500 h-2/6 animate-[bounce_1s_infinite_100ms]" />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={toggleListening}
-            disabled={isGeneratingQuestion || isSubmittingAnswer}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border-border cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
-            title="الميكروفون مغلق (انقر للتشغيل يدوياً)"
-          >
-            <MicOff className="w-3.5 h-3.5" />
-            <span>الميكروفون مغلق</span>
-          </button>
-        )}
-      </div>
-
-      {/* Career Discovery Options (ONLY rendered when isCareerDiscovery === true and options exist) */}
-      {isCareerDiscovery && currentQuestion?.options && currentQuestion.options.length > 0 && (
-        <div className="space-y-2 py-1">
-          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span className="flex items-center gap-1.5 text-primary">
-              <span>🎯 اختر الخيار الأنسب لك:</span>
-            </span>
-            {selectedOptionId && (
-              <span className="text-[11px] text-primary/80 font-medium">
-                الخيار المحدد ({selectedOptionId})
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[140px] sm:max-h-[170px] overflow-y-auto pr-1">
-            {currentQuestion.options.map((opt: any) => {
-              const isSelected = selectedOptionId === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => handleSelectOption(opt.id, opt.label)}
-                  disabled={isSubmittingAnswer || isGeneratingQuestion}
-                  className={cn(
-                    "flex items-start gap-2.5 p-2.5 rounded-xl border text-right transition-all cursor-pointer text-xs leading-relaxed disabled:opacity-60 disabled:cursor-not-allowed",
-                    isSelected
-                      ? "bg-primary/15 border-primary text-foreground shadow-sm ring-1 ring-primary/40 font-medium"
-                      : "bg-muted/40 hover:bg-muted/80 border-border/60 text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex items-center justify-center w-5 h-5 rounded-lg text-[11px] font-bold shrink-0 mt-0.5",
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background border border-border text-muted-foreground"
-                    )}
-                  >
-                    {opt.id}
-                  </span>
-                  <span className="flex-1">{opt.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {currentQuestion.freeTextPrompt && (
-            <p className="text-[11px] text-muted-foreground/90 flex items-center gap-1 pt-0.5">
-              <span>💡</span>
-              <span>{currentQuestion.freeTextPrompt}</span>
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Answer Textarea with internal scroll and responsive bounded height */}
-      <textarea
-        ref={textareaRef}
-        value={answerText}
-        onChange={(e) => setAnswer(e.target.value)}
-        placeholder={
-          isCareerDiscovery
-            ? currentQuestion?.freeTextPrompt || "تحدث بالميكروفون أو اكتب تفاصيل إضافية هنا..."
-            : "Speak using the microphone or type your detailed response here..."
-        }
-        className="w-full flex-1 min-h-[90px] max-h-[130px] sm:max-h-[145px] overflow-y-auto p-3.5 rounded-xl border border-input bg-background/70 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none placeholder:text-muted-foreground leading-relaxed"
-      />
-
-      {/* Submission Error Banner & Retry Button */}
-      {submissionError && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>تعذر إرسال الإجابة بسبب انقطاع الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة: ({submissionError})</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleSubmitAnswer}
-            disabled={isSubmittingAnswer}
-            className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-primary-foreground font-bold transition cursor-pointer flex items-center gap-1.5 self-end sm:self-auto shrink-0"
-          >
-            {isSubmittingAnswer ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-            <span>إعادة المحاولة (Retry)</span>
-          </button>
-        </div>
-      )}
-
-      {/* Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <button
-          type="button"
-          onClick={handleSkipQuestion}
-          disabled={isGeneratingQuestion || isSubmittingAnswer}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted border border-border/80 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <SkipForward className="w-3.5 h-3.5" />
-          <span>تخطي السؤال</span>
-        </button>
-
+        {/* Radial Countdown Mic & Voice Activity Waves */}
         <div className="flex items-center gap-3">
-          {hasText && (
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-lg bg-muted/60 border border-border/40">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>
-                {wordCount} {wordCount === 1 ? "كلمة" : "كلمات"}
-              </span>
+          {isListening && autoSubmitCountdown === null && (
+            <div
+              className="hidden sm:flex items-center gap-1 h-6 px-3 bg-red-500/10 rounded-lg border border-red-500/20"
+              title="موجات التقاط الصوت الحية"
+            >
+              <div className="w-0.5 bg-red-500 h-2/6 animate-[bounce_0.8s_infinite_0ms]" />
+              <div className="w-0.5 bg-red-500 h-4/6 animate-[bounce_0.8s_infinite_150ms]" />
+              <div className="w-0.5 bg-red-500 h-full animate-[bounce_0.8s_infinite_300ms]" />
+              <div className="w-0.5 bg-red-500 h-3/6 animate-[bounce_0.8s_infinite_450ms]" />
+              <div className="w-0.5 bg-red-500 h-5/6 animate-[bounce_0.8s_infinite_600ms]" />
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={handleSubmitAnswer}
-            disabled={isSubmittingAnswer || isGeneratingQuestion || !hasText}
-            className={cn(
-              "group relative inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 select-none shadow-md",
-              hasText && !isSubmittingAnswer && !isGeneratingQuestion
-                ? "bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/95 hover:to-indigo-500 text-primary-foreground shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 active:scale-[0.98] cursor-pointer"
-                : "bg-muted text-muted-foreground border border-border/60 opacity-60 cursor-not-allowed shadow-none"
-            )}
-            title={
-              !hasText
-                ? "قم بالتحدث أو كتابة الإجابة أولاً لتتمكن من الإرسال"
-                : "إرسال الإجابة فوراً"
-            }
-          >
-            {isSubmittingAnswer ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-foreground" />
-                <span>جاري إرسال الإجابة...</span>
-              </>
-            ) : (
-              <>
-                <span>إرسال الإجابة</span>
-                <Send className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:group-hover:-translate-x-0.5" />
-              </>
-            )}
-          </button>
+          {/* Solution 2: Circular Mic with SVG Radial Countdown */}
+          <RadialMicCountdown
+            countdown={autoSubmitCountdown}
+            isListening={isListening}
+            onToggle={toggleListening}
+            disabled={isGeneratingQuestion || isSubmittingAnswer}
+          />
         </div>
       </div>
+
+      {/* Career Discovery Options (if present) */}
+      {isCareerDiscovery && currentQuestion?.options && currentQuestion.options.length > 0 && (
+        <CareerDiscoveryOptions
+          options={currentQuestion.options}
+          answerText={answerText}
+          onSelectOption={setAnswer}
+          disabled={isSubmittingAnswer || isGeneratingQuestion}
+          freeTextPrompt={currentQuestion.freeTextPrompt}
+        />
+      )}
+
+      {/* Audio Visualizer for Standard Interview (or Textarea for Career Discovery) */}
+      {!isCareerDiscovery ? (
+        <div className="w-full min-h-[82px] py-3.5 px-4 rounded-xl border border-primary/20 bg-background/50 backdrop-blur flex flex-col justify-center items-center gap-2.5 transition-all">
+          <div className="flex items-center gap-2 text-center">
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full",
+                autoSubmitCountdown !== null
+                  ? "bg-amber-400 animate-ping"
+                  : isListening
+                  ? "bg-red-500 animate-pulse"
+                  : "bg-muted-foreground/40"
+              )}
+            />
+            <span className="text-xs sm:text-sm font-medium text-foreground">
+              {autoSubmitCountdown !== null
+                ? `تم رصد التوقف عن الكلام — سيتم إرسال صوتك تلقائياً خلال ${autoSubmitCountdown} ثوانٍ`
+                : isListening
+                ? "جاري تسجيل صوتك بجودة عالية... تحدث بإجابتك بوضوح"
+                : "الميكروفون جاهز — اضغط على زر المايك للتسجيل أو انتظر السؤال"}
+            </span>
+          </div>
+
+          {/* Dynamic Voice Activity Waves */}
+          {isListening && (
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center justify-center gap-1.5 h-6">
+                {[35, 65, 100, 50, 90, 40, 80, 55, 95, 60, 30, 75].map((h, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "w-1 rounded-full transition-all duration-150",
+                      autoSubmitCountdown !== null
+                        ? "bg-amber-400/70 h-2"
+                        : "bg-gradient-to-t from-primary/70 to-primary animate-[bounce_0.8s_ease-in-out_infinite]"
+                    )}
+                    style={{
+                      height: autoSubmitCountdown !== null ? "25%" : `${Math.max(20, Math.min(100, currentVolume ? currentVolume * 1.5 : h))}%`,
+                      animationDelay: `${i * 65}ms`,
+                    }}
+                  />
+                ))}
+              </div>
+              {currentVolume > 0 && autoSubmitCountdown === null && (
+                <span className="text-[10px] text-muted-foreground/60 font-mono select-none">
+                  التقاط الصوت: {currentVolume}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <textarea
+          ref={textareaRef}
+          value={answerText}
+          onChange={(e) => setAnswer(e.target.value)}
+          placeholder={currentQuestion?.freeTextPrompt || "تحدث بالميكروفون أو اكتب تفاصيل إضافية هنا..."}
+          className="w-full min-h-[80px] max-h-[110px] sm:max-h-[125px] overflow-y-auto p-3 rounded-xl border border-input bg-background/60 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none placeholder:text-muted-foreground/70 leading-relaxed"
+        />
+      )}
+
+      {/* Submission Error Banner & Retry Button */}
+      <WorkspaceErrorBanner
+        error={submissionError}
+        onRetry={handleSubmitAnswer}
+        isSubmitting={isSubmittingAnswer}
+      />
+
+      {/* Action Bar */}
+      <WorkspaceActionBar
+        onSkip={handleSkipQuestion}
+        onSubmit={handleSubmitAnswer}
+        isSubmitting={isSubmittingAnswer}
+        isGenerating={isGeneratingQuestion}
+        hasText={hasText}
+        wordCount={wordCount}
+        isListening={isListening}
+      />
     </div>
   );
 };

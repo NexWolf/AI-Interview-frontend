@@ -1,76 +1,71 @@
 "use client";
 
-import { useMediaStream } from "@/shared/components/provider/MediaStermProvider";
-import {
-  Check,
-  Video,
-  VideoOff,
-  ShieldCheck,
-  AlertTriangle,
-  Users,
-  EyeOff,
-} from "lucide-react";
-import { useEffect, useRef } from "react";
+import React from "react";
+import { Check, Video, RotateCcw } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
+import { useCameraPreview } from "@/features/interview/hooks/useCameraPreview";
 import {
   useCameraProctoring,
   CameraViolationEvent,
 } from "@/features/interview/hooks/useCameraProctoring";
+import {
+  CameraRoomFeed,
+  CameraActivationOverlay,
+  CameraPausedWarning,
+  CameraFloatingControls,
+} from "./camera";
 
-type CameraProps = {
+export type ProctoringStatus = {
+  faceDetected: boolean;
+  multipleFaces: boolean;
+  isLookingAway: boolean;
+  statusMessage: string;
+  hasViolation: boolean;
+};
+
+export type CameraProps = {
   onReady?: (value: boolean) => void;
   isRoomInterview?: boolean;
   onCameraViolation?: (violation: CameraViolationEvent) => void;
+  onProctoringStatusChange?: (status: ProctoringStatus) => void;
 };
 
-const CameraPreview = ({
+/**
+ * Main Camera Preview Component for Interview Preparation and Proctoring.
+ * Clean, declarative presenter: Logic is cleanly abstracted inside `useCameraPreview`.
+ */
+export const CameraPreview: React.FC<CameraProps> = ({
   onReady,
   isRoomInterview = false,
   onCameraViolation,
-}: CameraProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const { stream, videoStatus, ensureStreamActive } = useMediaStream();
+  onProctoringStatusChange,
+}) => {
+  const {
+    videoRef,
+    isAr,
+    isRequesting,
+    isVideoMuted,
+    isAudioMuted,
+    hasLiveVideoTrack,
+    cameraReady,
+    cameraError,
+    handleToggleVideo,
+    handleToggleAudio,
+    handleActivateDevices,
+  } = useCameraPreview({ onReady });
 
-  // Auto-acquire stream if idle
-  useEffect(() => {
-    if (videoStatus === "idle") {
-      ensureStreamActive().catch((err) => {
-        console.warn("Failed to activate camera stream:", err);
-      });
-    }
-  }, [videoStatus, ensureStreamActive]);
+  const onCameraViolationRef = React.useRef(onCameraViolation);
+  onCameraViolationRef.current = onCameraViolation;
 
-  const hasLiveVideoTrack = Boolean(
-    stream && stream.getVideoTracks().some((t) => t.readyState === "live" && t.enabled)
-  );
-  const cameraReady = (videoStatus === "ready" || hasLiveVideoTrack) && videoStatus !== "error";
-  const cameraError = videoStatus === "error";
+  const onProctoringStatusChangeRef = React.useRef(onProctoringStatusChange);
+  onProctoringStatusChangeRef.current = onProctoringStatusChange;
 
-  // Bind stream to video element
-  useEffect(() => {
-    const videoEl = videoRef.current;
-    if (!videoEl || !stream) return;
+  const lastStatusRef = React.useRef<{ hasViolation: boolean; statusMessage: string }>({
+    hasViolation: false,
+    statusMessage: "",
+  });
 
-    if (videoEl.srcObject !== stream) {
-      videoEl.srcObject = stream;
-    }
-
-    const playPromise = videoEl.play();
-    if (playPromise !== undefined) {
-      playPromise.catch((err) => {
-        if (err.name !== "AbortError") {
-          console.warn("Camera video play caught:", err);
-        }
-      });
-    }
-  }, [stream, cameraReady]);
-
-  useEffect(() => {
-    if (onReady) {
-      onReady(cameraReady);
-    }
-  }, [cameraReady, onReady]);
-
-  // Real-time camera proctoring
+  // Real-time camera proctoring (only active when inside the actual interview room)
   const {
     faceDetected,
     multipleFaces,
@@ -80,87 +75,48 @@ const CameraPreview = ({
     videoRef,
     isEnabled: isRoomInterview && cameraReady,
     onViolation: (v) => {
-      onCameraViolation?.(v);
+      onCameraViolationRef.current?.(v);
     },
   });
 
+  // Notify parent of proctoring status changes for top bar display (only on meaningful change)
+  React.useEffect(() => {
+    if (!isRoomInterview || !onProctoringStatusChangeRef.current) return;
+
+    const hasViolation = !faceDetected || multipleFaces || isLookingAway;
+    const msg = statusMessage || "";
+
+    if (
+      lastStatusRef.current.hasViolation !== hasViolation ||
+      lastStatusRef.current.statusMessage !== msg
+    ) {
+      lastStatusRef.current = { hasViolation, statusMessage: msg };
+      onProctoringStatusChangeRef.current({
+        faceDetected,
+        multipleFaces,
+        isLookingAway,
+        statusMessage,
+        hasViolation,
+      });
+    }
+  }, [faceDetected, multipleFaces, isLookingAway, statusMessage, isRoomInterview]);
+
+  // 1. Room Interview View (Proctoring Feed)
   if (isRoomInterview) {
-    const hasVisualViolation = !faceDetected || multipleFaces || isLookingAway;
-
     return (
-      <div
-        className={`relative w-full h-full bg-slate-900 flex flex-col items-center justify-center transition-all duration-300 ${
-          hasVisualViolation
-            ? !faceDetected || multipleFaces
-              ? "ring-4 ring-inset ring-red-500/80 shadow-[inset_0_0_50px_rgba(239,68,68,0.3)]"
-              : "ring-4 ring-inset ring-amber-500/80 shadow-[inset_0_0_50px_rgba(245,158,11,0.3)]"
-            : ""
-        }`}
-      >
-        {/* Candidate Identifier Badge */}
-        <span className="absolute top-3 left-3 z-10 text-xs text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2.5 py-1 rounded-full font-medium shadow-sm">
-          Candidate (You)
-        </span>
-
-        {/* Real-time AI Proctoring Status Badge */}
-        {cameraReady && (
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full backdrop-blur-md border shadow-md font-medium transition-all duration-200">
-            {!faceDetected ? (
-              <span className="flex items-center gap-1 text-red-400 bg-red-950/80 border-red-800/70">
-                <AlertTriangle className="w-3.5 h-3.5 animate-pulse" />
-                <span>Face Missing</span>
-              </span>
-            ) : multipleFaces ? (
-              <span className="flex items-center gap-1 text-red-400 bg-red-950/80 border-red-800/70">
-                <Users className="w-3.5 h-3.5 animate-pulse" />
-                <span>Multiple Faces</span>
-              </span>
-            ) : isLookingAway ? (
-              <span className="flex items-center gap-1 text-amber-400 bg-amber-950/80 border-amber-800/70">
-                <EyeOff className="w-3.5 h-3.5 animate-pulse" />
-                <span>Look at Screen</span>
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-emerald-400 bg-emerald-950/80 border-emerald-800/60">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Verified</span>
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Real-time Warning Banner (if attention drifted) */}
-        {cameraReady && hasVisualViolation && (
-          <div className="absolute bottom-3 inset-x-3 z-10 py-1.5 px-3 rounded-xl bg-black/80 backdrop-blur-md border border-amber-500/40 text-center animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <p className="text-xs font-medium text-amber-300">{statusMessage}</p>
-          </div>
-        )}
-
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className={`w-full h-full object-cover -scale-x-100 ${
-            cameraReady ? "block" : "hidden"
-          }`}
-        />
-        {!cameraReady && !cameraError && (
-          <div className="flex flex-col items-center gap-2 text-slate-400">
-            <Video className="w-8 h-8 animate-pulse text-indigo-400" />
-            <span className="text-xs">Initializing camera feed...</span>
-          </div>
-        )}
-        {cameraError && (
-          <div className="flex flex-col items-center gap-2 text-red-400">
-            <VideoOff className="w-8 h-8" />
-            <span className="text-xs">Camera connection failed</span>
-          </div>
-        )}
-      </div>
+      <CameraRoomFeed
+        videoRef={videoRef}
+        cameraReady={cameraReady}
+        cameraError={cameraError}
+        faceDetected={faceDetected}
+        multipleFaces={multipleFaces}
+        isLookingAway={isLookingAway}
+        statusMessage={statusMessage}
+      />
     );
   }
 
+  // 2. Setup Step View (Hardware Check with Modular Overlays & Controls)
   return (
     <div className="w-full md:w-1/2 p-5 sm:p-6 rounded-2xl border border-border bg-card/60 shadow-sm transition-all flex flex-col justify-between h-full">
       {/* Header */}
@@ -168,68 +124,110 @@ const CameraPreview = ({
         <div className="flex items-center gap-2.5">
           <Video className="h-5 w-5 text-primary" />
           <h2 className="font-semibold text-foreground text-base">
-            Camera Check
+            {isAr ? "فحص الكاميرا والأجهزة" : "Camera & Hardware Check"}
           </h2>
         </div>
 
         {cameraReady && (
           <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
             <Check className="h-3.5 w-3.5 stroke-[3]" />
-            Working
+            {isAr ? "متصل ويعمل" : "Working"}
           </div>
         )}
 
         {cameraError && (
           <div className="flex items-center gap-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-medium text-rose-600 dark:text-rose-400">
-            Camera unavailable
+            {isAr ? "الكاميرا غير متاحة" : "Camera unavailable"}
           </div>
         )}
       </div>
 
-      {/* Camera Preview Container */}
+      {/* Camera Preview Viewport */}
       <div className="mt-4 rounded-xl bg-muted/30 border border-border p-4 flex-1 flex flex-col justify-between gap-4">
-        {/* شاشة العرض - تبقى داكنة مثل كاميرات Google Meet و Zoom لتباين أوضح للفيديو */}
-        <div className="relative w-full flex-1 min-h-[220px] rounded-lg overflow-hidden bg-neutral-950 border border-border/80 flex items-center justify-center shadow-inner">
+        <div className="relative w-full flex-1 min-h-[240px] rounded-xl overflow-hidden bg-neutral-950 border border-border/80 flex items-center justify-center shadow-inner group">
           {/* Dynamic Video Feed */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover -scale-x-100 ${
-              cameraReady ? "block" : "hidden"
-            }`}
+            className={cn(
+              "w-full h-full object-cover -scale-x-100 transition-opacity duration-300",
+              cameraReady && !isVideoMuted ? "opacity-100 block" : "opacity-0 hidden"
+            )}
           />
 
-          {/* Fallback state when camera is loading / idle */}
-          {!cameraReady && !cameraError && (
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <Video className="w-8 h-8 animate-pulse text-primary" />
-              <span className="text-xs">Initializing camera...</span>
-            </div>
+          {/* Anti-Cheating Warning when video is paused */}
+          {hasLiveVideoTrack && isVideoMuted && (
+            <CameraPausedWarning onResume={handleToggleVideo} />
           )}
 
-          {/* Fallback state when camera has error */}
-          {cameraError && (
-            <div className="flex flex-col items-center gap-2 text-rose-500">
-              <VideoOff className="w-8 h-8" />
-              <span className="text-xs">Unable to access camera</span>
+          {/* Interactive Activation Overlay when stream is not acquired or permission blocked */}
+          {!hasLiveVideoTrack && (
+            <CameraActivationOverlay
+              cameraError={cameraError}
+              isRequesting={isRequesting}
+              onActivate={handleActivateDevices}
+            />
+          )}
+
+          {/* Floating Action Controls Bar (Meet / Zoom style) when camera is active */}
+          {cameraReady && (
+            <CameraFloatingControls
+              isVideoMuted={isVideoMuted}
+              isAudioMuted={isAudioMuted}
+              isRequesting={isRequesting}
+              onToggleVideo={handleToggleVideo}
+              onToggleAudio={handleToggleAudio}
+              onRefresh={handleActivateDevices}
+            />
+          )}
+
+          {/* Top Live Indicator Dot */}
+          {cameraReady && (
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[11px] text-white/90">
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  isVideoMuted ? "bg-amber-400" : "bg-emerald-400 animate-pulse"
+                )}
+              />
+              <span className="font-medium">
+                {isVideoMuted
+                  ? isAr ? "الفيديو متوقف" : "Video Paused"
+                  : isAr ? "مباشر" : "Live Feed"}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Bottom Status / Footer */}
-        <div className="p-3 rounded-xl bg-card border border-border text-center shadow-sm">
-          <p className="text-xs text-muted-foreground">
-            Status:{" "}
-            <span className="text-foreground font-semibold">
+        {/* Bottom Status & Refresh Action */}
+        <div className="p-3 rounded-xl bg-card border border-border flex items-center justify-between text-xs shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">{isAr ? "حالة الأجهزة:" : "Hardware Status:"}</span>
+            <span
+              className={cn(
+                "font-semibold",
+                cameraReady ? "text-emerald-500" : cameraError ? "text-rose-500" : "text-amber-500"
+              )}
+            >
               {cameraReady
-                ? "Video stream active"
+                ? isAr ? "متصل وجاهز ✓" : "Connected & Ready ✓"
                 : cameraError
-                ? "Device error"
-                : "Connecting..."}
+                  ? isAr ? "خطأ في الإذن ✗" : "Access Error ✗"
+                  : isAr ? "بانتظار التفعيل" : "Pending Activation"}
             </span>
-          </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleActivateDevices}
+            disabled={isRequesting}
+            className="text-[11px] text-primary hover:underline font-semibold cursor-pointer inline-flex items-center gap-1"
+          >
+            <RotateCcw className={cn("w-3 h-3", isRequesting && "animate-spin")} />
+            <span>{isAr ? "إعادة الفحص" : "Re-test"}</span>
+          </button>
         </div>
       </div>
     </div>

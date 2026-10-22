@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect } from "react";
+import { resolveQuestionAudio } from "../utils/questionMapper";
 
 interface UseInterviewAudioProps {
   selectedVoice: string;
@@ -76,7 +77,7 @@ export function useInterviewAudio({
   const speakQuestion = useCallback(
     (
       text: string,
-      audioUrl?: string | null,
+      audioInput?: any,
       language: string = "English",
       questionToken?: number
     ) => {
@@ -87,7 +88,13 @@ export function useInterviewAudio({
 
       clearAllTimers();
       const qTokenTag = questionToken !== undefined ? `[qToken:${questionToken}]` : "";
-      console.debug(`[speaking]${qTokenTag}[session:${mySession}] speakQuestion start (hasAudioUrl: ${Boolean(audioUrl)})`);
+
+      // Safely resolve any audio input (Blob URL, Data URI, raw base64, or object { audioBase64, mimeType })
+      const resolvedAudioUrl = resolveQuestionAudio(audioInput);
+
+      console.debug(
+        `[speaking]${qTokenTag}[session:${mySession}] speakQuestion start (hasAudio: ${Boolean(resolvedAudioUrl)}, rawType: ${typeof audioInput})`
+      );
 
       let settled = false;
       const settle = (reason: string) => {
@@ -227,7 +234,7 @@ export function useInterviewAudio({
 
           audio.onerror = (e) => {
             if (mySession !== speechSessionRef.current) return;
-            console.warn(`[speaking][session:${mySession}] audio onerror:`, e);
+            console.warn(`[speaking][session:${mySession}] audio onerror:`, e, "url:", url.slice(0, 50));
             onFail();
           };
 
@@ -238,7 +245,22 @@ export function useInterviewAudio({
               if (err?.name === "AbortError") {
                 return;
               }
-              console.warn(`[speaking][session:${mySession}] audio.play() rejected:`, err);
+              console.warn(`[speaking][session:${mySession}] audio.play() rejected:`, err?.name, err?.message);
+
+              if (err?.name === "NotAllowedError") {
+                // Autoplay blocked by browser policy: unlock automatically on first user click or keypress
+                const unlockAndPlay = () => {
+                  window.removeEventListener("click", unlockAndPlay);
+                  window.removeEventListener("keydown", unlockAndPlay);
+                  if (mySession === speechSessionRef.current && audioPlayerRef.current) {
+                    audioPlayerRef.current.play().catch(console.warn);
+                  }
+                };
+                window.addEventListener("click", unlockAndPlay, { once: true });
+                window.addEventListener("keydown", unlockAndPlay, { once: true });
+                return;
+              }
+
               onFail();
             });
           }
@@ -248,17 +270,32 @@ export function useInterviewAudio({
         }
       };
 
-      if (audioUrl) {
-        playWithAudioUrl(audioUrl, () => {
-          // If backend audio fails, try frontend edge tts before robotic browser voice
-          const edgeTtsUrl = `/api/tts?text=${encodeURIComponent(text)}`;
-          playWithAudioUrl(edgeTtsUrl, runFallbackTTS);
-        });
+      if (resolvedAudioUrl) {
+        console.log(
+          "%c🔊 [useInterviewAudio] Playing question audio directly from backend!",
+          "background: #0284c7; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+        );
+        playWithAudioUrl(resolvedAudioUrl, runFallbackTTS);
         return;
       }
 
-      // If no backend audioUrl, use frontend Edge TTS route
-      const edgeTtsUrl = `/api/tts?text=${encodeURIComponent(text)}`;
+      // If text is Arabic, play directly via native browser speech synthesis (zero latency, zero 403 errors)
+      const isArabic =
+        language === "Arabic" ||
+        language?.toLowerCase().includes("arabic") ||
+        /[\u0600-\u06FF]/.test(text);
+
+      if (isArabic) {
+        console.log(
+          "%c🎙️ [useInterviewAudio] Arabic question -> Playing immediately via native browser speech synthesis",
+          "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+        );
+        runFallbackTTS();
+        return;
+      }
+
+      // If English without backend audio, try Edge TTS route with immediate fallback to browser Web Speech
+      const edgeTtsUrl = `/api/tts?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(selectedVoice)}`;
       playWithAudioUrl(edgeTtsUrl, runFallbackTTS);
     },
     [clearAllTimers, selectedVoice, setIsAISpeaking, speakDoneRef]

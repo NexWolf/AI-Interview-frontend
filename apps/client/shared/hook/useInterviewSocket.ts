@@ -48,7 +48,7 @@ export interface SummaryDonePayload {
   result: Record<string, unknown>;
 }
 
-import { getCandidateToken } from "@/shared/lib/AxiosAPI";
+import { getCandidateToken, getValidAccessToken } from "@/shared/lib/AxiosAPI";
 
 export interface SocketErrorPayload {
   interviewId?: string | number;
@@ -66,7 +66,7 @@ export interface UseInterviewSocketOptions {
   autoConnect?: boolean;
 }
 
-// Fetch the current user JWT access token from the Next.js internal auth route
+// Fetch the current user JWT access token using unified, deduplicated helper
 async function fetchAccessToken(): Promise<string | null> {
   const candidateToken = getCandidateToken();
   if (candidateToken) {
@@ -74,19 +74,14 @@ async function fetchAccessToken(): Promise<string | null> {
   }
 
   try {
-    const res = await fetch("/api/auth/token");
-    if (res.status === 401) {
-      if (typeof window !== "undefined") {
-        const isInterview = window.location.pathname.startsWith("/interview/");
-        if (!isInterview) {
-          window.location.href = "/auth";
-        }
+    const token = await getValidAccessToken();
+    if (!token && typeof window !== "undefined") {
+      const isInterview = window.location.pathname.startsWith("/interview/");
+      if (!isInterview) {
+        window.location.href = "/auth";
       }
-      return null;
     }
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.accessToken || null;
+    return token;
   } catch (error) {
     console.error("[useInterviewSocket] Failed to fetch access token:", error);
     return null;

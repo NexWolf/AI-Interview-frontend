@@ -20,6 +20,25 @@ interface UseCameraProctoringProps {
   onViolation?: (violation: CameraViolationEvent) => void;
 }
 
+let sharedVisionPromise: Promise<any> | null = null;
+
+/**
+ * Preloads MediaPipe vision WebAssembly runtime into browser cache during Setup.
+ * Safe to call multiple times with zero performance overhead.
+ */
+export function preloadFaceLandmarker(): void {
+  if (typeof window === "undefined") return;
+  if (!sharedVisionPromise) {
+    sharedVisionPromise = FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    ).catch((err) => {
+      console.warn("MediaPipe wasm preload warning:", err);
+      sharedVisionPromise = null;
+      return null;
+    });
+  }
+}
+
 export function useCameraProctoring({
   videoRef,
   isEnabled = true,
@@ -72,11 +91,14 @@ export function useCameraProctoring({
     const initLandmarker = async () => {
       try {
         setIsModelLoading(true);
-        const vision = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-        );
+        if (!sharedVisionPromise) {
+          sharedVisionPromise = FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+          );
+        }
+        const vision = await sharedVisionPromise;
 
-        if (isCancelled) return;
+        if (isCancelled || !vision) return;
 
         const landmarker = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: {
