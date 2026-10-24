@@ -174,7 +174,7 @@ export function Hero() {
                   "
                 >
                   <Image
-                    src="/images/mohammed.jpg"
+                    src="/team1.jpeg"
                     alt="Customer"
                     fill
                     priority
@@ -195,7 +195,7 @@ export function Hero() {
                   "
                 >
                   <Image
-                    src="/images/ahmed.jpg"
+                    src="/team2.jpeg"
                     alt="Customer"
                     fill
                     priority
@@ -216,7 +216,7 @@ export function Hero() {
                   "
                 >
                   <Image
-                    src="/images/adham.jpg"
+                    src="/team3.jpeg"
                     alt="Customer"
                     fill
                     priority

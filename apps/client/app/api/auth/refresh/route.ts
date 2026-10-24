@@ -3,9 +3,10 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST() {
+    let refreshToken: string | null = null;
     try {
         const cookieStore = await cookies();
-        const refreshToken = cookieStore.get("refreshToken")?.value ?? null;
+        refreshToken = cookieStore.get("refreshToken")?.value ?? null;
 
         if (!refreshToken) {
             return NextResponse.json(
@@ -26,6 +27,14 @@ export async function POST() {
                 cookieStore.delete("accessToken");
                 cookieStore.delete("refreshToken");
             }
+            const backendBody = await backendResponse.text().catch(() => null);
+            console.error("[REFRESH_DEBUG]", {
+                hasRefreshToken: Boolean(refreshToken),
+                backendStatus: backendResponse.status,
+                backendBody,
+                errorMessage: null,
+                time: new Date().toISOString(),
+            });
             return NextResponse.json(
                 { success: false, message: "Refresh Failed (فشل تحديث الرمز)" },
                 { status: 401 }
@@ -88,7 +97,14 @@ export async function POST() {
 
         return response;
 
-    } catch (error) {
+    } catch (error: any) {
+        console.error("[REFRESH_DEBUG]", {
+            hasRefreshToken: Boolean(refreshToken),
+            backendStatus: null,
+            backendBody: null,
+            errorMessage: error?.message || String(error),
+            time: new Date().toISOString(),
+        });
         console.error("REFRESH PROXY ERROR: ", error);
         return NextResponse.json(
             { success: false, message: "Something went wrong (حدث خطأ ما)" },

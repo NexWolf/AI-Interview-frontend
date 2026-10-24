@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Settings2, Database } from "lucide-react";
+import { BarChart3, Settings2, Database, GitBranch } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { BorderBeamPanel } from "@/components/ui/border-beam-panel";
@@ -27,6 +27,11 @@ const featureList: FeatureItem[] = [
     icon: Database,
     titleKey: "features.f3Title",
     descKey: "features.f3Desc",
+  },
+  {
+    icon: GitBranch,
+    titleKey: "features.f4Title",
+    descKey: "features.f4Desc",
   },
 ];
 
@@ -139,7 +144,7 @@ export function Features() {
         </motion.div>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {featureList.map((feature, index) => {
             const Icon = feature.icon;
 

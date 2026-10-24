@@ -38,6 +38,9 @@ export const translations = {
     "features.f3Title": "Detailed Feedback & Scorecards",
     "features.f3Desc":
       "Receive immediate scoring across technical depth, problem-solving, and communication, along with a personalized, step-by-step improvement plan.",
+    "features.f4Title": "GitHub Analysis & Tailored Learning Paths",
+    "features.f4Desc":
+      "Not sure where to start? Our system analyzes your GitHub repositories, identifies skill gaps, and provides custom learning paths and hands-on tasks to bridge the gap from zero to ready.",
 
     // How It Works
     "how.title1": "Turn Practice into",
@@ -319,6 +322,9 @@ export const translations = {
     "features.f3Title": "تقارير تقييمية مفصلة",
     "features.f3Desc":
       "تقييم دقيق يقيس عمقك التقني وطريقتك في التفكير وحل المشكلات، مع خطة تحسين شخصية واضحة للخطوات القادمة.",
+    "features.f4Title": "تحليل مستودعات GitHub ومسارات مخصصة",
+    "features.f4Desc":
+      "لست متأكداً من أين تبدأ؟ يحلل نظامنا مشاريعك على GitHub ويكتشف الفجوات المهارية ليقدم لك مسارات تدريب وتحديات عملية تنقلك من الصفر للاحتراف.",
 
     // How It Works
     "how.title1": "حوّل التدريب إلى",
