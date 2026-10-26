@@ -125,11 +125,11 @@ export const translations = {
     "pricing.studentF3": "Simulation for technical & behavioral questions",
     "pricing.studentF4": "Comprehensive performance reports & roadmaps",
 
-    "pricing.companyBadge": "For Companies & Teams",
+    "pricing.companyBadge": "Coming Soon",
     "pricing.companyName": "Company Portal",
     "pricing.companyDesc":
       "Automate candidate interviews, screen technical skills with AI, and discover top-tier talent in record time.",
-    "pricing.companyBtn": "Open Company Portal",
+    "pricing.companyBtn": "Coming Soon",
     "pricing.companyF1": "Custom interview pipelines for each job opening",
     "pricing.companyF2": "Automated candidate screening & AI evaluation",
     "pricing.companyF3": "Centralized recruiter dashboard & analytics",
@@ -408,11 +408,11 @@ export const translations = {
     "pricing.studentF3": "محاكاة لأسئلة الشركات التقنية والسلوكية",
     "pricing.studentF4": "تقارير أداء وخطة تحسين مخصصة لنموك",
 
-    "pricing.companyBadge": "للشركات ومسؤولي التوظيف",
+    "pricing.companyBadge": "قريباً",
     "pricing.companyName": "بوابة الشركات (Company)",
     "pricing.companyDesc":
       "أتمتة عملية التوظيف والمقابلات لاكتشاف وتقييم أفضل الكفاءات بأعلى دقة واختصار الوقت والجهد.",
-    "pricing.companyBtn": "الدخول لبوابة الشركات",
+    "pricing.companyBtn": "قريباً (تحت التطوير)",
     "pricing.companyF1": "إنشاء وتخصيص مقابلات تناسب كل شاغر وظيفي",
     "pricing.companyF2": "فرز آلي للمرشحين وتقييم موضوعي بالذكاء الاصطناعي",
     "pricing.companyF3": "لوحة تحكم مركزية لإدارة المتقدمين والمقابلات",

@@ -8,7 +8,6 @@ import {
   Building2,
   School,
   ArrowRight,
-  ArrowUpRight,
   Lock,
 } from "lucide-react";
 import Link from "next/link";
@@ -47,13 +46,13 @@ const plans: PortalPlanItem[] = [
       "pricing.studentF3",
       "pricing.studentF4",
     ],
-    featured: false,
+    featured: true,
     icon: GraduationCap,
-    iconBg: "bg-[#7D5BA6]/20",
-    iconBorder: "border-[#7D5BA6]/40",
-    iconColor: "text-[#C4B5FD]",
+    iconBg: "bg-[#6136BF]/30",
+    iconBorder: "border-[#6136BF]/60",
+    iconColor: "text-[#FAFFFD]",
     badgeStyle:
-      "border-[#7D5BA6]/30 bg-[#7D5BA6]/15 text-[#C4B5FD]",
+      "border-[#6136BF]/50 bg-[#6136BF]/30 text-white shadow-sm shadow-[#6136BF]/30",
   },
   {
     id: "company",
@@ -68,13 +67,13 @@ const plans: PortalPlanItem[] = [
       "pricing.companyF3",
       "pricing.companyF4",
     ],
-    featured: true,
+    featured: false,
     icon: Building2,
-    iconBg: "bg-[#6136BF]/30",
-    iconBorder: "border-[#6136BF]/60",
-    iconColor: "text-[#FAFFFD]",
+    iconBg: "bg-white/[0.05]",
+    iconBorder: "border-white/15",
+    iconColor: "text-white/60",
     badgeStyle:
-      "border-[#6136BF]/50 bg-[#6136BF]/30 text-white shadow-sm shadow-[#6136BF]/30",
+      "border-white/10 bg-white/[0.06] text-white/50",
   },
   {
     id: "university",
@@ -101,8 +100,6 @@ const plans: PortalPlanItem[] = [
 
 export default function Pricing() {
   const { t } = useLanguage();
-  const companyUrl =
-    process.env.NEXT_PUBLIC_COMPANY_URL || "http://localhost:3002";
 
   return (
     <section
@@ -364,15 +361,15 @@ export default function Pricing() {
                             w-full
                             rounded-full
                             border
-                            border-[#6136BF]/40
-                            bg-white/[0.05]
+                            border-[#6136BF]
+                            bg-[#6136BF]
                             text-white
+                            shadow-xl
+                            shadow-[#6136BF]/30
                             transition-all
                             duration-300
-                            hover:border-[#6136BF]
-                            hover:bg-[#6136BF]/25
-                            hover:shadow-lg
-                            hover:shadow-[#6136BF]/20
+                            hover:bg-[#724EBF]
+                            hover:shadow-[#724EBF]/45
                           "
                         >
                           <Link
@@ -385,39 +382,7 @@ export default function Pricing() {
                         </Button>
                       )}
 
-                      {plan.type === "company" && (
-                        <Button
-                          asChild
-                          size="lg"
-                          className="
-                            group
-                            w-full
-                            rounded-full
-                            border
-                            border-[#6136BF]
-                            bg-[#6136BF]
-                            text-white
-                            shadow-xl
-                            shadow-[#6136BF]/30
-                            transition-all
-                            duration-300
-                            hover:bg-[#724EBF]
-                            hover:shadow-[#724EBF]/45
-                          "
-                        >
-                          <a
-                            href={companyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2"
-                          >
-                            <span>{t(plan.btnKey)}</span>
-                            <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 rtl:rotate-90" />
-                          </a>
-                        </Button>
-                      )}
-
-                      {plan.type === "university" && (
+                      {(plan.type === "company" || plan.type === "university") && (
                         <Button
                           disabled
                           size="lg"

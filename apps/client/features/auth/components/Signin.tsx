@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
-import { FaGithub } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 import { toast } from "sonner";
 import { API_URL } from "@/constants/routes";
 import { AxiosAPI } from "@/shared/lib/AxiosAPI";
@@ -188,22 +188,14 @@ export default function Signin({
           reset password
         </Link>
       </div>
-      <div className="mt-4 flex justify-center gap-3">
+      <div className="mt-4 flex justify-center">
         <SocialIcon
           label="Google"
           onClick={() => {
             window.location.href = `${API_URL}/api/v1/auth/google`;
           }}
         >
-          <span style={{ color: "#5B21B7", fontWeight: "bold" }}>G</span>
-        </SocialIcon>
-        <SocialIcon
-          label="GitHub"
-          onClick={() => {
-            window.location.href = `${API_URL}/api/v1/auth/github`;
-          }}
-        >
-          <FaGithub className="h-5 w-5 text-[#5B21B7]" />
+          <FcGoogle className="h-5 w-5" />
         </SocialIcon>
       </div>
 
