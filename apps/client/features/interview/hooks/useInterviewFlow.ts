@@ -91,6 +91,8 @@ export function useInterviewFlow({
   const listenTimerRef = useRef<NodeJS.Timeout | null>(null);
   const handleFinishInterviewRef = useRef<() => void>(() => {});
   const isCareerDiscoveryRef = useRef<boolean>(isCareerDiscovery);
+  // In-flight answer submission tracking to ensure completion before concluding the interview
+  const pendingAnswerPromiseRef = useRef<Promise<any> | null>(null);
 
   useEffect(() => {
     isCareerDiscoveryRef.current = isCareerDiscovery;
@@ -409,12 +411,32 @@ export function useInterviewFlow({
         return;
       }
 
+      const clientAnswerId = (() => {
+        if (typeof crypto !== "undefined") {
+          if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+          if (typeof crypto.getRandomValues === "function") {
+            return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c: any) =>
+              (
+                +c ^
+                (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))
+              ).toString(16)
+            );
+          }
+        }
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          const v = c === "x" ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+      })();
+
       console.log(
         "%c🚀 [submitAnswer] Submitting Answer:",
         "background: #f59e0b; color: black; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
         {
           questionId: q.id,
           questionOrder: q.questionOrder,
+          clientAnswerId,
           hasAudio,
           audioBytes: audioBlob?.size,
           answerLength: finalText.length,
@@ -482,6 +504,7 @@ export function useInterviewFlow({
         const formData = new FormData();
         const ext = audioBlob.type.includes("mp4") ? "mp4" : "webm";
         formData.append("audio", audioBlob, `answer_${q.id}.${ext}`);
+        formData.append("clientAnswerId", clientAnswerId);
         if (finalText) {
           formData.append("answerText", finalText);
         }
@@ -489,53 +512,87 @@ export function useInterviewFlow({
           formData.append("violations", JSON.stringify(violations));
         }
 
-        AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/answer`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        }).catch((e: any) => {
-          console.error("Save audio answer error:", e);
-          const errMsg =
-            e?.response?.data?.message ||
-            "تعذر إرسال الإجابة الصوتية بسبب مشكلة في الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة.";
-          handleFailure(errMsg);
-        });
+        const audioPromise = AxiosAPI.post(
+          `/api/interviews/${interviewId}/questions/${q.id}/answer`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        )
+          .catch((e: any) => {
+            console.error("Save audio answer error:", e);
+            const errMsg =
+              e?.response?.data?.message ||
+              "تعذر إرسال الإجابة الصوتية بسبب مشكلة في الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة.";
+            handleFailure(errMsg);
+          })
+          .finally(() => {
+            if (pendingAnswerPromiseRef.current === audioPromise) {
+              pendingAnswerPromiseRef.current = null;
+            }
+          });
+
+        pendingAnswerPromiseRef.current = audioPromise;
         return;
       }
 
       // 2. Text-only submission with active Socket connection
       if (liveConnected) {
         proceed();
-        const payload: any = { interviewId, questionId: q.id, answerText: finalText };
+        const payload: any = { interviewId, questionId: q.id, answerText: finalText, clientAnswerId };
         if (violations.length > 0) {
           payload.violations = violations;
         }
 
-        emitEvent("answer:submit", payload, ({ ok, message, data }: any) => {
-          console.log(
-            "%c📥 [STEP 6: SOCKET ACK] Backend answer:submit acknowledgment received:",
-            ok
-              ? "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
-              : "background: #ef4444; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
-            { ok, message, data }
-          );
-          if (!ok) {
-            const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
-            console.error(errMsg);
+        const socketPromise = new Promise<void>((resolve) => {
+          emitEvent("answer:submit", payload, ({ ok, message, data }: any) => {
+            console.log(
+              "%c📥 [STEP 6: SOCKET ACK] Backend answer:submit acknowledgment received:",
+              ok
+                ? "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+                : "background: #ef4444; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+              { ok, message, data }
+            );
+            if (!ok) {
+              const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
+              console.error(errMsg);
+            }
+            resolve();
+          });
+        }).finally(() => {
+          if (pendingAnswerPromiseRef.current === socketPromise) {
+            pendingAnswerPromiseRef.current = null;
           }
         });
+
+        pendingAnswerPromiseRef.current = socketPromise;
         return;
       }
 
       // 3. Text-only HTTP fallback
       proceed();
-      AxiosAPI.post(`/api/interviews/${interviewId}/questions/${q.id}/answer`, {
-        answerText: finalText,
-      }).catch((e: any) => {
-        console.error("Save answer error:", e);
-        const errMsg =
-          e?.response?.data?.message ||
-          "تعذر إرسال الإجابة بسبب مشكلة في الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة.";
-        handleFailure(errMsg);
-      });
+      const textPromise = AxiosAPI.post(
+        `/api/interviews/${interviewId}/questions/${q.id}/answer`,
+        {
+          answerText: finalText,
+          clientAnswerId,
+        }
+      )
+        .catch((e: any) => {
+          console.error("Save answer error:", e);
+          const errMsg =
+            e?.response?.data?.message ||
+            "تعذر إرسال الإجابة بسبب مشكلة في الاتصال. إجابتك محفوظة ويمكنك إعادة المحاولة.";
+          handleFailure(errMsg);
+        })
+        .finally(() => {
+          if (pendingAnswerPromiseRef.current === textPromise) {
+            pendingAnswerPromiseRef.current = null;
+          }
+        });
+
+      pendingAnswerPromiseRef.current = textPromise;
+
     },
     [
       abortRecognition,
@@ -738,6 +795,19 @@ export function useInterviewFlow({
     setMicEnabled?.(false, "handleFinishInterview");
     stopStream();
     stopGlobalMediaStream();
+
+    // Ensure in-flight answer is fully saved to database before marking interview as completed
+    if (pendingAnswerPromiseRef.current) {
+      console.log(
+        "%c⏳ [FINISH INTERVIEW] Waiting for pending answer submission to complete before closing interview...",
+        "background: #f59e0b; color: black; font-weight: bold; padding: 2px 6px; border-radius: 4px;"
+      );
+      try {
+        await pendingAnswerPromiseRef.current;
+      } catch (err) {
+        console.warn("Pending answer finished with error before completion:", err);
+      }
+    }
 
     // Flush any pending violations before concluding
     if (flushViolations) {

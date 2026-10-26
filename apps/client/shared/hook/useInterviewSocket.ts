@@ -299,6 +299,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       questionId: string | number;
       answerText: string;
       violations?: any[];
+      clientAnswerId?: string;
     }) => {
       return new Promise<SocketAckResponse>((resolve) => {
         if (!socketRef.current) {
@@ -311,6 +312,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
             questionId: String(params.questionId),
             answerText: params.answerText,
             violations: params.violations,
+            clientAnswerId: params.clientAnswerId,
           },
           (response: SocketAckResponse) => resolve(response || { ok: true }),
         );
