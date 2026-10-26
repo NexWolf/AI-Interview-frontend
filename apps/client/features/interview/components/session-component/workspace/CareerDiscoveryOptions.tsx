@@ -73,6 +73,8 @@ export const CareerDiscoveryOptions: React.FC<CareerDiscoveryOptionsProps> = ({
             <button
               key={opt.id}
               type="button"
+              dir="auto"
+              style={{ unicodeBidi: "isolate" }}
               onClick={() => handleSelect(opt.id, opt.label)}
               disabled={disabled}
               className={cn(
@@ -92,7 +94,7 @@ export const CareerDiscoveryOptions: React.FC<CareerDiscoveryOptionsProps> = ({
               >
                 {opt.id}
               </span>
-              <span className="flex-1">{opt.label}</span>
+              <span className="flex-1" dir="auto"><bdi>{opt.label}</bdi></span>
             </button>
           );
         })}

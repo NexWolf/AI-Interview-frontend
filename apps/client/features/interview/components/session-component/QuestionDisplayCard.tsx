@@ -51,11 +51,19 @@ export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
   const activeDisplayedQuestion = displayedQuestion !== undefined ? displayedQuestion : typewriter.displayedText;
   const activeIsTyping = isTyping !== undefined ? isTyping : typewriter.isTyping;
 
+  const rawQuestionText = activeIsGenerating
+    ? activeQuestionLiveText
+    : (activeDisplayedQuestion || currentQuestion?.question || "");
+  const isArabicText = /[\u0600-\u06FF]/.test(rawQuestionText || "");
+
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-2 flex flex-col items-center justify-center text-center">
       {/* Career Discovery Reaction (if present) */}
       {isCareerDiscovery && currentQuestion?.reaction && (
-        <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold animate-in fade-in duration-200">
+        <div
+          dir="auto"
+          className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold animate-in fade-in duration-200"
+        >
           <span>💬</span>
           <span>{currentQuestion.reaction}</span>
         </div>
@@ -64,7 +72,7 @@ export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
       {/* Main Question Text (Borderless Cinematic Subtitle) */}
       <div className="min-h-[60px] max-h-[140px] sm:max-h-[170px] overflow-y-auto flex items-center justify-center w-full px-2">
         {activeIsGenerating && !activeQuestionLiveText ? (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse py-2">
+          <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse py-2" dir="rtl">
             <div className="flex items-center gap-2.5">
               <Loader2 className="w-4 h-4 animate-spin text-primary" />
               <span className="text-sm font-medium">سارة تفكر في السؤال القادم...</span>
@@ -96,17 +104,24 @@ export const QuestionDisplayCard: React.FC<QuestionDisplayCardProps> = ({
             )}
           </div>
         ) : (
-          <p className="text-base sm:text-lg md:text-xl font-medium text-foreground/95 leading-relaxed tracking-wide select-none">
+          <p
+            dir={isArabicText ? "rtl" : "ltr"}
+            style={{
+              unicodeBidi: "isolate",
+              textAlign: "center",
+            }}
+            className="text-base sm:text-lg md:text-xl font-medium text-foreground/95 leading-relaxed tracking-wide select-none transition-all"
+          >
             {activeIsGenerating ? (
               <>
-                {activeQuestionLiveText}
-                <span className="inline-block w-1.5 h-4 ml-1 bg-primary animate-pulse align-middle" />
+                <bdi>{activeQuestionLiveText}</bdi>
+                <span className="inline-block w-1.5 h-4 mx-1.5 bg-primary animate-pulse align-middle" />
               </>
             ) : (
               <>
-                {activeDisplayedQuestion || "في انتظار بدء المحادثة مع سارة..."}
+                <bdi>{activeDisplayedQuestion || "في انتظار بدء المحادثة مع سارة..."}</bdi>
                 {activeIsTyping && (
-                  <span className="inline-block w-1.5 h-4 ml-1 bg-primary animate-pulse align-middle" />
+                  <span className="inline-block w-1.5 h-4 mx-1.5 bg-primary animate-pulse align-middle" />
                 )}
               </>
             )}

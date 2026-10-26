@@ -200,6 +200,8 @@ export const CandidateResponseWorkspace: React.FC<CandidateResponseWorkspaceProp
           value={answerText}
           onChange={(e) => setAnswer(e.target.value)}
           placeholder={currentQuestion?.freeTextPrompt || "تحدث بالميكروفون أو اكتب تفاصيل إضافية هنا..."}
+          dir="auto"
+          style={{ unicodeBidi: "plaintext" }}
           className="w-full min-h-[80px] max-h-[110px] sm:max-h-[125px] overflow-y-auto p-3 rounded-xl border border-input bg-background/60 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none placeholder:text-muted-foreground/70 leading-relaxed"
         />
       )}
