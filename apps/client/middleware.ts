@@ -37,11 +37,15 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // 4. إذا مسار محمي وما معه أي توكن → رجعو عـ /auth
+  // 4. إذا مسار محمي وما معه أي توكن → رجعو عـ /auth وافرغ كوكيز الـ onboarding القديمة
   if (!isPublicRoute && !isAuthenticated) {
     const url = new URL("/auth", request.url);
     url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    if (request.cookies.has("onboardingDone")) {
+      response.cookies.delete("onboardingDone");
+    }
+    return response;
   }
 
   // 5. إذا مسجل بس ما خلص onboarding وطالب يفتح مسار يحتاجه → وجّهه للـ onboarding

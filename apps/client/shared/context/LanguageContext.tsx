@@ -21,7 +21,7 @@ export const translations = {
     "hero.desc":
       "Practice realistic technical and behavioral interviews powered by intelligent AI. Receive instant feedback, sharpen your problem-solving skills, and walk into your next interview with complete confidence.",
     "hero.cta": "Start Now",
-    "hero.stats": "10,000+ Mock Interviews Conducted",
+    "hero.stats": "Practice. Evaluate. Get Hired",
     "hero.splineLoading": "Loading 3D Experience",
 
     // Features
@@ -305,7 +305,7 @@ export const translations = {
     "hero.desc":
       "تدرب على مقابلات تقنية وسلوكية واقعية مدعومة بنماذج ذكاء اصطناعي متطورة. احصل على تقييم فوري، وطور نقاط ضعفك، واستعد لمقابلتك بثقة تامة.",
     "hero.cta": "ابدأ الآن",
-    "hero.stats": "+10,000 مقابلة تجريبية تم إجراؤها",
+    "hero.stats": "تدرّب. قيّم أداءك. احصل على الوظيفة",
     "hero.splineLoading": "جاري تحميل المشهد التفاعلي",
 
     // Features

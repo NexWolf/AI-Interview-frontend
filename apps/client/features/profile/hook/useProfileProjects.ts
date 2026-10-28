@@ -7,9 +7,9 @@ import { useLanguage } from "@/shared/context/LanguageContext";
 import { codebaseService } from "@/features/interview/services/codebase.service";
 import { useGetAllInterviews } from "@/features/interview/hooks/ReactQueryHooks/useGetAllInterviews";
 import { ProjectItem, ProjectFormData, ProfileProjectsProps } from "../types/profileProjects.types";
-import { DEFAULT_PROJECTS, INITIAL_PROJECT_FORM } from "../constants/projects.constants";
+import { INITIAL_PROJECT_FORM } from "../constants/projects.constants";
 
-export function useProfileProjects({ username }: ProfileProjectsProps = {}) {
+export function useProfileProjects({ username, onProjectCreated }: ProfileProjectsProps = {}) {
   const router = useRouter();
   const { language } = useLanguage();
   const isAr = language === "ar";
@@ -29,16 +29,53 @@ export function useProfileProjects({ username }: ProfileProjectsProps = {}) {
 
   useEffect(() => {
     setMounted(true);
+    let localList: ProjectItem[] = [];
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        setProjects(JSON.parse(saved));
-      } else {
-        setProjects(DEFAULT_PROJECTS);
+        localList = JSON.parse(saved);
       }
-    } catch {
-      setProjects(DEFAULT_PROJECTS);
-    }
+    } catch {}
+
+    setProjects(localList);
+
+    // Fetch analyzed projects from backend and merge seamlessly
+    codebaseService
+      .getUserProjects()
+      .then((backendProjects) => {
+        if (backendProjects && backendProjects.length > 0) {
+          const merged = [...localList];
+          for (const bp of backendProjects) {
+            const exists = merged.some(
+              (p) =>
+                (p.codebaseProjectId && String(p.codebaseProjectId) === String(bp.id)) ||
+                (p.githubUrl &&
+                  bp.repositoryUrl &&
+                  p.githubUrl.toLowerCase().replace(/\/+$/, "") ===
+                    bp.repositoryUrl.toLowerCase().replace(/\/+$/, ""))
+            );
+            if (!exists) {
+              merged.push({
+                id: `codebase-${bp.id}`,
+                title: bp.repositoryName || "GitHub Project",
+                role: "Software Developer",
+                period: new Date(bp.analyzedAt).getFullYear().toString(),
+                description: `Analyzed GitHub repository: ${bp.repositoryOwner}/${bp.repositoryName}`,
+                technologies: [],
+                githubUrl: bp.repositoryUrl,
+                codebaseProjectId: String(bp.id),
+                isAnalyzed: true,
+                analyzedStats: bp.statistics,
+              });
+            }
+          }
+          setProjects(merged);
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(merged));
+          } catch {}
+        }
+      })
+      .catch(() => {});
   }, [storageKey]);
 
   const saveToStorage = useCallback(
@@ -91,7 +128,9 @@ export function useProfileProjects({ username }: ProfileProjectsProps = {}) {
     // If not analyzed yet and has valid githubUrl, analyze now on the fly
     if (!projectId && project.githubUrl && project.githubUrl.includes("github.com/")) {
       setAnalyzingProjectId(project.id);
-      toast.info(isAr ? "جاري تحليل كود المشروع قبل بدء المقابلة..." : "Analyzing codebase before interview...");
+      toast.info(
+        isAr ? "جاري تحليل كود المشروع قبل بدء المقابلة..." : "Analyzing codebase before interview..."
+      );
       try {
         const result = await codebaseService.analyzeRepository(project.githubUrl.trim());
         projectId = result.projectId;
@@ -125,9 +164,7 @@ export function useProfileProjects({ username }: ProfileProjectsProps = {}) {
     }
 
     if (projectId) {
-      router.push(
-        `/interview/setup?projectId=${encodeURIComponent(projectId)}`
-      );
+      router.push(`/interview/setup?projectId=${encodeURIComponent(projectId)}`);
     } else {
       toast.error(
         isAr
@@ -223,6 +260,10 @@ export function useProfileProjects({ username }: ProfileProjectsProps = {}) {
       };
       saveToStorage([newProj, ...projects]);
       toast.success(isAr ? "تمت إضافة المشروع بنجاح" : "Project added successfully");
+
+      if (onProjectCreated) {
+        onProjectCreated(newProj);
+      }
     }
 
     setDialogOpen(false);

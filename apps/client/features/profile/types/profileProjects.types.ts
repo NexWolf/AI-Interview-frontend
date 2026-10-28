@@ -26,6 +26,7 @@ export interface ProjectItem {
 export interface ProfileProjectsProps {
   editable?: boolean;
   username?: string;
+  onProjectCreated?: (project: ProjectItem) => void;
 }
 
 export interface ProjectFormData {
