@@ -7,6 +7,7 @@ import {
   useUpdateUserStatusMutation,
   useDeleteUserMutation,
   useCreateUserMutation,
+  useAddUserInterviewsMutation,
   useDebounce,
   DeleteConfirmModal,
 } from "@repo/shared";
@@ -16,6 +17,7 @@ import { getUserDisplayName } from "../utils/userHelpers";
 import { UsersToolbar } from "./UsersToolbar";
 import { UsersTable } from "./UsersTable";
 import { CreateUserModal } from "./CreateUserModal";
+import { AddInterviewsModal } from "./AddInterviewsModal";
 
 export function AdminUsersTab() {
   const [page, setPage] = useState(1);
@@ -25,6 +27,7 @@ export function AdminUsersTab() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserToDelete | null>(null);
+  const [userToAddInterviews, setUserToAddInterviews] = useState<AdminUser | null>(null);
   const [newUserForm, setNewUserForm] = useState<CreateUserFormState>(EMPTY_CREATE_USER_FORM);
 
   const debouncedSearch = useDebounce(search, 500);
@@ -43,6 +46,7 @@ export function AdminUsersTab() {
   const updateStatusMutation = useUpdateUserStatusMutation();
   const deleteUserMutation = useDeleteUserMutation();
   const createUserMutation = useCreateUserMutation();
+  const addInterviewsMutation = useAddUserInterviewsMutation();
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -78,6 +82,18 @@ export function AdminUsersTab() {
         setUserToDelete(null);
       },
     });
+  };
+
+  const handleAddInterviewsSubmit = (amount: number) => {
+    if (!userToAddInterviews) return;
+    addInterviewsMutation.mutate(
+      { id: userToAddInterviews.id, amount },
+      {
+        onSuccess: () => {
+          setUserToAddInterviews(null);
+        },
+      },
+    );
   };
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -116,6 +132,15 @@ export function AdminUsersTab() {
         onLimitChange={setLimit}
         onToggleStatus={handleToggleStatus}
         onDelete={handleRequestDelete}
+        onAddInterviews={setUserToAddInterviews}
+      />
+
+      {/* Add Interviews Modal */}
+      <AddInterviewsModal
+        user={userToAddInterviews}
+        isPending={addInterviewsMutation.isPending}
+        onClose={() => setUserToAddInterviews(null)}
+        onSubmit={handleAddInterviewsSubmit}
       />
 
       {/* Create User Modal */}

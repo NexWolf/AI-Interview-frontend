@@ -3,6 +3,7 @@ import { interviewService } from "../../services/interview.service";
 import { StartInterviewPayload } from "../../types/setup";
 import { useInterviewStore } from "../../store/useInterviewStore";
 import { formatToQuestionItem } from "../../utils/questionMapper";
+import { USER_INFO_QUERY_KEY } from "@/shared/hook/useUserInfo";
 
 export const useStartInterview = () => {
   const queryClient = useQueryClient();
@@ -16,6 +17,8 @@ export const useStartInterview = () => {
         // Invalidate interview queries so subsequent room fetches refresh properly
         queryClient.invalidateQueries({ queryKey: ["interview", interviewId] });
       }
+      // Refresh remaining interview allowance
+      queryClient.invalidateQueries({ queryKey: USER_INFO_QUERY_KEY });
 
       const isArabic = response?.interview?.interviewLanguage === "Arabic";
       const candidateName = response?.user?.firstName || response?.user?.userName || "";

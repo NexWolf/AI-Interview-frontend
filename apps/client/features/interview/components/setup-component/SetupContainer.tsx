@@ -85,7 +85,7 @@ const PRESET_ROLES: PresetRole[] = [
 ];
 
 export const SetupContainer = () => {
-  const { data: userData } = useUserInfo();
+  const { data: userData, refetch: refetchUserInfo } = useUserInfo();
   const { data: userSkills } = useUserSkills();
   const { data: allSkills } = useAllSkills();
   const { mutate: startInterview, isPending } = useStartInterview();
@@ -108,6 +108,11 @@ export const SetupContainer = () => {
   const urlProjectId = searchParams.get("projectId");
 
   const [activeProjectId, setActiveProjectId] = useState<string | null>(urlProjectId);
+
+  // Profile is cached for 5 min; refresh on entry so admin-granted interviews show up immediately
+  useEffect(() => {
+    refetchUserInfo();
+  }, [refetchUserInfo]);
 
   // Anti-cheating and guidelines acceptance checklist
   const [rulesAgreed, setRulesAgreed] = useState<{
@@ -194,8 +199,16 @@ export const SetupContainer = () => {
     return Object.values(rulesAgreed).every(Boolean);
   }, [rulesAgreed]);
 
+  // Only USER accounts are limited; null means unlimited (or not loaded yet — backend still enforces)
+  const remainingInterviews =
+    userData?.role === "USER"
+      ? Math.max(userData.interviewLimit - userData.usedInterviews, 0)
+      : null;
+  const hasInterviewsLeft = remainingInterviews === null || remainingInterviews > 0;
+
   // Unified condition to enable the submit button:
-  const isReadyToStart = isVideoReady && isAudioReady && allRulesAccepted && !isPending;
+  const isReadyToStart =
+    isVideoReady && isAudioReady && allRulesAccepted && hasInterviewsLeft && !isPending;
 
   const toggleRule = (key: keyof typeof rulesAgreed) => {
     setRulesAgreed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -278,8 +291,18 @@ export const SetupContainer = () => {
           console.error("Interview ID not found in response", response);
         }
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error("Failed to start interview", error);
+        const message: string | undefined = error?.response?.data?.message;
+        if (error?.response?.status === 403 && message?.includes("interview limit")) {
+          refetchUserInfo();
+          toast.error(
+            isAr
+              ? "لقد استنفدت عدد المقابلات المسموح بها. يرجى التواصل مع المسؤول للحصول على مقابلات إضافية."
+              : message
+          );
+          return;
+        }
         toast.error(isAr ? "فشل إنشاء جلسة المقابلة" : "Failed to start interview");
       },
     });
@@ -804,8 +827,28 @@ export const SetupContainer = () => {
                 )}
               </div>
 
+              {/* Remaining interview allowance (limited accounts only) */}
+              {remainingInterviews !== null && userData && (
+                <div
+                  className={cn(
+                    "p-3.5 rounded-xl border text-xs font-medium",
+                    hasInterviewsLeft
+                      ? "bg-muted/60 border-border text-muted-foreground"
+                      : "bg-red-500/10 border-red-500/30 text-red-500"
+                  )}
+                >
+                  {hasInterviewsLeft
+                    ? isAr
+                      ? `المقابلات المتبقية: ${remainingInterviews} من ${userData.interviewLimit}`
+                      : `${remainingInterviews} of ${userData.interviewLimit} interviews remaining`
+                    : isAr
+                      ? "لقد استنفدت عدد المقابلات المسموح بها. يرجى التواصل مع المسؤول للحصول على مقابلات إضافية."
+                      : "You have used all your interviews. Please contact an administrator to get more."}
+                </div>
+              )}
+
               {/* Prerequisite checklist alert if not ready */}
-              {!isReadyToStart && (
+              {!isReadyToStart && hasInterviewsLeft && (
                 <div className="p-3.5 rounded-xl bg-muted/60 border border-border text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <span className="font-medium text-foreground">
                     {isAr ? "متطلبات تفعيل زر بدء المقابلة:" : "Required to unlock Start button:"}

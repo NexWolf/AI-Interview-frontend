@@ -24,6 +24,7 @@ interface UsersTableProps {
   onLimitChange: (limit: number) => void;
   onToggleStatus: (user: AdminUser) => void;
   onDelete: (user: AdminUser) => void;
+  onAddInterviews: (user: AdminUser) => void;
 }
 
 export function UsersTable({
@@ -38,6 +39,7 @@ export function UsersTable({
   onLimitChange,
   onToggleStatus,
   onDelete,
+  onAddInterviews,
 }: UsersTableProps) {
   return (
     <div className="rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md overflow-hidden shadow-xs">
@@ -78,6 +80,7 @@ export function UsersTable({
                   isDeleting={isDeleting}
                   onToggleStatus={onToggleStatus}
                   onDelete={onDelete}
+                  onAddInterviews={onAddInterviews}
                 />
               ))
             )}

@@ -59,4 +59,6 @@ export interface UserInfoApi {
   authProvider: string;
   createdAt: string;
   updatedAt: string;
+  interviewLimit: number;
+  usedInterviews: number;
 }

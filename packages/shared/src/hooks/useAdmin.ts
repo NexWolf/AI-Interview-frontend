@@ -55,6 +55,20 @@ export function useUpdateUserStatusMutation() {
   });
 }
 
+export function useAddUserInterviewsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, amount }: { id: string; amount: number }) => adminService.addUserInterviews(id, amount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast.success("Interviews added successfully");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Failed to add interviews");
+    },
+  });
+}
+
 export function useDeleteUserMutation() {
   const queryClient = useQueryClient();
   return useMutation({

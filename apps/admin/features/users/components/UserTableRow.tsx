@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Briefcase, Power, Trash2 } from "lucide-react";
+import { CheckCircle2, Briefcase, Power, Trash2, PlusCircle } from "lucide-react";
 import { AdminUser, cn } from "@repo/shared";
 import {
   getUserRoleBadgeClass,
@@ -16,6 +16,7 @@ interface UserTableRowProps {
   isDeleting: boolean;
   onToggleStatus: (user: AdminUser) => void;
   onDelete: (user: AdminUser) => void;
+  onAddInterviews: (user: AdminUser) => void;
 }
 
 export function UserTableRow({
@@ -24,10 +25,12 @@ export function UserTableRow({
   isDeleting,
   onToggleStatus,
   onDelete,
+  onAddInterviews,
 }: UserTableRowProps) {
   const displayName = getUserDisplayName(user);
   const initials = getUserInitials(user);
   const handle = getUserHandle(user);
+  const isLimited = user.role === "USER";
 
   return (
     <tr className="hover:bg-muted/30 transition-colors">
@@ -78,7 +81,10 @@ export function UserTableRow({
       <td className="px-5 py-4">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Briefcase className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="font-semibold text-foreground">{user._count?.interviews || 0}</span> sessions
+          <span className="font-semibold text-foreground">
+            {user._count?.interviews || 0} / {isLimited ? user.interviewLimit : "∞"}
+          </span>{" "}
+          sessions
         </div>
       </td>
 
@@ -88,6 +94,16 @@ export function UserTableRow({
 
       <td className="px-5 py-4 text-right">
         <div className="flex items-center justify-end gap-1">
+          {isLimited && (
+            <button
+              onClick={() => onAddInterviews(user)}
+              className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+              title="Add interviews"
+            >
+              <PlusCircle className="w-4 h-4" />
+            </button>
+          )}
+
           <button
             onClick={() => onToggleStatus(user)}
             disabled={isUpdatingStatus}

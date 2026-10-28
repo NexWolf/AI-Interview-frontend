@@ -28,6 +28,7 @@ export interface AdminUser {
   onboardingDone?: boolean;
   createdAt: string;
   updatedAt?: string;
+  interviewLimit: number;
   _count?: {
     interviews: number;
     payments: number;

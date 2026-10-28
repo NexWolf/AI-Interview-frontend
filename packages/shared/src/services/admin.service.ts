@@ -86,6 +86,14 @@ export const adminService = {
     return response.data.data;
   },
 
+  addUserInterviews: async (id: string, amount: number): Promise<{ id: string; interviewLimit: number }> => {
+    const response = await AxiosAPI.patch<AdminApiResponse<{ id: string; interviewLimit: number }>>(
+      `/api/v1/admin/users/${id}/interview-limit`,
+      { amount },
+    );
+    return response.data.data;
+  },
+
   deleteUser: async (id: string): Promise<void> => {
     await AxiosAPI.delete(`/api/v1/admin/users/${id}`);
   },
