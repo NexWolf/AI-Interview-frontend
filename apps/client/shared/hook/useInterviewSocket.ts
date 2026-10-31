@@ -48,7 +48,7 @@ export interface SummaryDonePayload {
   result: Record<string, unknown>;
 }
 
-import { getCandidateToken, getValidAccessToken } from "@/shared/lib/AxiosAPI";
+import { getCandidateToken, getValidAccessToken, refreshAccessTokenDirectly } from "@/shared/lib/AxiosAPI";
 
 export interface SocketErrorPayload {
   interviewId?: string | number;
@@ -105,6 +105,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
 
   // Track listeners across re-connections and asynchronous socket creation
   const listenersRef = useRef<Map<string, Set<(payload: any) => void>>>(new Map());
+  const reconnectAuthRetriesRef = useRef<number>(0);
 
   // Initialize and connect socket
   const connect = useCallback(async () => {
@@ -149,6 +150,7 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
     });
 
     socket.on("connect", () => {
+      reconnectAuthRetriesRef.current = 0;
       setConnected(true);
       setIsConnecting(false);
       setError(null);
@@ -170,15 +172,21 @@ export function useInterviewSocket(options: UseInterviewSocketOptions = {}) {
       console.warn("[useInterviewSocket] Connection error:", err.message);
 
       if (err.message === "Unauthorized") {
-        // Try refreshing token once in case accessToken just expired
-        const freshToken = await fetchAccessToken();
-        if (freshToken && freshToken !== token) {
-          socket.auth = { token: freshToken };
-          if (socket.io?.opts) {
-            socket.io.opts.query = { token: freshToken };
+        // Shared single-flight refresh on token expiry with max 2 retry attempts
+        if (reconnectAuthRetriesRef.current < 2) {
+          reconnectAuthRetriesRef.current++;
+          const freshToken = await refreshAccessTokenDirectly();
+          if (freshToken) {
+            socket.auth = { token: freshToken };
+            if (socket.io?.opts) {
+              socket.io.opts.query = { token: freshToken };
+              if (socket.io.opts.extraHeaders) {
+                (socket.io.opts.extraHeaders as any).Authorization = `Bearer ${freshToken}`;
+              }
+            }
+            socket.connect();
+            return;
           }
-          socket.connect();
-          return;
         }
       }
 
