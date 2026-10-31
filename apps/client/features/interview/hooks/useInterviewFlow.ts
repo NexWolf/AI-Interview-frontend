@@ -38,6 +38,25 @@ interface UseInterviewFlowProps {
   isCareerDiscovery?: boolean;
 }
 
+function generateClientAnswerId(): string {
+  if (typeof crypto !== "undefined") {
+    if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    if (typeof crypto.getRandomValues === "function") {
+      return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c: any) =>
+        (
+          +c ^
+          (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))
+        ).toString(16)
+      );
+    }
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export function useInterviewFlow({
   interviewId,
   liveConnected,
@@ -93,6 +112,7 @@ export function useInterviewFlow({
   const isCareerDiscoveryRef = useRef<boolean>(isCareerDiscovery);
   // In-flight answer submission tracking to ensure completion before concluding the interview
   const pendingAnswerPromiseRef = useRef<Promise<any> | null>(null);
+  const clientAnswerIdMapRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     isCareerDiscoveryRef.current = isCareerDiscovery;
@@ -129,6 +149,9 @@ export function useInterviewFlow({
       }
 
       clearListenTimer();
+      if (q?.id) {
+        delete clientAnswerIdMapRef.current[String(q.id)];
+      }
       // Ensure mic and STT are completely off before asking new question
       abortRecognition();
       setMicEnabled?.(false, "onAskQuestion");
@@ -411,24 +434,12 @@ export function useInterviewFlow({
         return;
       }
 
-      const clientAnswerId = (() => {
-        if (typeof crypto !== "undefined") {
-          if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
-          if (typeof crypto.getRandomValues === "function") {
-            return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c: any) =>
-              (
-                +c ^
-                (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))
-              ).toString(16)
-            );
-          }
-        }
-        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-          const r = (Math.random() * 16) | 0;
-          const v = c === "x" ? r : (r & 0x3) | 0x8;
-          return v.toString(16);
-        });
-      })();
+      const qKey = String(q.id);
+      let clientAnswerId = clientAnswerIdMapRef.current[qKey];
+      if (!clientAnswerId) {
+        clientAnswerId = generateClientAnswerId();
+        clientAnswerIdMapRef.current[qKey] = clientAnswerId;
+      }
 
       console.log(
         "%c🚀 [submitAnswer] Submitting Answer:",
@@ -519,7 +530,18 @@ export function useInterviewFlow({
             headers: { "Content-Type": "multipart/form-data" },
           }
         )
+          .then(() => {
+            delete clientAnswerIdMapRef.current[qKey];
+          })
           .catch((e: any) => {
+            const isAlreadySaved =
+              e?.response?.status === 409 ||
+              /already (saved|answered|processed)/i.test(e?.response?.data?.message || "");
+            if (isAlreadySaved) {
+              console.log("[submitAnswer] Audio answer already saved on server (idempotent replay).");
+              delete clientAnswerIdMapRef.current[qKey];
+              return;
+            }
             console.error("Save audio answer error:", e);
             const errMsg =
               e?.response?.data?.message ||
@@ -553,7 +575,13 @@ export function useInterviewFlow({
                 : "background: #ef4444; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
               { ok, message, data }
             );
-            if (!ok) {
+            const isAlreadySaved =
+              data?.replay ||
+              (message && /already (saved|answered|processed)/i.test(message));
+
+            if (ok || isAlreadySaved) {
+              delete clientAnswerIdMapRef.current[qKey];
+            } else {
               const errMsg = message || "تعذر إرسال الإجابة. إجابتك محفوظة.";
               console.error(errMsg);
             }
@@ -578,7 +606,18 @@ export function useInterviewFlow({
           clientAnswerId,
         }
       )
+        .then(() => {
+          delete clientAnswerIdMapRef.current[qKey];
+        })
         .catch((e: any) => {
+          const isAlreadySaved =
+            e?.response?.status === 409 ||
+            /already (saved|answered|processed)/i.test(e?.response?.data?.message || "");
+          if (isAlreadySaved) {
+            console.log("[submitAnswer] Text answer already saved on server (idempotent replay).");
+            delete clientAnswerIdMapRef.current[qKey];
+            return;
+          }
           console.error("Save answer error:", e);
           const errMsg =
             e?.response?.data?.message ||
